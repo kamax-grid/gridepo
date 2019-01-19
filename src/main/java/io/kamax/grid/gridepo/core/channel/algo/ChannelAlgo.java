@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.channel.algo;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 
@@ -31,6 +32,8 @@ public interface ChannelAlgo {
     long getBaseDepth();
 
     long getCreateDepth();
+
+    BarePowerEvent.Content getDefaultPowers(String creator);
 
     String generateEventId(String domain);
 

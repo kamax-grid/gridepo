@@ -49,14 +49,8 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
         return GsonUtil.fromJson(ev, BareGenericEvent.class);
     }
 
-    private BarePowerEvent.Content defaultPowers(String creator) {
-        BarePowerEvent.Content ev = new BarePowerEvent.Content();
-        ev.getDef().setEvent(0L);
-        ev.getDef().setState(Long.MAX_VALUE);
-        ev.getDef().setUser(Long.MIN_VALUE);
-        ev.getMembership().setBan(Long.MAX_VALUE);
-        ev.getMembership().setInvite(Long.MAX_VALUE);
-        ev.getMembership().setKick(Long.MAX_VALUE);
+    public BarePowerEvent.Content getDefaultPowers(String creator) {
+        BarePowerEvent.Content ev = new DefaultPowerEvent().getContent();
         ev.getUsers().put(creator, Long.MAX_VALUE);
         return ev;
     }
@@ -256,7 +250,7 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
 
         BareCreateEvent.Content cEv = cOpt.map(BareCreateEvent::getContent).get();
 
-        BarePowerEvent.Content pls = state.getPowers().orElseGet(() -> defaultPowers(cEv.getCreator()));
+        BarePowerEvent.Content pls = state.getPowers().orElseGet(() -> getDefaultPowers(cEv.getCreator()));
         String sender = ev.getSender();
         ChannelMembership senderMs = state.getMembership(sender).orElse(ChannelMembership.Leave);
         long senderPl = pls.getUsers().getOrDefault(sender, pls.getDef().getUser());
@@ -375,7 +369,7 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
         }
 
         if (ChannelEventType.Power.match(evType)) {
-            BarePowerEvent.Content newPls = GsonUtil.fromJson(evRaw, BarePowerEvent.class).getContent();
+            BarePowerEvent.Content newPls = DefaultPowerEvent.applyDefaults(GsonUtil.fromJson(evRaw, DefaultPowerEvent.class).getContent());
             if (pls.getDef().getEvent() > senderPl || newPls.getDef().getEvent() > senderPl) {
                 return auth.deny("Sender is missing minimum Power Level to change Power Level settings");
             }

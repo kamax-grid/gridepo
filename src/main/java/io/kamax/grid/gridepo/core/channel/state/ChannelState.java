@@ -119,10 +119,17 @@ public class ChannelState {
         return find(type.getId(), scope, c);
     }
 
-    public String getCreationId() throws IllegalStateException {
+    public BareCreateEvent getCreation() {
         return find(ChannelEventType.Create, BareCreateEvent.class)
-                .map(BareCreateEvent::getId)
                 .orElseThrow(IllegalStateException::new);
+    }
+
+    public String getCreationId() throws IllegalStateException {
+        return getCreation().getId();
+    }
+
+    public String getCreator() {
+        return getCreation().getContent().getCreator();
     }
 
     public Set<String> getServers() {

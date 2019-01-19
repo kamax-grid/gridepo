@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.event.BareEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
+import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
@@ -48,6 +49,7 @@ public class Channel {
     private DataServerManager srvMgr;
     private ChannelAlgo algo;
 
+    private BarePowerEvent.Content defaultPls;
     private ChannelView view;
 
     public Channel(long sid, String id, String domain, ChannelAlgo algo, Store store, DataServerManager srvMgr) {
@@ -74,6 +76,16 @@ public class Channel {
 
     public String getVersion() {
         return algo.getVersion();
+    }
+
+    public BarePowerEvent.Content getDefaultPls() {
+        synchronized (this) {
+            if (Objects.isNull(defaultPls)) {
+                defaultPls = algo.getDefaultPowers(getView().getState().getCreator());
+            }
+        }
+
+        return defaultPls;
     }
 
     public ChannelView getView() {

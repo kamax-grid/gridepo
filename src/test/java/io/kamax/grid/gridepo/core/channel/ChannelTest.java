@@ -25,6 +25,7 @@ import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
 import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
+import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.crypto.KeyManager;
@@ -78,6 +79,9 @@ public class ChannelTest {
         assertNotNull(state);
         assertEquals(auth.getEventId(), state.getCreationId());
 
+        BarePowerEvent.Content afterCreatePls = state.getPowers().orElseGet(c::getDefaultPls);
+        assertEquals(Long.MAX_VALUE, (long) afterCreatePls.getUsers().get(userId));
+
         assertEquals(1, c.getView().getState().getServers().size());
         assertEquals(1, store.getExtremities(c.getId()).size());
 
@@ -91,6 +95,15 @@ public class ChannelTest {
         assertEquals(GsonUtil.getStringOrThrow(ev, EventKey.Id), auth.getEventId());
         state = c.getView().getState();
         assertEquals(ChannelMembership.Join, state.getMembership(userId).orElse(ChannelMembership.Leave));
+
+        BarePowerEvent cPlEv = new BarePowerEvent();
+        cPlEv.setSender(userId);
+        cPlEv.getContent().getUsers().put(userId, 100L);
+        ev = evSvc.finalize(c.makeEvent(cPlEv));
+        assertAllowed(c.inject(ev));
+        state = c.getView().getState();
+        BarePowerEvent.Content afterPlPls = state.getPowers().orElseGet(c::getDefaultPls);
+        assertEquals(100, (long) afterPlPls.getUsers().get(userId));
     }
 
 }
