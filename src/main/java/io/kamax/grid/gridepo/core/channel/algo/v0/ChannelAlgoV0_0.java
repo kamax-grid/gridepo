@@ -250,7 +250,7 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
 
         BareCreateEvent.Content cEv = cOpt.map(BareCreateEvent::getContent).get();
 
-        BarePowerEvent.Content pls = state.getPowers().orElseGet(() -> getDefaultPowers(cEv.getCreator()));
+        BarePowerEvent.Content pls = DefaultPowerEvent.applyDefaults(state.getPowers().orElseGet(() -> getDefaultPowers(cEv.getCreator())));
         String sender = ev.getSender();
         ChannelMembership senderMs = state.getMembership(sender).orElse(ChannelMembership.Leave);
         long senderPl = pls.getUsers().getOrDefault(sender, pls.getDef().getUser());

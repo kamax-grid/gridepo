@@ -24,10 +24,7 @@ import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -93,7 +90,7 @@ public class MemoryStore implements Store {
 
     @Override
     public long insertIfNew(String chId, ChannelState state) {
-        if (state.getSid() > 0) {
+        if (Objects.nonNull(state.getSid())) {
             return state.getSid();
         }
 

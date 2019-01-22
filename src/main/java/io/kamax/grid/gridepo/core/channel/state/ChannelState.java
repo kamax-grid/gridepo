@@ -60,27 +60,24 @@ public class ChannelState {
         return new ChannelState();
     }
 
-    private long sid;
-    private String head;
+    private Long sid;
     private Map<String, JsonObject> events = new HashMap<>();
     private transient Set<String> servers = new HashSet<>();
 
     private ChannelState() {
     }
 
-    private ChannelState(String head, List<JsonObject> events) {
-        this(0, head, events);
+    private ChannelState(List<JsonObject> events) {
+        this(null, events);
     }
 
-    public ChannelState(long sid, String head, List<JsonObject> events) {
+    public ChannelState(Long sid, List<JsonObject> events) {
         this.sid = sid;
-        this.head = head;
         events.forEach(this::addEvent);
     }
 
-    public ChannelState(long sid, ChannelState state) {
+    public ChannelState(Long sid, ChannelState state) {
         this.sid = sid;
-        this.head = state.head;
         this.events = new HashMap<>(state.events);
         this.servers = new HashSet<>(state.servers);
     }
@@ -91,12 +88,8 @@ public class ChannelState {
         servers.add(GsonUtil.getStringOrThrow(ev, EventKey.Origin));
     }
 
-    public long getSid() {
+    public Long getSid() {
         return sid;
-    }
-
-    public String getHead() {
-        return head;
     }
 
     public Optional<JsonObject> find(String type, String scope) {
@@ -160,8 +153,6 @@ public class ChannelState {
         }
 
         ChannelState state = new ChannelState();
-        state.sid = sid;
-        state.head = GsonUtil.getStringOrThrow(ev, EventKey.Id);
         state.events = new HashMap<>(events);
         state.servers = new HashSet<>(servers);
         state.addEvent(ev);

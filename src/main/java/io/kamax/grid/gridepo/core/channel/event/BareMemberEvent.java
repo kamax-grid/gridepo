@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.channel.event;
 
 import com.google.gson.annotations.SerializedName;
+import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.event.EventKey;
 
 public class BareMemberEvent extends BareEvent {
@@ -35,6 +36,10 @@ public class BareMemberEvent extends BareEvent {
 
         public void setAction(String action) {
             this.action = action;
+        }
+
+        public void setAction(ChannelMembership m) {
+            setAction(m.getId());
         }
 
     }

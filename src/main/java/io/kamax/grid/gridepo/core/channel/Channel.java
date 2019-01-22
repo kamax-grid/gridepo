@@ -97,7 +97,8 @@ public class Channel {
     }
 
     public JsonObject makeEvent(BareEvent ev) {
-        return makeEvent(GsonUtil.makeObj(ev));
+        JsonObject obj = GsonUtil.makeObj(ev);
+        return makeEvent(obj);
     }
 
     public JsonObject makeEvent(JsonObject obj) {
@@ -186,8 +187,8 @@ public class Channel {
         ev.setProcessed(true);
 
         ev = store.saveEvent(ev);
-        long sSid = store.insertIfNew(id, state);
-        store.map(ev.getSid(), sSid);
+        state = store.getState(store.insertIfNew(id, state));
+        store.map(ev.getSid(), state.getSid());
 
         List<String> evIds = store.getExtremities(id);
         for (String prevEv : ev.getBare().getPreviousEvents()) {
