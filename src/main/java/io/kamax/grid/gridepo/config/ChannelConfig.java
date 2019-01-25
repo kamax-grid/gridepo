@@ -18,32 +18,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.channel.algo;
+package io.kamax.grid.gridepo.config;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.channel.event.BareEvent;
-import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
-import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
-import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
 
-import java.util.List;
+public class ChannelConfig {
 
-public interface ChannelAlgo {
+    public static class Creation {
 
-    String getVersion();
+        private String version = ChannelAlgoV0_0.Version;
 
-    long getBaseDepth();
 
-    long getCreateDepth();
+        public String getVersion() {
+            return version;
+        }
 
-    BarePowerEvent.Content getDefaultPowers(String creator);
+        public void setVersion(String version) {
+            this.version = version;
+        }
+    }
 
-    String generateEventId(String domain);
+    private Creation creation = new Creation();
 
-    String validate(JsonObject ev);
+    public Creation getCreation() {
+        return creation;
+    }
 
-    ChannelEventAuthorization authorize(ChannelState state, JsonObject ev);
-
-    List<BareEvent> getCreationEvents(String creator);
+    public void setCreation(Creation creation) {
+        this.creation = creation;
+    }
 
 }

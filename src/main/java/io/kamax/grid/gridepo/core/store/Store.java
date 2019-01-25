@@ -20,6 +20,7 @@
 
 package io.kamax.grid.gridepo.core.store;
 
+import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 
@@ -31,6 +32,8 @@ public interface Store {
     default boolean hasEvent(String channelId, String eventId) {
         return getEvent(channelId, eventId).isPresent();
     }
+
+    ChannelDao saveChannel(ChannelDao ch);
 
     ChannelEvent saveEvent(ChannelEvent ev);
 

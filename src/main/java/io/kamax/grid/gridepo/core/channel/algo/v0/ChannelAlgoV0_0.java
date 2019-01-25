@@ -33,26 +33,27 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ChannelAlgoV0_0 implements ChannelAlgo {
 
-    static final String Version = "0.0";
+    public static final String Version = "0.0";
     static final long minDepth = 0;
 
     private BareGenericEvent toProto(JsonObject ev) {
         return GsonUtil.fromJson(ev, BareGenericEvent.class);
     }
 
-    public BarePowerEvent.Content getDefaultPowers(String creator) {
-        BarePowerEvent.Content ev = new DefaultPowerEvent().getContent();
-        ev.getUsers().put(creator, Long.MAX_VALUE);
+    public BarePowerEvent getDefaultPowersEvent(String creator) {
+        BarePowerEvent ev = new DefaultPowerEvent();
+        ev.getContent().getUsers().put(creator, Long.MAX_VALUE);
         return ev;
+    }
+
+    public BarePowerEvent.Content getDefaultPowers(String creator) {
+        return getDefaultPowersEvent(creator).getContent();
     }
 
     private boolean canDoMembership(long senderPl, ChannelMembership m, BarePowerEvent.Content pls) {
@@ -386,6 +387,28 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
         }
 
         return auth.allow();
+    }
+
+    @Override
+    public List<BareEvent> getCreationEvents(String creator) {
+        List<BareEvent> events = new ArrayList<>();
+        BareCreateEvent createEv = new BareCreateEvent();
+        createEv.getContent().setCreator(creator);
+        createEv.setSender(creator);
+
+        BareMemberEvent cJoinEv = new BareMemberEvent();
+        cJoinEv.setSender(creator);
+        cJoinEv.setScope(creator);
+        cJoinEv.getContent().setAction(ChannelMembership.Join);
+
+        BarePowerEvent cPlEv = getDefaultPowersEvent(creator);
+        cPlEv.setSender(creator);
+
+        events.add(createEv);
+        events.add(cJoinEv);
+        events.add(cPlEv);
+
+        return events;
     }
 
 }

@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.store;
 
 import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 
@@ -53,6 +54,13 @@ public class MemoryStore implements Store {
     @Override
     public boolean hasEvent(String chId, String evId) {
         return evRefToSid.containsKey(makeRef(chId, evId));
+    }
+
+    @Override
+    public ChannelDao saveChannel(ChannelDao ch) {
+        // FIXME this will blow up in tests
+        ch.setSid(System.currentTimeMillis());
+        return ch;
     }
 
     @Override

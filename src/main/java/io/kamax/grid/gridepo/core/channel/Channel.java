@@ -41,8 +41,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Channel {
 
-    private long sid;
-    private String id;
+    private ChannelDao dao;
     private String domain;
 
     private Store store;
@@ -53,8 +52,11 @@ public class Channel {
     private ChannelView view;
 
     public Channel(long sid, String id, String domain, ChannelAlgo algo, Store store, DataServerManager srvMgr) {
-        this.sid = sid;
-        this.id = id;
+        this(new ChannelDao(sid, id), domain, algo, store, srvMgr);
+    }
+
+    public Channel(ChannelDao dao, String domain, ChannelAlgo algo, Store store, DataServerManager srvMgr) {
+        this.dao = dao;
         this.domain = domain;
         this.algo = algo;
         this.store = store;
@@ -63,11 +65,11 @@ public class Channel {
     }
 
     public long getSid() {
-        return sid;
+        return dao.getSid();
     }
 
     public String getId() {
-        return id;
+        return dao.getId();
     }
 
     public String getDomain() {
@@ -93,7 +95,7 @@ public class Channel {
     }
 
     public List<String> getExtremities() {
-        return store.getExtremities(id);
+        return store.getExtremities(getId());
     }
 
     public JsonObject makeEvent(BareEvent ev) {
@@ -103,13 +105,13 @@ public class Channel {
 
     public JsonObject makeEvent(JsonObject obj) {
         obj.addProperty(EventKey.Origin, domain);
-        obj.addProperty(EventKey.ChannelId, id);
+        obj.addProperty(EventKey.ChannelId, getId());
         obj.addProperty(EventKey.Id, algo.generateEventId(domain));
         obj.addProperty(EventKey.Timestamp, Instant.now().toEpochMilli());
 
         List<String> exts = getExtremities();
         long depth = exts.stream()
-                .map(evId -> store.getEvent(id, evId))
+                .map(evId -> store.getEvent(getId(), evId))
                 .map(ChannelEvent::getBare)
                 .mapToLong(BareEvent::getDepth)
                 .max()
@@ -122,7 +124,7 @@ public class Channel {
 
     public boolean isUsable(ChannelEvent ev) {
         if (!ev.isProcessed()) {
-            throw new IllegalStateException("Event " + id + "/" + ev.getId() + " has not been processed");
+            throw new IllegalStateException("Event " + getId() + "/" + ev.getId() + " has not been processed");
         }
 
         return ev.isPresent() && ev.isValid() && ev.isAllowed();
@@ -130,11 +132,11 @@ public class Channel {
 
     private synchronized ChannelEvent processIfNotAlready(String evId) {
         process(evId, true, false);
-        return store.getEvent(id, evId);
+        return store.getEvent(getId(), evId);
     }
 
     private synchronized ChannelEventAuthorization process(String evId, boolean recursive, boolean force) {
-        ChannelEvent ev = store.getEvent(id, evId);
+        ChannelEvent ev = store.getEvent(getId(), evId);
         if (ev.isProcessed() && !force) {
             return new ChannelEventAuthorization.Builder(evId)
                     .authorize(ev.isPresent() && ev.isValid() && ev.isAllowed(), "From previous computation");
@@ -154,7 +156,7 @@ public class Channel {
                     if (recursive) {
                         return processIfNotAlready(pEvId);
                     } else {
-                        return store.findEvent(id, pEvId).orElseGet(() -> ChannelEvent.forNotFound(pEvId));
+                        return store.findEvent(getId(), pEvId).orElseGet(() -> ChannelEvent.forNotFound(pEvId));
                     }
                 })
                 .filter(this::isUsable)
@@ -187,16 +189,16 @@ public class Channel {
         ev.setProcessed(true);
 
         ev = store.saveEvent(ev);
-        state = store.getState(store.insertIfNew(id, state));
+        state = store.getState(store.insertIfNew(getId(), state));
         store.map(ev.getSid(), state.getSid());
 
-        List<String> evIds = store.getExtremities(id);
+        List<String> evIds = store.getExtremities(getId());
         for (String prevEv : ev.getBare().getPreviousEvents()) {
             evIds.remove(prevEv);
         }
 
         evIds.add(ev.getId());
-        store.setExtremities(id, evIds);
+        store.setExtremities(getId(), evIds);
 
         view = new ChannelView(ev.getId(), state);
 
@@ -219,20 +221,20 @@ public class Channel {
             String evId = remaining.poll();
             ChannelEvent chEv = new ChannelEvent();
 
-            Optional<ChannelEvent> storeEv = store.findEvent(id, evId);
+            Optional<ChannelEvent> storeEv = store.findEvent(getId(), evId);
             if (storeEv.isPresent()) {
                 chEv = storeEv.get();
                 if (chEv.isPresent()) {
                     continue;
                 }
             } else {
-                chEv.setChannelId(id);
+                chEv.setChannelId(getId());
                 chEv.setId(evId);
                 chEv.setProcessed(false);
             }
 
             for (DataServer srv : srvMgr.get(getView().getState().getServers())) {
-                Optional<JsonObject> data = srv.getEvent(id, evId);
+                Optional<JsonObject> data = srv.getEvent(getId(), evId);
                 if (data.isPresent()) {
                     chEv.setData(data.get());
                     chEv.setFetchedFrom(srv.getDomain());
@@ -263,7 +265,7 @@ public class Channel {
 
         List<ChannelEventAuthorization> auths = new ArrayList<>();
         events.stream().sorted(Comparator.comparingLong(ev -> ev.getBare().getDepth())).forEach(event -> {
-            Optional<ChannelEvent> evStore = store.findEvent(id, event.getId());
+            Optional<ChannelEvent> evStore = store.findEvent(getId(), event.getId());
 
             if (evStore.isPresent() && evStore.get().isPresent()) {
                 // We already have the event, we skip
@@ -281,7 +283,7 @@ public class Channel {
             event.setProcessed(false);
 
             long minDepth = extremities.stream()
-                    .map(evId -> store.getEvent(id, evId))
+                    .map(evId -> store.getEvent(getId(), evId))
                     .map(ChannelEvent::getBare)
                     .min(Comparator.comparingLong(BareEvent::getDepth))
                     .map(BareEvent::getDepth)

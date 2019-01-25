@@ -25,6 +25,7 @@ public class GridepoConfig {
     private ClientConnectorConfig client = new ClientConnectorConfig();
     private CryptoConfig crypto = new CryptoConfig();
     private String domain;
+    private ChannelConfig channel = new ChannelConfig();
     private FederationConnectorConfig federation = new FederationConnectorConfig();
     private StorageConfig storage = new StorageConfig();
 
@@ -50,6 +51,14 @@ public class GridepoConfig {
 
     public void setDomain(String domain) {
         this.domain = domain;
+    }
+
+    public ChannelConfig getChannel() {
+        return channel;
+    }
+
+    public void setChannel(ChannelConfig channel) {
+        this.channel = channel;
     }
 
     public FederationConnectorConfig getFederation() {

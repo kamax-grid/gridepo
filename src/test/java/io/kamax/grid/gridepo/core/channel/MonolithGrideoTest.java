@@ -18,32 +18,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.channel.algo;
+package io.kamax.grid.gridepo.core.channel;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.channel.event.BareEvent;
-import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
-import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
-import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.config.GridepoConfig;
+import io.kamax.grid.gridepo.core.MonolithGridepo;
+import org.junit.Test;
 
-import java.util.List;
+import static org.junit.Assert.assertEquals;
 
-public interface ChannelAlgo {
+public class MonolithGrideoTest {
 
-    String getVersion();
-
-    long getBaseDepth();
-
-    long getCreateDepth();
-
-    BarePowerEvent.Content getDefaultPowers(String creator);
-
-    String generateEventId(String domain);
-
-    String validate(JsonObject ev);
-
-    ChannelEventAuthorization authorize(ChannelState state, JsonObject ev);
-
-    List<BareEvent> getCreationEvents(String creator);
-
+    @Test
+    public void basic() {
+        GridepoConfig cfg = new GridepoConfig();
+        cfg.setDomain("localhost");
+        Gridepo g = new MonolithGridepo(cfg);
+        Channel ch = g.createChannel("@john.doe");
+        assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership("@john.doe").orElse(ChannelMembership.Leave));
+    }
 }

@@ -22,7 +22,7 @@ package io.kamax.grid.gridepo.config;
 
 public class StorageConfig {
 
-    private String type;
+    private String type = "memory";
     private String connection;
 
     public String getType() {

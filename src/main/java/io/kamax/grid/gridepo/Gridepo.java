@@ -20,10 +20,16 @@
 
 package io.kamax.grid.gridepo;
 
+import io.kamax.grid.gridepo.core.channel.Channel;
+
 public interface Gridepo {
 
     void start();
 
     void stop();
+
+    Channel createChannel(String creator);
+
+    Channel createChannel(String creator, String version);
 
 }

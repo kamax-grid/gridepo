@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.http;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
+import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -91,6 +92,16 @@ public class MonolithHttpGridepo implements Gridepo {
     public void stop() {
         u.stop();
         g.stop();
+    }
+
+    @Override
+    public Channel createChannel(String creator) {
+        return g.createChannel(creator);
+    }
+
+    @Override
+    public Channel createChannel(String creator, String version) {
+        return g.createChannel(creator, version);
     }
 
 }
