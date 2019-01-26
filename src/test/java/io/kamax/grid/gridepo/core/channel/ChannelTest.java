@@ -103,7 +103,7 @@ public class ChannelTest {
         assertNotEquals(sid, state.getSid());
         sid = state.getSid();
         assertEquals(1, state.getServers().size());
-        assertEquals(ChannelMembership.Join, state.getMembership(janeId).orElse(ChannelMembership.Leave));
+        assertEquals(ChannelMembership.Join, state.findMembership(janeId).orElse(ChannelMembership.Leave));
 
         BarePowerEvent cPlEv = new BarePowerEvent();
         cPlEv.setSender(janeId);
@@ -124,7 +124,7 @@ public class ChannelTest {
         assertAllowed(c.inject(ev));
         state = c.getView().getState();
         assertEquals(1, state.getServers().size());
-        Optional<ChannelMembership> johnMembership = state.getMembership(johnId);
+        Optional<ChannelMembership> johnMembership = state.findMembership(johnId);
         assertTrue(johnMembership.isPresent());
         assertEquals(ChannelMembership.Invite, johnMembership.get());
 
@@ -137,8 +137,8 @@ public class ChannelTest {
         assertAllowed(c.inject(ev));
         state = c.getView().getState();
         assertEquals(1, state.getServers().size());
-        Optional<ChannelMembership> janeMembership = state.getMembership(janeId);
-        johnMembership = state.getMembership(johnId);
+        Optional<ChannelMembership> janeMembership = state.findMembership(janeId);
+        johnMembership = state.findMembership(johnId);
         assertTrue(johnMembership.isPresent());
         assertTrue(janeMembership.isPresent());
         assertEquals(ChannelMembership.Join, janeMembership.get());

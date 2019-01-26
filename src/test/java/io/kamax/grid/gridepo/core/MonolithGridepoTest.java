@@ -18,23 +18,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.channel;
+package io.kamax.grid.gridepo.core;
 
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
-import io.kamax.grid.gridepo.core.MonolithGridepo;
+import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class MonolithGrideoTest {
+public class MonolithGridepoTest {
 
     @Test
-    public void basic() {
+    public void basicRoomCreate() {
         GridepoConfig cfg = new GridepoConfig();
         cfg.setDomain("localhost");
         Gridepo g = new MonolithGridepo(cfg);
         Channel ch = g.createChannel("@john.doe");
-        assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership("@john.doe").orElse(ChannelMembership.Leave));
+        assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership("@john.doe"));
     }
+
 }

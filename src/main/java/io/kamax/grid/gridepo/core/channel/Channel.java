@@ -167,7 +167,6 @@ public class Channel {
             maxParentDepth = algo.getBaseDepth();
         }
 
-
         if (maxParentDepth == Long.MIN_VALUE + 1) {
             b.deny("No parent event is found or valid, marking event as unauthorized");
         } else {

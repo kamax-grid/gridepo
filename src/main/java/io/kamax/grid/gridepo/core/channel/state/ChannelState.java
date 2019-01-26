@@ -134,10 +134,14 @@ public class ChannelState {
                 .map(BarePowerEvent::getContent);
     }
 
-    public Optional<ChannelMembership> getMembership(String userId) {
+    public Optional<ChannelMembership> findMembership(String userId) {
         return find(ChannelEventType.Member, userId, BareMemberEvent.class)
                 .map(ev -> ev.getContent().getAction())
                 .flatMap(membershipMapper());
+    }
+
+    public ChannelMembership getMembership(String userId) {
+        return findMembership(userId).orElse(ChannelMembership.Leave);
     }
 
     public Optional<ChannelJoinRule> getJoinRule() {

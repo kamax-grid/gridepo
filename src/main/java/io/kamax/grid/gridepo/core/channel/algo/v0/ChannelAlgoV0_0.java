@@ -253,14 +253,14 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
 
         BarePowerEvent.Content pls = DefaultPowerEvent.applyDefaults(state.getPowers().orElseGet(() -> getDefaultPowers(cEv.getCreator())));
         String sender = ev.getSender();
-        ChannelMembership senderMs = state.getMembership(sender).orElse(ChannelMembership.Leave);
+        ChannelMembership senderMs = state.findMembership(sender).orElse(ChannelMembership.Leave);
         long senderPl = pls.getUsers().getOrDefault(sender, pls.getDef().getUser());
 
         if (ChannelEventType.Member.match(evType)) {
             BareMemberEvent mEv = GsonUtil.fromJson(evRaw, BareMemberEvent.class);
             String membership = mEv.getContent().getAction();
             String target = mEv.getScope();
-            ChannelMembership targetMs = state.getMembership(target).orElse(ChannelMembership.Leave);
+            ChannelMembership targetMs = state.findMembership(target).orElse(ChannelMembership.Leave);
             long targetPl = pls.getUsers().getOrDefault(target, pls.getDef().getUser());
 
             if (ChannelMembership.Join.match(membership)) {
