@@ -20,10 +20,9 @@
 
 package io.kamax.grid.gridepo.http;
 
-import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
-import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.http.handler.matrix.LoginHandler;
 import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -41,13 +40,23 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 
-public class MonolithHttpGridepo implements Gridepo {
+public class MonolithHttpGridepo {
 
     private GridepoConfig cfg;
     private MonolithGridepo g;
     private Undertow u;
 
+    public MonolithHttpGridepo(String domain) {
+        GridepoConfig cfg = new GridepoConfig();
+        cfg.setDomain(domain);
+        init(cfg);
+    }
+
     public MonolithHttpGridepo(GridepoConfig cfg) {
+        init(cfg);
+    }
+
+    private void init(GridepoConfig cfg) {
         this.cfg = cfg;
     }
 
@@ -73,14 +82,14 @@ public class MonolithHttpGridepo implements Gridepo {
     private void build() {
         g = new MonolithGridepo(cfg);
 
-        SSLContext sslC = buildTls(cfg.getFederation().getKey(), cfg.getFederation().getCert());
+        //SSLContext sslC = buildTls(cfg.getFederation().getKey(), cfg.getFederation().getCert());
         Undertow.Builder b = Undertow.builder();
-        b.addHttpsListener(cfg.getFederation().getPort(), cfg.getFederation().getIp(), sslC).setHandler(Handlers.routing());
-        b.addHttpListener(cfg.getClient().getPort(), cfg.getClient().getIp()).setHandler(Handlers.routing());
+        //b.addHttpsListener(cfg.getFederation().getPort(), cfg.getFederation().getIp(), sslC).setHandler(Handlers.routing());
+        b.addHttpListener(cfg.getClient().getPort(), cfg.getClient().getIp()).setHandler(Handlers.routing()
+                .post("/_matrix/client/r0/login", new LoginHandler()));
         u = b.build();
     }
 
-    @Override
     public void start() {
         build();
 
@@ -88,20 +97,9 @@ public class MonolithHttpGridepo implements Gridepo {
         u.start();
     }
 
-    @Override
     public void stop() {
         u.stop();
         g.stop();
-    }
-
-    @Override
-    public Channel createChannel(String creator) {
-        return g.createChannel(creator);
-    }
-
-    @Override
-    public Channel createChannel(String creator, String version) {
-        return g.createChannel(creator, version);
     }
 
 }

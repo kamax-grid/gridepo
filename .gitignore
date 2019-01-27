@@ -7,4 +7,4 @@ out/
 .idea/
 
 # Local dev config
-/config.yaml
+/gridepo.yaml

@@ -92,7 +92,7 @@ public class MonolithGridepo implements Gridepo {
     public Channel createChannel(String creator, String version) {
         ChannelAlgo algo = ChannelAlgos.get(version);
 
-        String chId = Base64.encodeBase64URLSafeString(longToBytes(System.currentTimeMillis())) + RandomStringUtils.randomAlphanumeric(2);
+        String chId = "#" + Base64.encodeBase64URLSafeString(longToBytes(System.currentTimeMillis())) + RandomStringUtils.randomAlphanumeric(2);
         ChannelDao dao = new ChannelDao();
         dao.setId(chId);
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
