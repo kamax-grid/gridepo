@@ -18,21 +18,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo;
+package io.kamax.grid.gridepo.core;
 
-import io.kamax.grid.gridepo.core.UserSession;
-import io.kamax.grid.gridepo.core.channel.ChannelManager;
+import org.apache.commons.lang3.StringUtils;
 
-public interface Gridepo {
+import java.util.Base64;
 
-    void start();
+public final class UserID extends EntityID {
 
-    void stop();
+    public static final String Sigil = "@";
 
-    String getDomain();
+    public static UserID parse(String id) {
+        if (!StringUtils.startsWith(id, Sigil)) {
+            throw new IllegalArgumentException("Does not start with " + Sigil);
+        }
 
-    ChannelManager getChannelManager();
+        id = id.substring(1);
+        Base64.getUrlDecoder().decode(id);
 
-    UserSession login(String username, String password);
+        return new UserID(id);
+    }
+
+    public UserID(String id) {
+        super(Sigil, id);
+    }
 
 }

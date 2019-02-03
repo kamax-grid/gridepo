@@ -117,4 +117,19 @@ public class MemoryStore implements Store {
         evStates.put(evSid, stateSid);
     }
 
+    @Override
+    public boolean hasUser(String username) {
+        return false;
+    }
+
+    @Override
+    public void storeUser(String username, String salt, String password) {
+
+    }
+
+    @Override
+    public Optional<String> findPassword(String username) {
+        return Optional.empty();
+    }
+
 }

@@ -46,15 +46,15 @@ public class Exchange {
         this.exchange = exchange;
     }
 
-    protected String getRemoteHostAddress() {
+    public String getRemoteHostAddress() {
         return ((InetSocketAddress) exchange.getConnection().getPeerAddress()).getAddress().getHostAddress();
     }
 
-    protected String getQueryParameter(String name) {
+    public String getQueryParameter(String name) {
         return getQueryParameter(exchange.getQueryParameters(), name);
     }
 
-    protected String getQueryParameter(Map<String, Deque<String>> parms, String name) {
+    public String getQueryParameter(Map<String, Deque<String>> parms, String name) {
         try {
             String raw = parms.getOrDefault(name, new LinkedList<>()).peekFirst();
             if (StringUtils.isEmpty(raw)) {
@@ -67,19 +67,19 @@ public class Exchange {
         }
     }
 
-    protected String getPathVariable(String name) {
+    public String getPathVariable(String name) {
         return getQueryParameter(name);
     }
 
-    protected Optional<String> getContentType() {
+    public Optional<String> getContentType() {
         return Optional.ofNullable(exchange.getRequestHeaders().getFirst("Content-Type"));
     }
 
-    protected void writeBodyAsUtf8(String body) {
+    public void writeBodyAsUtf8(String body) {
         exchange.getResponseSender().send(body, StandardCharsets.UTF_8);
     }
 
-    protected String getBodyUtf8() {
+    public String getBodyUtf8() {
         try {
             return IOUtils.toString(exchange.getInputStream(), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -87,45 +87,41 @@ public class Exchange {
         }
     }
 
-    protected <T> T parseJsonTo(Class<T> type) {
+    public <T> T parseJsonTo(Class<T> type) {
         return GsonUtil.get().fromJson(getBodyUtf8(), type);
     }
 
-    protected JsonObject parseJsonObject(String key) {
+    public JsonObject parseJsonObject(String key) {
         return GsonUtil.getObj(parseJsonObject(), key);
     }
 
-    protected JsonObject parseJsonObject() {
-        try {
-            return GsonUtil.parseObj(IOUtils.toString(exchange.getInputStream(), StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public JsonObject parseJsonObject() {
+        return GsonUtil.parseObj(getBodyUtf8());
     }
 
-    protected void respond(int statusCode, JsonElement bodyJson) {
+    public void respond(int statusCode, JsonElement bodyJson) {
         respondJson(statusCode, GsonUtil.get().toJson(bodyJson));
     }
 
-    protected void respond(JsonElement bodyJson) {
+    public void respond(JsonElement bodyJson) {
         respond(200, bodyJson);
     }
 
-    protected void respondJson(int status, String body) {
+    public void respondJson(int status, String body) {
         exchange.setStatusCode(status);
         exchange.getResponseHeaders().put(HttpString.tryFromString("Content-Type"), "application/json");
         writeBodyAsUtf8(body);
     }
 
-    protected void respondJson(String body) {
+    public void respondJson(String body) {
         respondJson(200, body);
     }
 
-    protected void respondJson(Object body) {
+    public void respondJson(Object body) {
         respondJson(GsonUtil.get().toJson(body));
     }
 
-    protected JsonObject buildErrorBody(String errCode, String error) {
+    public JsonObject buildErrorBody(String errCode, String error) {
         JsonObject obj = new JsonObject();
         obj.addProperty("errcode", errCode);
         obj.addProperty("error", error);
@@ -133,7 +129,7 @@ public class Exchange {
         return obj;
     }
 
-    protected void respond(int status, String errCode, String error) {
+    public void respond(int status, String errCode, String error) {
         respond(status, buildErrorBody(errCode, error));
     }
 

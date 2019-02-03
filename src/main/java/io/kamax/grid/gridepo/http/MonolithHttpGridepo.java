@@ -22,7 +22,7 @@ package io.kamax.grid.gridepo.http;
 
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
-import io.kamax.grid.gridepo.http.handler.matrix.LoginHandler;
+import io.kamax.grid.gridepo.http.handler.matrix.AttemptLoginHandler;
 import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -86,7 +86,7 @@ public class MonolithHttpGridepo {
         Undertow.Builder b = Undertow.builder();
         //b.addHttpsListener(cfg.getFederation().getPort(), cfg.getFederation().getIp(), sslC).setHandler(Handlers.routing());
         b.addHttpListener(cfg.getClient().getPort(), cfg.getClient().getIp()).setHandler(Handlers.routing()
-                .post("/_matrix/client/r0/login", new LoginHandler()));
+                .post("/_matrix/client/r0/login", new AttemptLoginHandler(g)));
         u = b.build();
     }
 

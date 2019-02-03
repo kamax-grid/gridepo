@@ -18,21 +18,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo;
+package io.kamax.grid.gridepo.core;
 
-import io.kamax.grid.gridepo.core.UserSession;
-import io.kamax.grid.gridepo.core.channel.ChannelManager;
+public class UserSession {
 
-public interface Gridepo {
+    private User user;
+    private String accessToken;
 
-    void start();
+    public User getUser() {
+        return user;
+    }
 
-    void stop();
-
-    String getDomain();
-
-    ChannelManager getChannelManager();
-
-    UserSession login(String username, String password);
+    public String getAccessToken() {
+        return accessToken;
+    }
 
 }

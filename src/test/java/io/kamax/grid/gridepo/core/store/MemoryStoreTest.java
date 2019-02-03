@@ -18,21 +18,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo;
+package io.kamax.grid.gridepo.core.store;
 
-import io.kamax.grid.gridepo.core.UserSession;
-import io.kamax.grid.gridepo.core.channel.ChannelManager;
+public class MemoryStoreTest extends StoreTest {
 
-public interface Gridepo {
-
-    void start();
-
-    void stop();
-
-    String getDomain();
-
-    ChannelManager getChannelManager();
-
-    UserSession login(String username, String password);
+    @Override
+    protected Store getNewStore() {
+        return new MemoryStore();
+    }
 
 }

@@ -35,7 +35,7 @@ public class MonolithGridepoTest {
         GridepoConfig cfg = new GridepoConfig();
         cfg.setDomain("localhost");
         Gridepo g = new MonolithGridepo(cfg);
-        Channel ch = g.createChannel("@john.doe");
+        Channel ch = g.getChannelManager().createChannel("@john.doe");
         assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership("@john.doe"));
     }
 

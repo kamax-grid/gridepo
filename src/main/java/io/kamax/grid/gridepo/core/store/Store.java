@@ -51,4 +51,10 @@ public interface Store {
 
     void map(long evSid, long stateSid);
 
+    boolean hasUser(String username);
+
+    void storeUser(String username, String salt, String password);
+
+    Optional<String> findPassword(String username);
+
 }

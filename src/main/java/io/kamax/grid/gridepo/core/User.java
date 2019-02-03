@@ -18,17 +18,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.grid.gridepo.core;
 
-import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.http.handler.SaneHandler;
-import org.apache.commons.lang3.NotImplementedException;
+public class User {
 
-public class LoginHandler extends SaneHandler {
+    private Long sid;
+    private String username;
 
-    @Override
-    protected void handle(Exchange exchange) {
-        throw new NotImplementedException("Matrix login");
+    public User(Long sid, String username) {
+        this.sid = sid;
+        this.username = username;
+    }
+
+    public User(String username) {
+        this(null, username);
+    }
+
+    public Long getSid() {
+        return sid;
+    }
+
+    public String getUsername() {
+        return username;
     }
 
 }
