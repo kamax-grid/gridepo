@@ -49,9 +49,8 @@ public abstract class StoreTest {
     @Test
     public void userSavedAndRead() {
         String user = RandomStringUtils.random(12);
-        String salt = RandomStringUtils.random(12);
         String password = RandomStringUtils.random(12);
-        store.storeUser(user, salt, password);
+        store.storeUser(user, password);
 
         assertTrue(store.hasUser(user));
         Optional<String> pwdStored = store.findPassword(user);
@@ -65,16 +64,16 @@ public abstract class StoreTest {
         String user2 = RandomStringUtils.random(12);
         String user3 = RandomStringUtils.random(12);
 
-        store.storeUser(user1, "", user1);
-        store.storeUser(user2, "", user2);
+        store.storeUser(user1, user1);
+        store.storeUser(user2, user2);
 
         assertTrue(store.hasUser(user1));
-        Optional<String> u1PwdStored = store.findPassword(user2);
+        Optional<String> u1PwdStored = store.findPassword(user1);
         assertTrue(u1PwdStored.isPresent());
         assertEquals(user1, u1PwdStored.get());
 
-        assertTrue(store.hasUser(user1));
-        Optional<String> u2PwdStored = store.findPassword(user1);
+        assertTrue(store.hasUser(user2));
+        Optional<String> u2PwdStored = store.findPassword(user2);
         assertTrue(u2PwdStored.isPresent());
         assertEquals(user2, u2PwdStored.get());
 

@@ -34,6 +34,9 @@ public class IdentityManager {
 
     public IdentityManager(Store store) {
         this.store = store;
+
+        // FIXME remove before first release
+        register("gridepo", "gridepo");
     }
 
     public synchronized void register(String username, String password) {
@@ -44,10 +47,10 @@ public class IdentityManager {
             throw new IllegalArgumentException("Username already taken");
         }
 
-        String salt = RandomStringUtils.randomAlphanumeric(12);
+        String salt = RandomStringUtils.randomAlphanumeric(16);
         String encPwd = OpenBSDBCrypt.generate(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 12);
 
-        store.storeUser(username, salt, encPwd);
+        store.storeUser(username, encPwd);
     }
 
     public String login(String username, String password) {

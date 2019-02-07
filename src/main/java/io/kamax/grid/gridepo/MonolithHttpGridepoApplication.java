@@ -32,6 +32,8 @@ import java.util.Objects;
 public class MonolithHttpGridepoApplication {
 
     public static void main(String[] args) {
+        System.out.println("------------- Gridepo starting -------------");
+
         try {
             GridepoConfig cfg = null;
 
@@ -60,11 +62,11 @@ public class MonolithHttpGridepoApplication {
             MonolithHttpGridepo g = new MonolithHttpGridepo(cfg);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 g.stop();
-                System.out.println("------------- gridepo stopped -------------");
+                System.out.println("------------- Gridepo stopped -------------");
             }));
 
             g.start();
-            System.out.println("------------- gridepo started -------------");
+            System.out.println("------------- Gridepo started -------------");
         } catch (Throwable t) {
             t.printStackTrace();
             System.exit(1);

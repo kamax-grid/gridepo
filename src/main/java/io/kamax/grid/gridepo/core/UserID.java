@@ -22,6 +22,8 @@ package io.kamax.grid.gridepo.core;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public final class UserID extends EntityID {
@@ -37,6 +39,16 @@ public final class UserID extends EntityID {
         Base64.getUrlDecoder().decode(id);
 
         return new UserID(id);
+    }
+
+    public static UserID from(String username, String domain) {
+        try {
+            String id = Base64.getUrlEncoder().withoutPadding().encodeToString((username + "@" + domain).getBytes(StandardCharsets.UTF_8.name()));
+            return new UserID(id);
+        } catch (UnsupportedEncodingException e) {
+            // Nothing we can do about it
+            throw new RuntimeException(e);
+        }
     }
 
     public UserID(String id) {

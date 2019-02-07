@@ -20,6 +20,9 @@
 
 package io.kamax.grid.gridepo.core;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
@@ -28,17 +31,30 @@ import io.kamax.grid.gridepo.core.crypto.MemoryKeyStore;
 import io.kamax.grid.gridepo.core.crypto.SignManager;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
+import io.kamax.grid.gridepo.core.identity.IdentityManager;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.Instant;
+import java.util.Date;
+
 public class MonolithGridepo implements Gridepo {
+
+    private Algorithm jwtAlgo;
+    private JWTVerifier jwtVerifier;
 
     private GridepoConfig cfg;
     private Store store;
+    private IdentityManager idMgr;
     private ChannelManager chMgr;
 
     public MonolithGridepo(GridepoConfig cfg) {
+        jwtAlgo = Algorithm.HMAC256(cfg.getCrypto().getSeed().get("jwt"));
+        jwtVerifier = JWT.require(jwtAlgo)
+                .withIssuer(cfg.getDomain())
+                .build();
+
         this.cfg = cfg;
 
         // FIXME use ServiceLoader
@@ -53,6 +69,7 @@ public class MonolithGridepo implements Gridepo {
         SignManager signMgr = new SignManager(keyMgr);
         EventService evSvc = new EventService(cfg.getDomain(), signMgr);
 
+        idMgr = new IdentityManager(store);
         chMgr = new ChannelManager(cfg, evSvc, store, dsmgr);
     }
 
@@ -80,7 +97,17 @@ public class MonolithGridepo implements Gridepo {
 
     @Override
     public UserSession login(String username, String password) {
-        return null;
+        String canonicalUsername = idMgr.login(username, password);
+        UserID uId = UserID.from(username, cfg.getDomain());
+        User u = new User(canonicalUsername);
+
+        String token = JWT.create()
+                .withIssuer(cfg.getDomain())
+                .withExpiresAt(Date.from(Instant.ofEpochMilli(Long.MAX_VALUE)))
+                .withClaim("UserID", uId.full())
+                .sign(jwtAlgo);
+
+        return new UserSession(u, token);
     }
 
 }

@@ -22,13 +22,16 @@ package io.kamax.grid.gridepo.http;
 
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
-import io.kamax.grid.gridepo.http.handler.matrix.AttemptLoginHandler;
+import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.FileReader;
@@ -41,6 +44,8 @@ import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 
 public class MonolithHttpGridepo {
+
+    private static final Logger log = LoggerFactory.getLogger(MonolithHttpGridepo.class);
 
     private GridepoConfig cfg;
     private MonolithGridepo g;
@@ -79,14 +84,71 @@ public class MonolithHttpGridepo {
         }
     }
 
+    private void buildGridClient(Undertow.Builder b, GridepoConfig.Listener cfg) {
+
+    }
+
+    private void buildGridServer(Undertow.Builder b, GridepoConfig.Listener cfg) {
+        //SSLContext sslC = buildTls(cfg.getFederation().getKey(), cfg.getFederation().getCert());
+        //b.addHttpsListener(cfg.getFederation().getPort(), cfg.getFederation().getIp(), sslC).setHandler(Handlers.routing());
+    }
+
+    private void buildGrid(Undertow.Builder b, GridepoConfig.Listener cfg) {
+        if (StringUtils.equals("client", cfg.getType())) {
+            buildGridClient(b, cfg);
+        } else if (StringUtils.equals("server", cfg.getType())) {
+            buildGridServer(b, cfg);
+        } else {
+            throw new RuntimeException(cfg.getType() + " is not a supported Grid listener type");
+        }
+    }
+
+    private void buildMatrixClient(Undertow.Builder b, GridepoConfig.Listener cfg) {
+        b.addHttpListener(cfg.getPort(), cfg.getAddress()).setHandler(Handlers.routing()
+                .add("OPTIONS", "/**", new OptionsHandler())
+                .get(ClientAPI.Base + "/versions", new VersionsHandler())
+                .post(ClientAPIr0.Base + "/login", new LoginHandler(g))
+                .post(ClientAPIr0.Base + "/user/{userId}/filter", new FiltersPostHandler())
+                .get(ClientAPIr0.Base + "/sync", new SyncHandler())
+
+                // So various Matrix clients (e.g. Riot) stops spamming us with requests
+                .get(ClientAPIr0.Base + "/pushrules/", new PushRulesHandler())
+                .put(ClientAPIr0.Base + "/presence/**", new EmptyJsonObjectHandler())
+                .get(ClientAPIr0.Base + "/voip/turnServer", new EmptyJsonObjectHandler())
+                .get(ClientAPIr0.Base + "/joined_groups", new EmptyJsonObjectHandler())
+
+                .setFallbackHandler(new NotFoundHandler())
+        );
+        log.info("Added Matrix client listener on {}:{}", cfg.getAddress(), cfg.getPort());
+    }
+
+    private void buildMatrixServer(Undertow.Builder b, GridepoConfig.Listener cfg) {
+
+    }
+
+    private void buildMatrix(Undertow.Builder b, GridepoConfig.Listener cfg) {
+        if (StringUtils.equals("client", cfg.getType())) {
+            buildMatrixClient(b, cfg);
+        } else if (StringUtils.equals("server", cfg.getType())) {
+            buildMatrixServer(b, cfg);
+        } else {
+            throw new RuntimeException(cfg.getType() + " is not a supported Matrix listener type");
+        }
+    }
+
     private void build() {
         g = new MonolithGridepo(cfg);
 
-        //SSLContext sslC = buildTls(cfg.getFederation().getKey(), cfg.getFederation().getCert());
         Undertow.Builder b = Undertow.builder();
-        //b.addHttpsListener(cfg.getFederation().getPort(), cfg.getFederation().getIp(), sslC).setHandler(Handlers.routing());
-        b.addHttpListener(cfg.getClient().getPort(), cfg.getClient().getIp()).setHandler(Handlers.routing()
-                .post("/_matrix/client/r0/login", new AttemptLoginHandler(g)));
+        for (GridepoConfig.Listener cfg : cfg.getListeners()) {
+            if (StringUtils.equals("grid", cfg.getProtocol())) {
+                buildGrid(b, cfg);
+            } else if (StringUtils.equals("matrix", cfg.getProtocol())) {
+                buildMatrix(b, cfg);
+            } else {
+                throw new RuntimeException(cfg.getProtocol() + " is not a supported listener protocol");
+            }
+        }
         u = b.build();
     }
 

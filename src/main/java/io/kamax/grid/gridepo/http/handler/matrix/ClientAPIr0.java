@@ -17,28 +17,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package io.kamax.grid.gridepo.http.handler.matrix;
 
-package io.kamax.grid.gridepo.core;
+public class ClientAPIr0 {
 
-public class UserSession {
-
-    private User user;
-    private String accessToken;
-
-    public UserSession() {
-    }
-
-    public UserSession(User user, String accessToken) {
-        this.user = user;
-        this.accessToken = accessToken;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
+    public static final String Base = ClientAPI.Base + "/r0";
+    public static final String Rooms = Base + "/rooms";
+    public static final String Room = Rooms + "/{roomId}";
+    public static final String Directory = Base + "/directory";
 
 }

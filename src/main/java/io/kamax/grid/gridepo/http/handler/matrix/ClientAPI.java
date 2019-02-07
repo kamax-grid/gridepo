@@ -18,27 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.http.handler.matrix;
 
-public class UserSession {
+public class ClientAPI {
 
-    private User user;
-    private String accessToken;
-
-    public UserSession() {
-    }
-
-    public UserSession(User user, String accessToken) {
-        this.user = user;
-        this.accessToken = accessToken;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
+    public static final String Base = "/_matrix/client";
 
 }

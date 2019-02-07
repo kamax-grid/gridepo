@@ -18,27 +18,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.http.handler.matrix;
 
-public class UserSession {
+import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.http.handler.SaneHandler;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
-    private User user;
-    private String accessToken;
+public class FiltersPostHandler extends SaneHandler {
 
-    public UserSession() {
-    }
-
-    public UserSession(User user, String accessToken) {
-        this.user = user;
-        this.accessToken = accessToken;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
+    @Override
+    protected void handle(Exchange exchange) {
+        exchange.respond(GsonUtil.makeObj("filter_id", Long.toString(System.currentTimeMillis())));
     }
 
 }

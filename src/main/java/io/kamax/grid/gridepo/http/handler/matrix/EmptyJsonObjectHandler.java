@@ -20,34 +20,14 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.http.handler.SaneHandler;
-import io.kamax.grid.gridepo.util.GsonUtil;
-import org.apache.commons.lang3.RandomStringUtils;
 
-public class AttemptLoginHandler extends SaneHandler {
-
-    private final Gridepo srv;
-
-    public AttemptLoginHandler(Gridepo srv) {
-        this.srv = srv;
-    }
+public class EmptyJsonObjectHandler extends SaneHandler {
 
     @Override
     protected void handle(Exchange exchange) {
-        JsonObject body = exchange.parseJsonObject();
-        String username = GsonUtil.getStringOrThrow(body, "user");
-        String password = GsonUtil.getStringOrThrow(body, "password");
-
-        UserSession session = srv.login(username, password);
-
-        JsonObject reply = new JsonObject();
-        reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + srv.getDomain());
-        reply.addProperty("access_token", session.getAccessToken());
-        reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
+        exchange.respondJson("{}");
     }
 
 }

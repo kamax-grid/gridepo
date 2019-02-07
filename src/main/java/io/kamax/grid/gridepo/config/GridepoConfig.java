@@ -20,21 +20,64 @@
 
 package io.kamax.grid.gridepo.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class GridepoConfig {
 
-    private ClientConnectorConfig client = new ClientConnectorConfig();
+    public static class Listener {
+
+        private String protocol;
+        private String type;
+        private String address;
+        private int port;
+
+        public String getProtocol() {
+            return protocol;
+        }
+
+        public void setProtocol(String protocol) {
+            this.protocol = protocol;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getAddress() {
+            return address;
+        }
+
+        public void setAddress(String address) {
+            this.address = address;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+
+    }
+
+    private List<Listener> listeners = new ArrayList<>();
     private CryptoConfig crypto = new CryptoConfig();
     private String domain;
     private ChannelConfig channel = new ChannelConfig();
-    private FederationConnectorConfig federation = new FederationConnectorConfig();
     private StorageConfig storage = new StorageConfig();
 
-    public ClientConnectorConfig getClient() {
-        return client;
+    public List<Listener> getListeners() {
+        return listeners;
     }
 
-    public void setClient(ClientConnectorConfig client) {
-        this.client = client;
+    public void setListeners(List<Listener> listeners) {
+        this.listeners = listeners;
     }
 
     public CryptoConfig getCrypto() {
@@ -59,14 +102,6 @@ public class GridepoConfig {
 
     public void setChannel(ChannelConfig channel) {
         this.channel = channel;
-    }
-
-    public FederationConnectorConfig getFederation() {
-        return federation;
-    }
-
-    public void setFederation(FederationConnectorConfig federation) {
-        this.federation = federation;
     }
 
     public StorageConfig getStorage() {

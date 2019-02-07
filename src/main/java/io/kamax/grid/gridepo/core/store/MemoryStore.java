@@ -35,6 +35,7 @@ public class MemoryStore implements Store {
     private AtomicLong evSid = new AtomicLong(0);
     private AtomicLong sSid = new AtomicLong(0);
 
+    private Map<String, String> users = new ConcurrentHashMap<>();
     private Map<Long, Channel> channels = new ConcurrentHashMap<>();
     private Map<Long, ChannelEvent> chEvents = new ConcurrentHashMap<>();
     private Map<Long, ChannelState> chStates = new ConcurrentHashMap<>();
@@ -119,17 +120,21 @@ public class MemoryStore implements Store {
 
     @Override
     public boolean hasUser(String username) {
-        return false;
+        return users.containsKey(username);
     }
 
     @Override
-    public void storeUser(String username, String salt, String password) {
+    public synchronized void storeUser(String username, String password) {
+        if (hasUser(username)) {
+            throw new IllegalStateException(username + " already exists");
+        }
 
+        users.put(username, password);
     }
 
     @Override
     public Optional<String> findPassword(String username) {
-        return Optional.empty();
+        return Optional.ofNullable(users.get(username));
     }
 
 }

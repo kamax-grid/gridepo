@@ -108,9 +108,13 @@ public class Exchange {
     }
 
     public void respondJson(int status, String body) {
-        exchange.setStatusCode(status);
-        exchange.getResponseHeaders().put(HttpString.tryFromString("Content-Type"), "application/json");
-        writeBodyAsUtf8(body);
+        try {
+            exchange.setStatusCode(status);
+            exchange.getResponseHeaders().put(HttpString.tryFromString("Content-Type"), "application/json");
+            writeBodyAsUtf8(body);
+        } catch (IllegalStateException e) {
+            // already sent, we ignore
+        }
     }
 
     public void respondJson(String body) {

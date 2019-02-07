@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.http.handler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HttpString;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
@@ -36,7 +37,7 @@ public abstract class SaneHandler implements HttpHandler {
     private transient final Logger log = LoggerFactory.getLogger(SaneHandler.class);
 
     @Override
-    public void handleRequest(HttpServerExchange exchange) throws Exception {
+    public void handleRequest(HttpServerExchange exchange) {
         exchange.startBlocking();
 
         if (exchange.isInIoThread()) {
@@ -44,6 +45,11 @@ public abstract class SaneHandler implements HttpHandler {
         } else {
             Exchange ex = new Exchange(exchange);
             try {
+                // CORS headers as per spec
+                exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Origin"), "*");
+                exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "GET, POST, PUT, DELETE, OPTIONS");
+                exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Headers"), "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
                 handle(ex);
             } catch (IllegalArgumentException e) {
                 ex.respond(HttpStatus.SC_BAD_REQUEST, GsonUtil.makeObj("error", e.getMessage()));
