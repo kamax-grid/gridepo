@@ -27,6 +27,10 @@ public class CryptoConfig {
 
     private Map<String, String> seed = new HashMap<>();
 
+    public CryptoConfig() {
+        seed.put("jwt", "");
+    }
+
     public Map<String, String> getSeed() {
         return seed;
     }

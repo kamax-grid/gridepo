@@ -18,40 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.exception;
 
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.channel.Channel;
+public class InvalidTokenException extends RuntimeException {
 
-public class UserSession {
-
-    private Gridepo g;
-    private User user;
-    private String accessToken;
-
-    public UserSession() {
-    }
-
-    public UserSession(Gridepo g, User user) {
-        this.g = g;
-        this.user = user;
-    }
-
-    public UserSession(User user, String accessToken) {
-        this.user = user;
-        this.accessToken = accessToken;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public Channel createChannel() {
-        return g.getChannelManager().createChannel(user.getUsername());
+    public InvalidTokenException(String message) {
+        super(message);
     }
 
 }

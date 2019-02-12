@@ -20,35 +20,25 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.http.handler.SaneHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
-import org.apache.commons.lang3.StringUtils;
 
-import java.time.Instant;
+public class CreateRoomHandler extends SaneHandler {
 
-public class SyncHandler extends SaneHandler {
+    private Gridepo g;
+
+    public CreateRoomHandler(Gridepo g) {
+        this.g = g;
+    }
 
     @Override
     protected void handle(Exchange exchange) {
-        String since = StringUtils.defaultIfBlank(exchange.getQueryParameter("since"), "park");
-        if (StringUtils.equals("park", since)) {
-            Instant target = Instant.now().plusSeconds(30);
-            while (target.isAfter(Instant.now())) {
-                try {
-                    Thread.sleep(1000L);
-                    System.out.println(".");
+        Channel c = g.withToken(exchange.getAccessToken()).createChannel();
 
-                    if (Thread.currentThread().isInterrupted()) {
-                        System.out.println("Interrupted");
-                        break;
-                    }
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }
-        exchange.respond(GsonUtil.makeObj("next_batch", "park"));
+        exchange.respondJson(GsonUtil.makeObj("room_id", c.getId()));
     }
 
 }

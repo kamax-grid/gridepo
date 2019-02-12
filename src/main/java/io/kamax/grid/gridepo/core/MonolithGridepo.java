@@ -110,4 +110,10 @@ public class MonolithGridepo implements Gridepo {
         return new UserSession(u, token);
     }
 
+    @Override
+    public UserSession withToken(String token) {
+        String userId = JWT.decode(token).getClaim("UserID").asString();
+        return new UserSession(this, new User(userId));
+    }
+
 }

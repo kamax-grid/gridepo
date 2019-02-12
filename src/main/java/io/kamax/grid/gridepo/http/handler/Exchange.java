@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.http.handler;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.exception.MissingTokenException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
@@ -30,7 +31,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Deque;
@@ -46,8 +46,13 @@ public class Exchange {
         this.exchange = exchange;
     }
 
-    public String getRemoteHostAddress() {
-        return ((InetSocketAddress) exchange.getConnection().getPeerAddress()).getAddress().getHostAddress();
+    public String getAccessToken() {
+        String value = exchange.getRequestHeaders().getFirst("Authorization");
+        if (!StringUtils.startsWith(value, "Bearer ")) {
+            throw new MissingTokenException("No access token given");
+        }
+
+        return value.substring("Bearer ".length());
     }
 
     public String getQueryParameter(String name) {

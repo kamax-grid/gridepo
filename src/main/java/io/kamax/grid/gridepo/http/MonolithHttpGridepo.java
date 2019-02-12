@@ -26,6 +26,7 @@ import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
+import io.undertow.UndertowOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -111,6 +112,8 @@ public class MonolithHttpGridepo {
                 .post(ClientAPIr0.Base + "/user/{userId}/filter", new FiltersPostHandler())
                 .get(ClientAPIr0.Base + "/sync", new SyncHandler())
 
+                .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
+
                 // So various Matrix clients (e.g. Riot) stops spamming us with requests
                 .get(ClientAPIr0.Base + "/pushrules/", new PushRulesHandler())
                 .put(ClientAPIr0.Base + "/presence/**", new EmptyJsonObjectHandler())
@@ -140,6 +143,7 @@ public class MonolithHttpGridepo {
         g = new MonolithGridepo(cfg);
 
         Undertow.Builder b = Undertow.builder();
+        b.setServerOption(UndertowOptions.SHUTDOWN_TIMEOUT, 5000);
         for (GridepoConfig.Listener cfg : cfg.getListeners()) {
             if (StringUtils.equals("grid", cfg.getProtocol())) {
                 buildGrid(b, cfg);

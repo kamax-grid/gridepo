@@ -61,6 +61,7 @@ public class MonolithHttpGridepoApplication {
 
             MonolithHttpGridepo g = new MonolithHttpGridepo(cfg);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("------------- Gridepo stopping -------------");
                 g.stop();
                 System.out.println("------------- Gridepo stopped -------------");
             }));

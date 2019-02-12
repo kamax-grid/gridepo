@@ -20,7 +20,8 @@
 
 package io.kamax.grid.gridepo.http.handler;
 
-import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.exception.InvalidTokenException;
+import io.kamax.grid.gridepo.exception.MissingTokenException;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
@@ -52,7 +53,11 @@ public abstract class SaneHandler implements HttpHandler {
 
                 handle(ex);
             } catch (IllegalArgumentException e) {
-                ex.respond(HttpStatus.SC_BAD_REQUEST, GsonUtil.makeObj("error", e.getMessage()));
+                ex.respond(HttpStatus.SC_BAD_REQUEST, "G_INVALID_PARAM", e.getMessage());
+            } catch (MissingTokenException e) {
+                ex.respond(HttpStatus.SC_UNAUTHORIZED, "G_UNKNOWN_TOKEN", e.getMessage());
+            } catch (InvalidTokenException e) {
+                ex.respond(HttpStatus.SC_UNAUTHORIZED, "G_MISSING_TOKEN", e.getMessage());
             } catch (NotImplementedException e) {
                 ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "G_NOT_IMPLEMENTED", e.getMessage());
             } catch (RuntimeException e) {

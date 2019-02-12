@@ -35,4 +35,6 @@ public interface Gridepo {
 
     UserSession login(String username, String password);
 
+    UserSession withToken(String token);
+
 }

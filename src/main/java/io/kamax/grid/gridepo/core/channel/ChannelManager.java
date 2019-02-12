@@ -31,6 +31,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 
 public class ChannelManager {
@@ -47,11 +49,14 @@ public class ChannelManager {
         this.dsmgr = dsmgr;
     }
 
-    // FIXME make nice method to generate an ID from timestamp
-    public byte[] longToBytes(long x) {
+    private String generateId() {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(x - 1546297200000L); // TS since 2019-01-01T00:00:00Z to keep IDs short
-        return buffer.array();
+        buffer.putLong(Instant.now().toEpochMilli() - 1546297200000L); // TS since 2019-01-01T00:00:00Z to keep IDs short
+        byte[] tsBytes = buffer.array();
+
+        String localId = Base64.encodeBase64URLSafeString(tsBytes) + RandomStringUtils.randomAlphanumeric(2);
+        String decodedId = localId + "@" + cfg.getDomain();
+        return "#" + Base64.encodeBase64URLSafeString(decodedId.getBytes(StandardCharsets.UTF_8));
     }
 
     public Channel createChannel(String creator) {
@@ -61,9 +66,8 @@ public class ChannelManager {
     public Channel createChannel(String creator, String version) {
         ChannelAlgo algo = ChannelAlgos.get(version);
 
-        String chId = "#" + Base64.encodeBase64URLSafeString(longToBytes(System.currentTimeMillis())) + RandomStringUtils.randomAlphanumeric(2);
         ChannelDao dao = new ChannelDao();
-        dao.setId(chId);
+        dao.setId(generateId());
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
 
         Channel ch = new Channel(dao, cfg.getDomain(), algo, store, dsmgr);
