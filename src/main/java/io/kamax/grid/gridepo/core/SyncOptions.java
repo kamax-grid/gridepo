@@ -18,16 +18,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.grid.gridepo.core;
 
-import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
-import io.kamax.grid.gridepo.http.handler.Exchange;
+public class SyncOptions {
 
-public class OptionsHandler extends ClientApiHandler {
+    private long timeout = 30000;
+    private String token = "";
 
-    @Override
-    protected void handle(Exchange exchange) {
-        // no-op
+    public long getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(long timeout) {
+        this.timeout = timeout;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
 }

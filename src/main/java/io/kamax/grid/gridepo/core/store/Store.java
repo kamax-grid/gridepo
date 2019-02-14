@@ -39,6 +39,8 @@ public interface Store {
 
     ChannelEvent getEvent(String channelId, String eventId) throws IllegalStateException;
 
+    List<ChannelEvent> getNext(Long last, long amount);
+
     Optional<ChannelEvent> findEvent(String channelId, String eventId);
 
     void setExtremities(String chId, List<String> extremities);

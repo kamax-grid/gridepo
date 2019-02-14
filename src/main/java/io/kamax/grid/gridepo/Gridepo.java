@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo;
 
 import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
+import io.kamax.grid.gridepo.core.event.EventStreamer;
 
 public interface Gridepo {
 
@@ -29,9 +30,15 @@ public interface Gridepo {
 
     void stop();
 
+    boolean isStopping();
+
     String getDomain();
 
+    Object getSyncLock();
+
     ChannelManager getChannelManager();
+
+    EventStreamer getStreamer();
 
     UserSession login(String username, String password);
 

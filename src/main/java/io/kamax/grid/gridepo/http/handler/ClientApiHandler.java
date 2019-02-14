@@ -33,9 +33,9 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 
-public abstract class SaneHandler implements HttpHandler {
+public abstract class ClientApiHandler implements HttpHandler {
 
-    private transient final Logger log = LoggerFactory.getLogger(SaneHandler.class);
+    private transient final Logger log = LoggerFactory.getLogger(ClientApiHandler.class);
 
     @Override
     public void handleRequest(HttpServerExchange exchange) {

@@ -23,12 +23,12 @@ package io.kamax.grid.gridepo.http.handler.matrix;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.http.handler.SaneHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 
-public class LoginHandler extends SaneHandler {
+public class LoginHandler extends ClientApiHandler {
 
     private final Gridepo srv;
 

@@ -22,15 +22,17 @@ package io.kamax.grid.gridepo.core;
 
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import org.apache.commons.lang3.StringUtils;
+
+import java.time.Instant;
+import java.util.List;
 
 public class UserSession {
 
     private Gridepo g;
     private User user;
     private String accessToken;
-
-    public UserSession() {
-    }
 
     public UserSession(Gridepo g, User user) {
         this.g = g;
@@ -52,6 +54,37 @@ public class UserSession {
 
     public Channel createChannel() {
         return g.getChannelManager().createChannel(user.getUsername());
+    }
+
+    public SyncData sync(SyncOptions options) {
+        Instant end = Instant.now().plusMillis(options.getTimeout());
+
+        SyncData data = new SyncData();
+        data.setPosition(options.getToken());
+
+        if (StringUtils.isEmpty(options.getToken())) {
+            options.setToken(Long.toString(0));
+        }
+
+        long sid = Long.parseLong(options.getToken());
+        synchronized (g.getSyncLock()) {
+            while (!g.isStopping() && Instant.now().isBefore(end)) {
+                try {
+                    g.getSyncLock().wait(1000L);
+                } catch (InterruptedException e) {
+                    // This is ok, we don't need to do anything
+                }
+
+                List<ChannelEvent> events = g.getStreamer().next(sid);
+                if (!events.isEmpty()) {
+                    data.setPosition(Long.toString(events.get(events.size() - 1).getSid()));
+                    data.setEvents(events);
+                    return data;
+                }
+            }
+        }
+
+        return data;
     }
 
 }

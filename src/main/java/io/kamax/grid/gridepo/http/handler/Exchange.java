@@ -127,7 +127,7 @@ public class Exchange {
     }
 
     public void respondJson(Object body) {
-        respondJson(GsonUtil.get().toJson(body));
+        respondJson(GsonUtil.toJson(body));
     }
 
     public JsonObject buildErrorBody(String errCode, String error) {

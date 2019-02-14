@@ -24,12 +24,16 @@ import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MemoryStore implements Store {
+
+    private static final Logger log = LoggerFactory.getLogger(MemoryStore.class);
 
     private AtomicLong chSid = new AtomicLong(0);
     private AtomicLong evSid = new AtomicLong(0);
@@ -73,12 +77,35 @@ public class MemoryStore implements Store {
         chEvents.put(ev.getSid(), ev);
         evRefToSid.put(makeRef(ev), ev.getSid());
 
+        log.info("Added new channel event with SID {}", ev.getSid());
+
         return ev;
     }
 
     @Override
     public synchronized ChannelEvent getEvent(String channelId, String eventId) throws IllegalStateException {
         return findEvent(channelId, eventId).orElseThrow(IllegalStateException::new);
+    }
+
+    @Override
+    public List<ChannelEvent> getNext(Long last, long amount) {
+        List<ChannelEvent> events = new ArrayList<>();
+        while (events.size() < amount) {
+            last++;
+
+            log.info("Checking for next event SID {}", last);
+            if (!chEvents.containsKey(last)) {
+                log.info("No such event, end of stream");
+                return events;
+            }
+
+            log.info("Found next event SID {}, adding", last);
+            events.add(chEvents.get(last));
+            log.info("Incrementing SID");
+        }
+
+        log.info("Reached max amount of stream events, returning data");
+        return events;
     }
 
     @Override

@@ -109,8 +109,9 @@ public class MonolithHttpGridepo {
                 .add("OPTIONS", "/**", new OptionsHandler())
                 .get(ClientAPI.Base + "/versions", new VersionsHandler())
                 .post(ClientAPIr0.Base + "/login", new LoginHandler(g))
+                .get(ClientAPIr0.Base + "/user/{userId}/filter/{filterId}", new FilterGetHandler())
                 .post(ClientAPIr0.Base + "/user/{userId}/filter", new FiltersPostHandler())
-                .get(ClientAPIr0.Base + "/sync", new SyncHandler())
+                .get(ClientAPIr0.Base + "/sync", new SyncHandler(g))
 
                 .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
 

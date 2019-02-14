@@ -20,11 +20,11 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.http.handler.SaneHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class FiltersPostHandler extends SaneHandler {
+public class FiltersPostHandler extends ClientApiHandler {
 
     @Override
     protected void handle(Exchange exchange) {

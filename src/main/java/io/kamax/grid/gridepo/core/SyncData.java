@@ -18,16 +18,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.grid.gridepo.core;
 
-import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
-import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 
-public class OptionsHandler extends ClientApiHandler {
+import java.util.ArrayList;
+import java.util.List;
 
-    @Override
-    protected void handle(Exchange exchange) {
-        // no-op
+public class SyncData {
+
+    private String position = "";
+    private List<ChannelEvent> events = new ArrayList<>();
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
+    }
+
+    public List<ChannelEvent> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<ChannelEvent> events) {
+        this.events = new ArrayList<>(events);
     }
 
 }

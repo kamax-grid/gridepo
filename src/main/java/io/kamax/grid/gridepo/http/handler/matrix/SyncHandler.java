@@ -20,35 +20,32 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.SyncData;
+import io.kamax.grid.gridepo.core.SyncOptions;
+import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.http.handler.SaneHandler;
-import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 
-import java.time.Instant;
+public class SyncHandler extends ClientApiHandler {
 
-public class SyncHandler extends SaneHandler {
+    private final Gridepo g;
+
+    public SyncHandler(Gridepo g) {
+        this.g = g;
+    }
 
     @Override
     protected void handle(Exchange exchange) {
-        String since = StringUtils.defaultIfBlank(exchange.getQueryParameter("since"), "park");
-        if (StringUtils.equals("park", since)) {
-            Instant target = Instant.now().plusSeconds(30);
-            while (target.isAfter(Instant.now())) {
-                try {
-                    Thread.sleep(1000L);
-                    System.out.println(".");
+        UserSession session = g.withToken(exchange.getAccessToken());
+        String since = StringUtils.defaultIfBlank(exchange.getQueryParameter("since"), "");
 
-                    if (Thread.currentThread().isInterrupted()) {
-                        System.out.println("Interrupted");
-                        break;
-                    }
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }
-        exchange.respond(GsonUtil.makeObj("next_batch", "park"));
+        SyncOptions options = new SyncOptions();
+        options.setToken(since);
+
+        SyncData data = session.sync(options);
+        exchange.respondJson(new SyncResponse(data));
     }
 
 }

@@ -20,11 +20,11 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.http.handler.SaneHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class VersionsHandler extends SaneHandler {
+public class VersionsHandler extends ClientApiHandler {
 
     private static final String body = GsonUtil.toJson(GsonUtil.makeObj("versions", GsonUtil.asArray("r0.4.0")));
 

@@ -37,7 +37,7 @@ public class GsonUtil {
     private static final Gson instancePretty = buildPretty();
 
     private static GsonBuilder buildImpl() {
-        return new GsonBuilder().disableHtmlEscaping();
+        return new GsonBuilder().disableHtmlEscaping().setFieldNamingStrategy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
     }
 
     public static Gson buildPretty() {

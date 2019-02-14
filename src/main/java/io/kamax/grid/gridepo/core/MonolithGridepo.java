@@ -30,6 +30,7 @@ import io.kamax.grid.gridepo.core.crypto.KeyManager;
 import io.kamax.grid.gridepo.core.crypto.MemoryKeyStore;
 import io.kamax.grid.gridepo.core.crypto.SignManager;
 import io.kamax.grid.gridepo.core.event.EventService;
+import io.kamax.grid.gridepo.core.event.EventStreamer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.identity.IdentityManager;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
@@ -41,6 +42,9 @@ import java.util.Date;
 
 public class MonolithGridepo implements Gridepo {
 
+    private final Object syncLock = new Object();
+    private boolean isStopping;
+
     private Algorithm jwtAlgo;
     private JWTVerifier jwtVerifier;
 
@@ -48,6 +52,7 @@ public class MonolithGridepo implements Gridepo {
     private Store store;
     private IdentityManager idMgr;
     private ChannelManager chMgr;
+    private EventStreamer streamer;
 
     public MonolithGridepo(GridepoConfig cfg) {
         jwtAlgo = Algorithm.HMAC256(cfg.getCrypto().getSeed().get("jwt"));
@@ -71,10 +76,13 @@ public class MonolithGridepo implements Gridepo {
 
         idMgr = new IdentityManager(store);
         chMgr = new ChannelManager(cfg, evSvc, store, dsmgr);
+        streamer = new EventStreamer(store);
     }
 
     @Override
     public void start() {
+        isStopping = false;
+
         if (StringUtils.isBlank(cfg.getDomain())) {
             throw new RuntimeException("Configuration: domain cannot be blank");
         }
@@ -82,7 +90,12 @@ public class MonolithGridepo implements Gridepo {
 
     @Override
     public void stop() {
+        isStopping = true;
+    }
 
+    @Override
+    public boolean isStopping() {
+        return isStopping;
     }
 
     @Override
@@ -93,6 +106,11 @@ public class MonolithGridepo implements Gridepo {
     @Override
     public ChannelManager getChannelManager() {
         return chMgr;
+    }
+
+    @Override
+    public EventStreamer getStreamer() {
+        return streamer;
     }
 
     @Override
@@ -114,6 +132,11 @@ public class MonolithGridepo implements Gridepo {
     public UserSession withToken(String token) {
         String userId = JWT.decode(token).getClaim("UserID").asString();
         return new UserSession(this, new User(userId));
+    }
+
+    @Override
+    public Object getSyncLock() {
+        return syncLock;
     }
 
 }

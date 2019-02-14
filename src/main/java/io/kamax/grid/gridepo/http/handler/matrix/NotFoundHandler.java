@@ -20,10 +20,10 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.http.handler.SaneHandler;
 
-public class NotFoundHandler extends SaneHandler {
+public class NotFoundHandler extends ClientApiHandler {
 
     @Override
     protected void handle(Exchange exchange) {
