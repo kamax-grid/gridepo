@@ -1,5 +1,5 @@
 # Gridepo
-Implementation of a [Grid](https://gitlab.com/thegridprotocol/home) Data Server.
+Implementation of a [Grid](https://gitlab.com/thegridprotocol/home) Data Server with basic support for [Matrix C2S API](https://matrix.org/docs/spec/client_server/r0.4.0.html).
 
 ## Status
 Work in Progress towards the first usable version as `v0.1`
