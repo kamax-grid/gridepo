@@ -28,7 +28,7 @@ import io.kamax.grid.gridepo.util.GsonUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class BareEvent {
+public abstract class BareEvent<T> {
 
     @SerializedName(EventKey.Version)
     private String version;
@@ -50,6 +50,8 @@ public abstract class BareEvent {
     private List<String> previousEvents;
     @SerializedName(EventKey.Depth)
     private Long depth;
+    @SerializedName(EventKey.Content)
+    private T content;
 
     public BareEvent() {
         this("0");
@@ -147,6 +149,12 @@ public abstract class BareEvent {
         this.depth = depth;
     }
 
-    public abstract Object getContent();
+    public T getContent() {
+        return content;
+    }
+
+    public void setContent(T content) {
+        this.content = content;
+    }
 
 }

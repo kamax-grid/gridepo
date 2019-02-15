@@ -20,9 +20,11 @@
 
 package io.kamax.grid.gridepo.core;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.event.EventKey;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
@@ -63,28 +65,39 @@ public class UserSession {
         data.setPosition(options.getToken());
 
         if (StringUtils.isEmpty(options.getToken())) {
-            options.setToken(Long.toString(0));
+            // Initial sync
+            data.setPosition(Long.toString(0));
+            return data;
         }
 
         long sid = Long.parseLong(options.getToken());
-        synchronized (g.getSyncLock()) {
-            while (!g.isStopping() && Instant.now().isBefore(end)) {
+        while (Instant.now().isBefore(end)) {
+            if (g.isStopping()) {
+                break;
+            }
+
+            synchronized (g.getSyncLock()) {
                 try {
                     g.getSyncLock().wait(1000L);
                 } catch (InterruptedException e) {
                     // This is ok, we don't need to do anything
                 }
+            }
 
-                List<ChannelEvent> events = g.getStreamer().next(sid);
-                if (!events.isEmpty()) {
-                    data.setPosition(Long.toString(events.get(events.size() - 1).getSid()));
-                    data.setEvents(events);
-                    return data;
-                }
+            List<ChannelEvent> events = g.getStreamer().next(sid);
+            if (!events.isEmpty()) {
+                data.setPosition(Long.toString(events.get(events.size() - 1).getSid()));
+                data.setEvents(events);
+                return data;
             }
         }
 
         return data;
+    }
+
+    public String send(String cId, JsonObject data) {
+        data.addProperty(EventKey.Sender, user.getUsername());
+        return g.getChannelManager().get(cId).makeAndInject(data).getEventId();
     }
 
 }

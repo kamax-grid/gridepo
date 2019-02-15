@@ -35,10 +35,13 @@ import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.identity.IdentityManager;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MonolithGridepo implements Gridepo {
 
@@ -53,6 +56,8 @@ public class MonolithGridepo implements Gridepo {
     private IdentityManager idMgr;
     private ChannelManager chMgr;
     private EventStreamer streamer;
+
+    private Map<String, Boolean> tokens = new HashMap<>();
 
     public MonolithGridepo(GridepoConfig cfg) {
         jwtAlgo = Algorithm.HMAC256(cfg.getCrypto().getSeed().get("jwt"));
@@ -125,11 +130,16 @@ public class MonolithGridepo implements Gridepo {
                 .withClaim("UserID", uId.full())
                 .sign(jwtAlgo);
 
+        tokens.put(token, true);
         return new UserSession(u, token);
     }
 
     @Override
     public UserSession withToken(String token) {
+        if (!tokens.computeIfAbsent(token, t -> false)) {
+            throw new InvalidTokenException("Unknown token");
+        }
+
         String userId = JWT.decode(token).getClaim("UserID").asString();
         return new UserSession(this, new User(userId));
     }

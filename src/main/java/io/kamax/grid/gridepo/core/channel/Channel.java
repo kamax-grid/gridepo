@@ -301,10 +301,14 @@ public class Channel {
     public ChannelEventAuthorization inject(JsonObject ev) {
         ChannelEvent cEv = new ChannelEvent();
         cEv.setData(ev);
-        cEv.setReceivedFrom("localhost");
+        cEv.setReceivedFrom("-");
         cEv.setReceivedAt(Instant.now());
 
         return inject(Collections.singletonList(cEv)).get(0);
+    }
+
+    public ChannelEventAuthorization makeAndInject(JsonObject ev) {
+        return inject(makeEvent(ev));
     }
 
 }

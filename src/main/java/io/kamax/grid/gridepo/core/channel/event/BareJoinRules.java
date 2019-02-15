@@ -20,10 +20,7 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
-import com.google.gson.annotations.SerializedName;
-import io.kamax.grid.gridepo.core.event.EventKey;
-
-public class BareJoinRules extends BareEvent {
+public class BareJoinRules extends BareEvent<BareJoinRules.Content> {
 
     public static class Content {
 
@@ -39,17 +36,10 @@ public class BareJoinRules extends BareEvent {
 
     }
 
-    @SerializedName(EventKey.Content)
-    private Content content = new Content();
-
     public BareJoinRules() {
         setType(ChannelEventType.JoinRules);
         setScope("");
-    }
-
-    @Override
-    public Content getContent() {
-        return content;
+        setContent(new Content());
     }
 
 }

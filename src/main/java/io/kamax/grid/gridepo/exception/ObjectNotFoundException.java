@@ -18,34 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.channel.event;
+package io.kamax.grid.gridepo.exception;
 
-import io.kamax.grid.gridepo.core.channel.ChannelMembership;
+public class ObjectNotFoundException extends RuntimeException {
 
-public class BareMemberEvent extends BareEvent<BareMemberEvent.Content> {
-
-    public static class Content {
-
-        private String action;
-
-        public String getAction() {
-            return action;
-        }
-
-        public void setAction(String action) {
-            this.action = action;
-        }
-
-        public void setAction(ChannelMembership m) {
-            setAction(m.getId());
-        }
-
-    }
-
-    public BareMemberEvent() {
-        setType(ChannelEventType.Member);
-        setScope("");
-        setContent(new Content());
+    public ObjectNotFoundException(String type, String id) {
+        super(type + " #" + id);
     }
 
 }

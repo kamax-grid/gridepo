@@ -20,13 +20,10 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
-import com.google.gson.annotations.SerializedName;
-import io.kamax.grid.gridepo.core.event.EventKey;
-
 import java.util.HashMap;
 import java.util.Map;
 
-public class BareMessageEvent extends BareEvent {
+public class BareMessageEvent extends BareEvent<BareMessageEvent.Content> {
 
     public static class Content {
 
@@ -42,21 +39,14 @@ public class BareMessageEvent extends BareEvent {
 
     }
 
-    @SerializedName(EventKey.Content)
-    private Content content = new Content();
-
     public BareMessageEvent() {
         setType(ChannelEventType.Message);
         setScope("");
-    }
-
-    @Override
-    public Content getContent() {
-        return content;
+        setContent(new Content());
     }
 
     public void addBody(String mimeType, String body) {
-        content.getBody().put(mimeType, body);
+        getContent().getBody().put(mimeType, body);
     }
 
 }

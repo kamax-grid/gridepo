@@ -20,27 +20,36 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class EmptyJsonObjectHandler extends ClientApiHandler {
+public class SendChannelEventHandler extends ClientApiHandler {
 
     private final Gridepo g;
-    private final boolean withAuth;
 
-    public EmptyJsonObjectHandler(Gridepo g, boolean withAuth) {
+    public SendChannelEventHandler(Gridepo g) {
         this.g = g;
-        this.withAuth = withAuth;
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        if (withAuth) {
-            g.withToken(exchange.getAccessToken());
-        }
+        UserSession session = g.withToken(exchange.getAccessToken());
 
-        exchange.respondJson("{}");
+        String rId = exchange.getPathVariable("roomId");
+        String evType = exchange.getPathVariable("type");
+        String txnId = exchange.getPathVariable("txnId"); // Not supported for Matrix
+
+        JsonObject content = exchange.parseJsonObject();
+        JsonObject ev = new JsonObject();
+        ev.addProperty("type", evType.replace("m.room.", "g.c.")); // just a generic transform for now
+        ev.add("content", content);
+
+        String evId = ProtocolEventMapper.forEventIdFromGridToMatrix(session.send(rId, ev));
+        exchange.respondJson(GsonUtil.makeObj("event_id", evId));
     }
 
 }

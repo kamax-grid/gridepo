@@ -106,20 +106,29 @@ public class MonolithHttpGridepo {
 
     private void buildMatrixClient(Undertow.Builder b, GridepoConfig.Listener cfg) {
         b.addHttpListener(cfg.getPort(), cfg.getAddress()).setHandler(Handlers.routing()
+                // CORS support
                 .add("OPTIONS", "/**", new OptionsHandler())
+
+                // Fundamental endpoints
                 .get(ClientAPI.Base + "/versions", new VersionsHandler())
                 .post(ClientAPIr0.Base + "/login", new LoginHandler(g))
-                .get(ClientAPIr0.Base + "/user/{userId}/filter/{filterId}", new FilterGetHandler())
-                .post(ClientAPIr0.Base + "/user/{userId}/filter", new FiltersPostHandler())
                 .get(ClientAPIr0.Base + "/sync", new SyncHandler(g))
 
+                // Room endpoints
                 .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
+                .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
+
+                // Not supported over Matrix
+                .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))
+                .post(ClientAPIr0.Room + "/typing/{userId}", new EmptyJsonObjectHandler(g, true))
+                .get(ClientAPIr0.Base + "/user/{userId}/filter/{filterId}", new FilterGetHandler(g))
+                .post(ClientAPIr0.Base + "/user/{userId}/filter", new FiltersPostHandler(g))
 
                 // So various Matrix clients (e.g. Riot) stops spamming us with requests
                 .get(ClientAPIr0.Base + "/pushrules/", new PushRulesHandler())
-                .put(ClientAPIr0.Base + "/presence/**", new EmptyJsonObjectHandler())
-                .get(ClientAPIr0.Base + "/voip/turnServer", new EmptyJsonObjectHandler())
-                .get(ClientAPIr0.Base + "/joined_groups", new EmptyJsonObjectHandler())
+                .put(ClientAPIr0.Base + "/presence/**", new EmptyJsonObjectHandler(g, true))
+                .get(ClientAPIr0.Base + "/voip/turnServer", new EmptyJsonObjectHandler(g, true))
+                .get(ClientAPIr0.Base + "/joined_groups", new EmptyJsonObjectHandler(g, true))
 
                 .setFallbackHandler(new NotFoundHandler())
         );

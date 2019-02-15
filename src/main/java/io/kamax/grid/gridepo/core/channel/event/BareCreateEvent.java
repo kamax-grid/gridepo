@@ -20,10 +20,7 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
-import com.google.gson.annotations.SerializedName;
-import io.kamax.grid.gridepo.core.event.EventKey;
-
-public class BareCreateEvent extends BareEvent {
+public class BareCreateEvent extends BareEvent<BareCreateEvent.Content> {
 
     public static class Content {
 
@@ -39,17 +36,10 @@ public class BareCreateEvent extends BareEvent {
 
     }
 
-    @SerializedName(EventKey.Content)
-    private Content content = new Content();
-
     public BareCreateEvent() {
         setType(ChannelEventType.Create);
         setScope("");
-    }
-
-    @Override
-    public Content getContent() {
-        return content;
+        setContent(new Content());
     }
 
 }

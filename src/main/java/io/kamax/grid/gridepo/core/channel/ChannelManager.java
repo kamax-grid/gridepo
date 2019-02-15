@@ -27,6 +27,7 @@ import io.kamax.grid.gridepo.core.channel.event.BareEvent;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -34,6 +35,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ChannelManager {
 
@@ -41,6 +45,8 @@ public class ChannelManager {
     private EventService evSvc;
     private Store store;
     private DataServerManager dsmgr;
+
+    private Map<String, Channel> channels = new ConcurrentHashMap<>();
 
     public ChannelManager(GridepoConfig cfg, EventService evSvc, Store store, DataServerManager dsmgr) {
         this.cfg = cfg;
@@ -71,6 +77,8 @@ public class ChannelManager {
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
 
         Channel ch = new Channel(dao, cfg.getDomain(), algo, store, dsmgr);
+        channels.put(ch.getId(), ch);
+
         List<BareEvent> createEvents = algo.getCreationEvents(creator);
         createEvents.stream()
                 .map(ch::makeEvent)
@@ -82,6 +90,15 @@ public class ChannelManager {
         });
 
         return ch;
+    }
+
+    public Channel get(String id) {
+        Channel c = channels.get(id);
+        if (Objects.isNull(c)) {
+            throw new ObjectNotFoundException("Channel", id);
+        }
+
+        return c;
     }
 
 }

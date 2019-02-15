@@ -53,16 +53,16 @@ public abstract class ClientApiHandler implements HttpHandler {
 
                 handle(ex);
             } catch (IllegalArgumentException e) {
-                ex.respond(HttpStatus.SC_BAD_REQUEST, "G_INVALID_PARAM", e.getMessage());
+                ex.respond(HttpStatus.SC_BAD_REQUEST, "M_INVALID_PARAM", e.getMessage());
             } catch (MissingTokenException e) {
-                ex.respond(HttpStatus.SC_UNAUTHORIZED, "G_UNKNOWN_TOKEN", e.getMessage());
+                ex.respond(HttpStatus.SC_UNAUTHORIZED, "M_MISSING_TOKEN", e.getMessage());
             } catch (InvalidTokenException e) {
-                ex.respond(HttpStatus.SC_UNAUTHORIZED, "G_MISSING_TOKEN", e.getMessage());
+                ex.respond(HttpStatus.SC_UNAUTHORIZED, "M_UNKNOWN_TOKEN", e.getMessage());
             } catch (NotImplementedException e) {
-                ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "G_NOT_IMPLEMENTED", e.getMessage());
+                ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "M_NOT_IMPLEMENTED", e.getMessage());
             } catch (RuntimeException e) {
                 log.error("Unknown error when handling {}", exchange.getRequestURL(), e);
-                ex.respond(HttpStatus.SC_INTERNAL_SERVER_ERROR, ex.buildErrorBody("G_UNKNOWN",
+                ex.respond(HttpStatus.SC_INTERNAL_SERVER_ERROR, ex.buildErrorBody("M_UNKNOWN",
                         StringUtils.defaultIfBlank(
                                 e.getMessage(),
                                 "An internal server error occurred. If this error persists, please contact support with reference #" +

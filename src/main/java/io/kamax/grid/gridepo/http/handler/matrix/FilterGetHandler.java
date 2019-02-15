@@ -20,13 +20,22 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 
 public class FilterGetHandler extends ClientApiHandler {
 
+    private final Gridepo g;
+
+    public FilterGetHandler(Gridepo g) {
+        this.g = g;
+    }
+
     @Override
     protected void handle(Exchange exchange) {
+        g.withToken(exchange.getAccessToken());
+
         exchange.respondJson("{}");
     }
 

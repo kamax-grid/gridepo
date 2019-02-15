@@ -20,8 +20,9 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.SyncData;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,24 +31,124 @@ import java.util.Map;
 
 public class SyncResponse {
 
+    public static class RoomEvent {
+
+        public static RoomEvent build(ChannelEvent ev) {
+            return GsonUtil.get().fromJson(ProtocolEventMapper.convert(ev), RoomEvent.class);
+        }
+
+        private String eventId;
+        private String type;
+        private long originServerTs;
+        private String roomId;
+        private String sender;
+        private String stateKey;
+        private Object content;
+
+        public String getEventId() {
+            return eventId;
+        }
+
+        public void setEventId(String eventId) {
+            this.eventId = eventId;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public long getOriginServerTs() {
+            return originServerTs;
+        }
+
+        public void setOriginServerTs(long originServerTs) {
+            this.originServerTs = originServerTs;
+        }
+
+        public String getRoomId() {
+            return roomId;
+        }
+
+        public void setRoomId(String roomId) {
+            this.roomId = roomId;
+        }
+
+        public String getSender() {
+            return sender;
+        }
+
+        public void setSender(String sender) {
+            this.sender = sender;
+        }
+
+        public String getStateKey() {
+            return stateKey;
+        }
+
+        public void setStateKey(String stateKey) {
+            this.stateKey = stateKey;
+        }
+
+        public Object getContent() {
+            return content;
+        }
+
+        public void setContent(Object content) {
+            this.content = content;
+        }
+
+    }
+
+    public static class RoomState {
+
+        private List<RoomEvent> events = new ArrayList<>();
+
+        public List<RoomEvent> getEvents() {
+            return events;
+        }
+
+        public void setEvents(List<RoomEvent> events) {
+            this.events = events;
+        }
+
+    }
+
+    public static class RoomTimeline {
+
+        private List<RoomEvent> events = new ArrayList<>();
+
+        public List<RoomEvent> getEvents() {
+            return events;
+        }
+
+        public void setEvents(List<RoomEvent> events) {
+            this.events = events;
+        }
+
+    }
+
     public static class Room {
 
-        private List<JsonObject> state = new ArrayList<>();
-        private List<JsonObject> timeline = new ArrayList<>();
+        private RoomState state = new RoomState();
+        private RoomTimeline timeline = new RoomTimeline();
 
-        public List<JsonObject> getState() {
+        public RoomState getState() {
             return state;
         }
 
-        public void setState(List<JsonObject> state) {
+        public void setState(RoomState state) {
             this.state = state;
         }
 
-        public List<JsonObject> getTimeline() {
+        public RoomTimeline getTimeline() {
             return timeline;
         }
 
-        public void setTimeline(List<JsonObject> timeline) {
+        public void setTimeline(RoomTimeline timeline) {
             this.timeline = timeline;
         }
 
@@ -91,7 +192,8 @@ public class SyncResponse {
     public SyncResponse(SyncData data) {
         setNextBatch(data.getPosition());
         data.getEvents().forEach(ev -> {
-
+            RoomEvent rEv = RoomEvent.build(ev);
+            rooms.join.computeIfAbsent(rEv.getRoomId(), r -> new Room()).getTimeline().getEvents().add(rEv);
         });
     }
 

@@ -20,14 +20,23 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
 public class FiltersPostHandler extends ClientApiHandler {
 
+    private final Gridepo g;
+
+    public FiltersPostHandler(Gridepo g) {
+        this.g = g;
+    }
+
     @Override
     protected void handle(Exchange exchange) {
+        g.withToken(exchange.getAccessToken());
+
         exchange.respond(GsonUtil.makeObj("filter_id", Long.toString(System.currentTimeMillis())));
     }
 

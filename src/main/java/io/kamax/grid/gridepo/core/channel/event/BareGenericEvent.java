@@ -22,13 +22,10 @@ package io.kamax.grid.gridepo.core.channel.event;
 
 import com.google.gson.JsonObject;
 
-public class BareGenericEvent extends BareEvent {
+public class BareGenericEvent extends BareEvent<JsonObject> {
 
-    private JsonObject content = new JsonObject();
-
-    @Override
-    public JsonObject getContent() {
-        return content;
+    public BareGenericEvent() {
+        setContent(new JsonObject());
     }
 
 }

@@ -21,12 +21,11 @@
 package io.kamax.grid.gridepo.core.channel.event;
 
 import com.google.gson.annotations.SerializedName;
-import io.kamax.grid.gridepo.core.event.EventKey;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class BarePowerEvent extends BareEvent {
+public class BarePowerEvent extends BareEvent<BarePowerEvent.Content> {
 
     public static class Content {
 
@@ -137,17 +136,10 @@ public class BarePowerEvent extends BareEvent {
 
     }
 
-    @SerializedName(EventKey.Content)
-    private Content content = new Content();
-
     public BarePowerEvent() {
         setType(ChannelEventType.Power);
         setScope("");
-    }
-
-    @Override
-    public Content getContent() {
-        return content;
+        setContent(new Content());
     }
 
 }
