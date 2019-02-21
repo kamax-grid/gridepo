@@ -18,10 +18,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler;
+package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.MissingTokenException;
+import io.kamax.grid.gridepo.exception.RemoteServerException;
+import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
@@ -58,8 +61,16 @@ public abstract class ClientApiHandler implements HttpHandler {
                 ex.respond(HttpStatus.SC_UNAUTHORIZED, "M_MISSING_TOKEN", e.getMessage());
             } catch (InvalidTokenException e) {
                 ex.respond(HttpStatus.SC_UNAUTHORIZED, "M_UNKNOWN_TOKEN", e.getMessage());
+            } catch (ForbiddenException e) {
+                ex.respond(HttpStatus.SC_FORBIDDEN, "M_FORBIDDEN", e.getReason());
             } catch (NotImplementedException e) {
                 ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "M_NOT_IMPLEMENTED", e.getMessage());
+            } catch (RemoteServerException e) {
+                String code = e.getCode();
+                if (StringUtils.startsWith(code, "G_")) {
+                    code = "M_" + code.substring(2); // TODO Generic transform, be smarter about it
+                }
+                ex.respond(HttpStatus.SC_BAD_GATEWAY, code, e.getReason());
             } catch (RuntimeException e) {
                 log.error("Unknown error when handling {}", exchange.getRequestURL(), e);
                 ex.respond(HttpStatus.SC_INTERNAL_SERVER_ERROR, ex.buildErrorBody("M_UNKNOWN",

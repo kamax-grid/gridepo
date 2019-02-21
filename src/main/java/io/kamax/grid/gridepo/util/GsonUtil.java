@@ -62,6 +62,10 @@ public class GsonUtil {
         return asArray(Arrays.stream(elements).map(JsonPrimitive::new).collect(Collectors.toList()));
     }
 
+    public static JsonArray asArray(JsonElement... elements) {
+        return asArray(Arrays.stream(elements).collect(Collectors.toList()));
+    }
+
     public static JsonArray asArray(Collection<String> elements) {
         JsonArray a = new JsonArray();
         elements.forEach(a::add);

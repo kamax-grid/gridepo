@@ -20,32 +20,40 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.SyncData;
-import io.kamax.grid.gridepo.core.SyncOptions;
-import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 
-public class SyncHandler extends ClientApiHandler {
+public class UserDirectorySearchHandler extends ClientApiHandler {
 
     private final Gridepo g;
 
-    public SyncHandler(Gridepo g) {
+    public UserDirectorySearchHandler(Gridepo g) {
         this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        UserSession session = g.withToken(exchange.getAccessToken());
-        String since = StringUtils.defaultIfBlank(exchange.getQueryParameter("since"), "");
+        g.withToken(exchange.getAccessToken());
 
-        SyncOptions options = new SyncOptions();
-        options.setToken(since);
+        JsonArray results = new JsonArray();
+        String term = GsonUtil.getStringOrThrow(exchange.parseJsonObject(), "search_term");
+        if (StringUtils.length(term) > 1 && StringUtils.startsWith(term, "@") && !StringUtils.contains(term, ":")) {
+            String uId = term + ":" + g.getDomain();
+            JsonObject result = new JsonObject();
+            result.addProperty("user_id", uId);
+            result.addProperty("display_name", term.substring(1) + " (Auto-complete server)");
+            results.add(result);
+        }
 
-        SyncData data = session.sync(options);
-        String mxId = ProtocolEventMapper.forUserIdFromGridToMatrix(session.getUser().getUsername());
-        exchange.respondJson(SyncResponse.build(mxId, data));
+        JsonObject body = new JsonObject();
+        body.addProperty("limited", true); // So data is not cached
+        body.add("results", results);
+
+        exchange.respond(body);
     }
 
 }

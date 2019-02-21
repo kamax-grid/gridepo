@@ -24,6 +24,8 @@ import java.util.Objects;
 
 public class EntityID {
 
+    public static final String Delimiter = "@";
+
     private String sigil;
     private String id;
     private String complete;

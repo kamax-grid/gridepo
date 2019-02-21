@@ -43,7 +43,10 @@ public final class UserID extends EntityID {
 
     public static UserID from(String username, String domain) {
         try {
-            String id = Base64.getUrlEncoder().withoutPadding().encodeToString((username + "@" + domain).getBytes(StandardCharsets.UTF_8.name()));
+            String id = Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString((username + Delimiter + domain).getBytes(StandardCharsets.UTF_8.name()));
+
             return new UserID(id);
         } catch (UnsupportedEncodingException e) {
             // Nothing we can do about it

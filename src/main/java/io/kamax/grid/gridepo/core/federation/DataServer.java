@@ -47,6 +47,10 @@ public class DataServer {
     }
 
     private <T> T withHealthCheck(Supplier<T> r) {
+        return withHealthCheck(false, r);
+    }
+
+    private <T> T withHealthCheck(boolean force, Supplier<T> r) {
         Instant nextRetry = lastCall.plusMillis(waitTime.get());
         if (Instant.now().isBefore(nextRetry)) {
             throw new RuntimeException("Host is not available at this time. Next window is in " + Duration.between(Instant.now(), nextRetry).getSeconds() + " seconds");
@@ -102,6 +106,10 @@ public class DataServer {
 
     public Optional<JsonObject> getEvent(String chId, String evId) {
         return Optional.empty();
+    }
+
+    public JsonObject approveEvent(JsonObject ev) {
+        return withHealthCheck(true, () -> client.approveEvent(domain, ev));
     }
 
     /*

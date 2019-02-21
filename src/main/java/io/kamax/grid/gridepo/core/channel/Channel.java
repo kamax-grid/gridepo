@@ -21,18 +21,23 @@
 package io.kamax.grid.gridepo.core.channel;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.EntityAlias;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
-import io.kamax.grid.gridepo.core.channel.event.BareEvent;
-import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
-import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.event.EventKey;
+import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
+import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.*;
@@ -41,24 +46,28 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Channel {
 
+    private static final Logger log = LoggerFactory.getLogger(Channel.class);
+
     private ChannelDao dao;
     private String domain;
 
     private Store store;
     private DataServerManager srvMgr;
     private ChannelAlgo algo;
+    private EventService evSvc;
 
     private BarePowerEvent.Content defaultPls;
     private ChannelView view;
 
-    public Channel(long sid, String id, String domain, ChannelAlgo algo, Store store, DataServerManager srvMgr) {
-        this(new ChannelDao(sid, id), domain, algo, store, srvMgr);
+    public Channel(long sid, String id, String domain, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr) {
+        this(new ChannelDao(sid, id), domain, algo, evSvc, store, srvMgr);
     }
 
-    public Channel(ChannelDao dao, String domain, ChannelAlgo algo, Store store, DataServerManager srvMgr) {
+    public Channel(ChannelDao dao, String domain, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr) {
         this.dao = dao;
         this.domain = domain;
         this.algo = algo;
+        this.evSvc = evSvc;
         this.store = store;
         this.srvMgr = srvMgr;
         this.view = new ChannelView();
@@ -313,6 +322,47 @@ public class Channel {
 
     public ChannelState getState(ChannelEvent ev) {
         return store.getStateForEvent(ev.getSid());
+    }
+
+    public ChannelEvent invite(String inviter, EntityAlias invitee) {
+        // FIXME export to solve resolver class (Back to the Identity!)
+        String localpart;
+        String domain;
+        if ("email".equals(invitee.getNetwork())) {
+            String[] data = invitee.getAddress().split("@", 2);
+            localpart = data[0];
+            domain = data[1];
+        } else if ("matrix".equals(invitee.getNetwork())) {
+            String[] data = invitee.getAddress().split(":", 2);
+            localpart = data[0].substring(1);
+            domain = data[1];
+        } else if ("grid".equals(invitee.getNetwork())) {
+            // FIXME We need an address class to properly parse this
+            String[] data = invitee.getAddress().substring(1).split("@", 2);
+            localpart = data[0];
+            domain = data[1];
+        } else {
+            throw new NotImplementedException("Alias network " + invitee.getNetwork());
+        }
+
+        UserID uId = UserID.from(localpart, domain);
+
+        BareMemberEvent ev = new BareMemberEvent();
+        ev.setSender(inviter);
+        ev.setScope(uId.full());
+        ev.getContent().setAction(ChannelMembership.Invite);
+        JsonObject evFull = evSvc.finalize(makeEvent(ev));
+
+        if (!StringUtils.equals(this.domain, domain)) {
+            evFull = srvMgr.get(domain).approveEvent(evFull);
+        }
+
+        ChannelEventAuthorization result = inject(evFull);
+        if (!result.isAuthorized()) {
+            throw new ForbiddenException(result.getReason());
+        }
+
+        return store.getEvent(getId(), result.getEventId());
     }
 
 }

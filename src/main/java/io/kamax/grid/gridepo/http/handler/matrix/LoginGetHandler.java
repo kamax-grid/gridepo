@@ -20,32 +20,20 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.SyncData;
-import io.kamax.grid.gridepo.core.SyncOptions;
-import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import org.apache.commons.lang3.StringUtils;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class SyncHandler extends ClientApiHandler {
+public class LoginGetHandler extends ClientApiHandler {
 
-    private final Gridepo g;
+    private final String body;
 
-    public SyncHandler(Gridepo g) {
-        this.g = g;
+    public LoginGetHandler() {
+        body = GsonUtil.toJson(GsonUtil.makeObj("flows", GsonUtil.asArray(GsonUtil.makeObj("type", "m.login.password"))));
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        UserSession session = g.withToken(exchange.getAccessToken());
-        String since = StringUtils.defaultIfBlank(exchange.getQueryParameter("since"), "");
-
-        SyncOptions options = new SyncOptions();
-        options.setToken(since);
-
-        SyncData data = session.sync(options);
-        String mxId = ProtocolEventMapper.forUserIdFromGridToMatrix(session.getUser().getUsername());
-        exchange.respondJson(SyncResponse.build(mxId, data));
+        exchange.respondJson(body);
     }
 
 }

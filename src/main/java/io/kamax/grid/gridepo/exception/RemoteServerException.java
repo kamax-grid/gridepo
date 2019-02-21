@@ -18,25 +18,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.grid.gridepo.exception;
 
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.util.GsonUtil;
+public class RemoteServerException extends RuntimeException {
 
-public class FiltersPostHandler extends ClientApiHandler {
+    private final String code;
+    private final String reason;
 
-    private final Gridepo g;
-
-    public FiltersPostHandler(Gridepo g) {
-        this.g = g;
+    public RemoteServerException(String domain, String code, String reason) {
+        super("Remote server " + domain + " replied with an error: " + code + " - " + reason);
+        this.code = code;
+        this.reason = reason;
     }
 
-    @Override
-    protected void handle(Exchange exchange) {
-        g.withToken(exchange.getAccessToken());
+    public String getCode() {
+        return code;
+    }
 
-        exchange.respond(GsonUtil.makeObj("filter_id", Long.toString(System.currentTimeMillis())));
+    public String getReason() {
+        return reason;
     }
 
 }

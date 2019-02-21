@@ -115,8 +115,10 @@ public class MonolithHttpGridepo {
 
                 // Fundamental endpoints
                 .get(ClientAPI.Base + "/versions", new VersionsHandler())
+                .get(ClientAPIr0.Base + "/login", new LoginGetHandler())
                 .post(ClientAPIr0.Base + "/login", new LoginHandler(g))
                 .get(ClientAPIr0.Base + "/sync", new SyncHandler(g))
+                .post(ClientAPIr0.Base + "/logout", new LogoutHandler(g))
 
                 // Account endpoints
                 .get(ClientAPIr0.Base + "/account/3pid", new JsonObjectHandler(
@@ -125,12 +127,14 @@ public class MonolithHttpGridepo {
                         GsonUtil.makeObj("threepids", new JsonArray()))
                 )
 
+                // User-related endpoints
+                .get(ClientAPIr0.Base + "/profile/**", new EmptyJsonObjectHandler(g, false))
+                .post(ClientAPIr0.Base + "/user_directory/search", new UserDirectorySearchHandler(g))
+
                 // Room endpoints
                 .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
                 .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
-
-                // Profile endpoints
-                .get(ClientAPIr0.Base + "/profile/**", new EmptyJsonObjectHandler(g, false))
+                .post(ChannelInviteHandler.Path, new ChannelInviteHandler(g))
 
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))

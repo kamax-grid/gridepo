@@ -18,25 +18,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.grid.gridepo.core;
 
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.util.GsonUtil;
+public class EntityAlias {
 
-public class FiltersPostHandler extends ClientApiHandler {
+    private final String network;
+    private final String address;
 
-    private final Gridepo g;
-
-    public FiltersPostHandler(Gridepo g) {
-        this.g = g;
+    public EntityAlias(String network, String address) {
+        this.network = network;
+        this.address = address;
     }
 
-    @Override
-    protected void handle(Exchange exchange) {
-        g.withToken(exchange.getAccessToken());
+    public String getNetwork() {
+        return network;
+    }
 
-        exchange.respond(GsonUtil.makeObj("filter_id", Long.toString(System.currentTimeMillis())));
+    public String getAddress() {
+        return address;
     }
 
 }

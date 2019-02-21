@@ -40,15 +40,15 @@ public class DefaultPowerEvent extends BarePowerEvent {
         }
 
         if (Objects.isNull(c.getMembership().getBan())) {
-            c.getMembership().setBan(Long.MAX_VALUE);
+            c.getMembership().setBan(50L);
         }
 
         if (Objects.isNull(c.getMembership().getInvite())) {
-            c.getMembership().setInvite(Long.MAX_VALUE);
+            c.getMembership().setInvite(c.getDef().getUser());
         }
 
         if (Objects.isNull(c.getMembership().getKick())) {
-            c.getMembership().setKick(Long.MAX_VALUE);
+            c.getMembership().setKick(50L);
         }
 
         return c;

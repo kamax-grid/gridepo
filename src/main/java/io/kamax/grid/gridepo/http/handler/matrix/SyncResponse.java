@@ -20,6 +20,7 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.SyncData;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -135,6 +136,7 @@ public class SyncResponse {
 
         private RoomState state = new RoomState();
         private RoomTimeline timeline = new RoomTimeline();
+        private RoomState inviteState = new RoomState();
 
         public RoomState getState() {
             return state;
@@ -186,15 +188,40 @@ public class SyncResponse {
 
     }
 
+    public static SyncResponse build(String uId, SyncData data) {
+        Map<String, Room> roomCache = new HashMap<>();
+        SyncResponse r = new SyncResponse();
+        r.setNextBatch(data.getPosition());
+        data.getEvents().forEach(ev -> {
+            RoomEvent rEv = RoomEvent.build(ev);
+            Room room = roomCache.computeIfAbsent(rEv.getRoomId(), id -> new Room());
+            room.getTimeline().getEvents().add(rEv);
+
+            if ("m.room.member".equals(rEv.getType()) && uId.equals(rEv.getStateKey())) {
+                JsonObject c = GsonUtil.parseObj(GsonUtil.toJson(rEv.getContent()));
+                GsonUtil.findString(c, "membership").ifPresent(m -> {
+                    if ("invite".equals(m)) {
+                        r.rooms.invite.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+                        room.state.setEvents(room.timeline.events);
+                        room.inviteState.setEvents(room.state.events);
+                    } else if ("leave".equals(m) || "ban".equals(m)) {
+                        r.rooms.leave.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+                    } else {
+                        r.rooms.join.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+                    }
+                });
+            } else {
+                r.rooms.join.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+            }
+        });
+
+        return r;
+    }
+
     private String nextBatch = "";
     private Rooms rooms = new Rooms();
 
-    public SyncResponse(SyncData data) {
-        setNextBatch(data.getPosition());
-        data.getEvents().forEach(ev -> {
-            RoomEvent rEv = RoomEvent.build(ev);
-            rooms.join.computeIfAbsent(rEv.getRoomId(), r -> new Room()).getTimeline().getEvents().add(rEv);
-        });
+    private SyncResponse() {
     }
 
     public String getNextBatch() {

@@ -45,6 +45,11 @@ public class UserSession {
         this.user = user;
     }
 
+    public UserSession(Gridepo g, User user, String accessToken) {
+        this(g, user);
+        this.accessToken = accessToken;
+    }
+
     public UserSession(User user, String accessToken) {
         this.user = user;
         this.accessToken = accessToken;
@@ -93,10 +98,11 @@ public class UserSession {
                 continue;
             }
 
-            long position = events.stream().max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getSid).orElse(0L);
+            long position = events.stream().filter(ChannelEvent::isProcessed).max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getSid).orElse(0L);
             data.setPosition(Long.toString(position));
 
             events = events.stream()
+                    .filter(ev -> ev.isValid() && ev.isAllowed())
                     .filter(ev -> {
                         // FIXME move this into channel/state algo to check if a user can see an event in the stream
 
@@ -123,6 +129,10 @@ public class UserSession {
     public String send(String cId, JsonObject data) {
         data.addProperty(EventKey.Sender, user.getUsername());
         return g.getChannelManager().get(cId).makeAndInject(data).getEventId();
+    }
+
+    public String inviteToChannel(String cId, EntityAlias uAl) {
+        return g.getChannelManager().get(cId).invite(user.getUsername(), uAl).getId();
     }
 
 }

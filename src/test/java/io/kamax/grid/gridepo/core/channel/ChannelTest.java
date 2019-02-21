@@ -67,7 +67,7 @@ public class ChannelTest {
         EventService evSvc = new EventService(domain, signMgr);
         ChannelAlgo algo = new ChannelAlgoV0_0();
         DataServerManager srvMgr = new DataServerManager();
-        Channel c = new Channel(0, chanId, domain, algo, store, srvMgr);
+        Channel c = new Channel(0, chanId, domain, algo, evSvc, store, srvMgr);
         assertNull(c.getView().getHead());
         assertNotNull(c.getView().getState());
         assertEquals(0, c.getView().getState().getServers().size());

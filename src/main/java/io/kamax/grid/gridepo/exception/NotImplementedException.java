@@ -18,25 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.grid.gridepo.exception;
 
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.util.GsonUtil;
+public class NotImplementedException extends RuntimeException {
 
-public class FiltersPostHandler extends ClientApiHandler {
-
-    private final Gridepo g;
-
-    public FiltersPostHandler(Gridepo g) {
-        this.g = g;
-    }
-
-    @Override
-    protected void handle(Exchange exchange) {
-        g.withToken(exchange.getAccessToken());
-
-        exchange.respond(GsonUtil.makeObj("filter_id", Long.toString(System.currentTimeMillis())));
+    public NotImplementedException(String feature) {
+        super("The following feature is not supported: " + feature);
     }
 
 }

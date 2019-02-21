@@ -76,7 +76,7 @@ public class ChannelManager {
         dao.setId(generateId());
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
 
-        Channel ch = new Channel(dao, cfg.getDomain(), algo, store, dsmgr);
+        Channel ch = new Channel(dao, cfg.getDomain(), algo, evSvc, store, dsmgr);
         channels.put(ch.getId(), ch);
 
         List<BareEvent> createEvents = algo.getCreationEvents(creator);

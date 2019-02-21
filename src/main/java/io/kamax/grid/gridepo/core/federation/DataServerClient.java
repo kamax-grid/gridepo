@@ -23,12 +23,16 @@ package io.kamax.grid.gridepo.core.federation;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.codec.GridJson;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
+import io.kamax.grid.gridepo.exception.RemoteServerException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.EntityBuilder;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustAllStrategy;
@@ -36,6 +40,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xbill.DNS.*;
@@ -44,7 +49,9 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -97,9 +104,10 @@ public class DataServerClient {
         try {
             Record[] records = new Lookup(prefix + domain, Type.SRV).run();
             if (records == null) {
+                // No SRV record, we return the default values
                 addrs.add(new Address(domain, port));
             } else {
-
+                // We found SRV records, processing
                 Stream.of(records)
                         .filter(record -> record.getType() == Type.SRV && record instanceof SRVRecord)
                         .map(record -> (SRVRecord) record)
@@ -371,5 +379,55 @@ public class DataServerClient {
         return sendGet(b);
     }
     */
+
+    public JsonObject approveEvent(String domain, JsonObject data) {
+        HttpPost req = new HttpPost();
+        req.setHeader("Content-Type", "application/json");
+        req.setEntity(getJsonEntity(data));
+
+        for (Address ad : lookupSrv(domain)) {
+            String srvUriRaw = "https://" + ad.getHost() + ":" + ad.getPort() + "/server/v0/do/event/approve";
+            try {
+                URI srvUri = new URI(srvUriRaw);
+                try {
+                    req.setURI(srvUri);
+                    try (CloseableHttpResponse res = client.execute(req)) {
+                        int sc = res.getStatusLine().getStatusCode();
+                        if (sc != 200) {
+                            JsonObject b;
+                            try {
+                                b = GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                            } catch (IllegalArgumentException e) {
+                                b = new JsonObject();
+                            }
+
+                            if (sc == 403) {
+                                throw new ForbiddenException(GsonUtil.findString(b, "message").orElse("Server did not give a reason"));
+                            }
+
+                            throw new RemoteServerException(
+                                    domain,
+                                    GsonUtil.findString(b, "code").orElse("G_UNKNOWN"),
+                                    GsonUtil.findString(b, "message").orElse("Server did not return a valid error message")
+                            );
+                        }
+
+                        try {
+                            // FIXME check if the server signed the event before returning it
+                            return GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                        } catch (IllegalArgumentException e) {
+                            throw new RemoteServerException(domain, "G_REMOTE_ERROR", "Server did not send us back JSON");
+                        }
+                    }
+                } catch (IOException e) {
+                    log.warn("");
+                }
+            } catch (URISyntaxException e) {
+                log.warn("Unable to create URI for server: Invalid URI for {}: {}", srvUriRaw, e.getMessage());
+            }
+        }
+
+        throw new RemoteServerException(domain, "G_FEDERATION_ERROR", "Could not find a working server for " + domain);
+    }
 
 }

@@ -73,7 +73,7 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
             throw new IllegalArgumentException();
         }
 
-        return senderPl < actionPl;
+        return senderPl >= actionPl;
     }
 
     private boolean canEvent(BarePowerEvent.Content pls, long senderPl, BareEvent ev) {

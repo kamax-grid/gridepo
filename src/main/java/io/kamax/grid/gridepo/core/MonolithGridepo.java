@@ -36,12 +36,14 @@ import io.kamax.grid.gridepo.core.identity.IdentityManager;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class MonolithGridepo implements Gridepo {
 
@@ -138,13 +140,20 @@ public class MonolithGridepo implements Gridepo {
     }
 
     @Override
+    public void logout(UserSession session) {
+        if (Objects.isNull(tokens.remove(session.getAccessToken()))) {
+            throw new ObjectNotFoundException("Client access token", "<REDACTED>");
+        }
+    }
+
+    @Override
     public UserSession withToken(String token) {
         if (!tokens.computeIfAbsent(token, t -> false)) {
             throw new InvalidTokenException("Unknown token");
         }
 
         String userId = JWT.decode(token).getClaim("UserID").asString();
-        return new UserSession(this, new User(userId));
+        return new UserSession(this, new User(userId), token);
     }
 
     @Override
