@@ -32,11 +32,11 @@ public class DefaultPowerEvent extends BarePowerEvent {
         }
 
         if (Objects.isNull(c.getDef().getState())) {
-            c.getDef().setState(Long.MAX_VALUE);
+            c.getDef().setState(50L);
         }
 
         if (Objects.isNull(c.getDef().getUser())) {
-            c.getDef().setUser(Long.MIN_VALUE);
+            c.getDef().setUser(0L);
         }
 
         if (Objects.isNull(c.getMembership().getBan())) {

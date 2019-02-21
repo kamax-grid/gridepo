@@ -41,6 +41,7 @@ public class ProtocolEventMapper {
             BareCreateEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareCreateEvent.class);
             JsonObject mEv = mapCommon(ev.getId(), gEv, new JsonObject());
             mEv.addProperty("type", "m.room.create");
+            mEv.addProperty("state_key", "");
             String creator = forUserIdFromGridToMatrix(gEv.getContent().getCreator());
             GsonUtil.getObj(mEv, "content").addProperty("creator", creator);
             return mEv;
@@ -51,6 +52,30 @@ public class ProtocolEventMapper {
             JsonObject mEv = mapCommon(ev.getId(), gEv, new JsonObject());
             mEv.addProperty("type", "m.room.member");
             GsonUtil.getObj(mEv, "content").addProperty("membership", gEv.getContent().getAction());
+            return mEv;
+        });
+
+        mappers.put(ChannelEventType.Power.getId(), ev -> {
+            BarePowerEvent gEv = GsonUtil.get().fromJson(ev.getData(), BarePowerEvent.class);
+            BarePowerEvent.Content c = gEv.getContent();
+
+            JsonObject mEvCu = new JsonObject();
+            c.getUsers().forEach((id, pl) -> mEvCu.addProperty(forUserIdFromGridToMatrix(id), pl));
+
+            JsonObject mEvC = new JsonObject();
+            mEvC.addProperty("ban", c.getMembership().getBan());
+            mEvC.addProperty("invite", c.getMembership().getInvite());
+            mEvC.addProperty("kick", c.getMembership().getKick());
+            mEvC.addProperty("state_default", c.getDef().getState());
+            mEvC.addProperty("events_default", c.getDef().getEvent());
+            mEvC.addProperty("users_default", c.getDef().getUser());
+            mEvC.add("users", mEvCu);
+
+            JsonObject mEv = mapCommon(ev.getId(), gEv, new JsonObject());
+            mEv.addProperty("type", "m.room.power_levels");
+            mEv.addProperty("state_key", "");
+            mEv.add("content", mEvC);
+
             return mEv;
         });
 
