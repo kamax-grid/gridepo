@@ -311,4 +311,8 @@ public class Channel {
         return inject(makeEvent(ev));
     }
 
+    public ChannelState getState(ChannelEvent ev) {
+        return store.getStateForEvent(ev.getSid());
+    }
+
 }

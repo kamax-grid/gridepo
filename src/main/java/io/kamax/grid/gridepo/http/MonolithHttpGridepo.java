@@ -20,13 +20,14 @@
 
 package io.kamax.grid.gridepo.http;
 
+import com.google.gson.JsonArray;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
-import io.undertow.UndertowOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -43,6 +44,9 @@ import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
 
 public class MonolithHttpGridepo {
 
@@ -114,9 +118,19 @@ public class MonolithHttpGridepo {
                 .post(ClientAPIr0.Base + "/login", new LoginHandler(g))
                 .get(ClientAPIr0.Base + "/sync", new SyncHandler(g))
 
+                // Account endpoints
+                .get(ClientAPIr0.Base + "/account/3pid", new JsonObjectHandler(
+                        g,
+                        true,
+                        GsonUtil.makeObj("threepids", new JsonArray()))
+                )
+
                 // Room endpoints
                 .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
                 .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
+
+                // Profile endpoints
+                .get(ClientAPIr0.Base + "/profile/**", new EmptyJsonObjectHandler(g, false))
 
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))
@@ -153,7 +167,6 @@ public class MonolithHttpGridepo {
         g = new MonolithGridepo(cfg);
 
         Undertow.Builder b = Undertow.builder();
-        b.setServerOption(UndertowOptions.SHUTDOWN_TIMEOUT, 5000);
         for (GridepoConfig.Listener cfg : cfg.getListeners()) {
             if (StringUtils.equals("grid", cfg.getProtocol())) {
                 buildGrid(b, cfg);
@@ -174,8 +187,28 @@ public class MonolithHttpGridepo {
     }
 
     public void stop() {
-        u.stop();
-        g.stop();
+        try {
+            ForkJoinPool.commonPool().submit(new RecursiveAction() {
+                @Override
+                protected void compute() {
+                    invokeAll(new RecursiveAction() {
+                        @Override
+                        protected void compute() {
+                            u.stop();
+                        }
+                    }, new RecursiveAction() {
+                        @Override
+                        protected void compute() {
+                            g.stop();
+                        }
+                    });
+                }
+            }).get();
+        } catch (InterruptedException e) {
+            log.info("Shutdown is dirty: interrupted while waiting for components to stop");
+        } catch (ExecutionException e) {
+            log.info("Shutdown is dirty: failure while waiting for components to stop", e);
+        }
     }
 
 }

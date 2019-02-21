@@ -24,6 +24,7 @@ import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,6 +144,21 @@ public class MemoryStore implements Store {
     @Override
     public void map(long evSid, long stateSid) {
         evStates.put(evSid, stateSid);
+    }
+
+    @Override
+    public ChannelState getStateForEvent(long evSid) {
+        Long sSid = evStates.get(evSid);
+        if (Objects.isNull(sSid)) {
+            throw new ObjectNotFoundException("State for Event SID", Long.toString(evSid));
+        }
+
+        ChannelState state = chStates.get(sSid);
+        if (Objects.isNull(state)) {
+            throw new ObjectNotFoundException("State SID", Long.toString(sSid));
+        }
+
+        return state;
     }
 
     @Override

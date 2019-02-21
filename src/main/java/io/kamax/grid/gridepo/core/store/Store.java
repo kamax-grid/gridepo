@@ -53,6 +53,8 @@ public interface Store {
 
     void map(long evSid, long stateSid);
 
+    ChannelState getStateForEvent(long evSid);
+
     boolean hasUser(String username);
 
     void storeUser(String username, String password);

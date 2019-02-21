@@ -20,13 +20,31 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.http.handler.ClientApiHandler;
+import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class EmptyJsonObjectHandler extends JsonObjectHandler {
+public class JsonObjectHandler extends ClientApiHandler {
 
-    public EmptyJsonObjectHandler(Gridepo g, boolean withAuth) {
-        super(g, withAuth, new JsonObject());
+    private final Gridepo g;
+    private final boolean withAuth;
+    private final String body;
+
+    public JsonObjectHandler(Gridepo g, boolean withAuth, JsonElement body) {
+        this.g = g;
+        this.withAuth = withAuth;
+        this.body = GsonUtil.toJson(body);
+    }
+
+    @Override
+    protected void handle(Exchange exchange) {
+        if (withAuth) {
+            g.withToken(exchange.getAccessToken());
+        }
+
+        exchange.respondJson(body);
     }
 
 }

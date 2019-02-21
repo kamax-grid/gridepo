@@ -96,6 +96,9 @@ public class MonolithGridepo implements Gridepo {
     @Override
     public void stop() {
         isStopping = true;
+        synchronized (getSyncLock()) {
+            getSyncLock().notifyAll();
+        }
     }
 
     @Override

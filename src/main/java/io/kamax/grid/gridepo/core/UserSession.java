@@ -23,12 +23,16 @@ package io.kamax.grid.gridepo.core;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.event.EventKey;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class UserSession {
 
@@ -85,11 +89,32 @@ public class UserSession {
             }
 
             List<ChannelEvent> events = g.getStreamer().next(sid);
-            if (!events.isEmpty()) {
-                data.setPosition(Long.toString(events.get(events.size() - 1).getSid()));
-                data.setEvents(events);
-                return data;
+            if (events.isEmpty()) {
+                continue;
             }
+
+            long position = events.stream().max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getSid).orElse(0L);
+            data.setPosition(Long.toString(position));
+
+            events = events.stream()
+                    .filter(ev -> {
+                        // FIXME move this into channel/state algo to check if a user can see an event in the stream
+
+                        // If we are the author
+                        if (StringUtils.equals(user.getUsername(), ev.getBare().getSender())) {
+                            return true;
+                        }
+
+                        // if we are subscribed to the channel at that point in time
+                        Channel c = g.getChannelManager().get(ev.getChannelId());
+                        ChannelState state = c.getState(ev);
+                        ChannelMembership m = state.getMembership(user.getUsername());
+                        return m.isAny(ChannelMembership.Invite, ChannelMembership.Join);
+                    })
+                    .collect(Collectors.toList());
+
+            data.setEvents(events);
+            break;
         }
 
         return data;
