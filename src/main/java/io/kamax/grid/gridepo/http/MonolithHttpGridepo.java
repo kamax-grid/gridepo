@@ -131,11 +131,15 @@ public class MonolithHttpGridepo {
                 .get(ClientAPIr0.Base + "/profile/**", new EmptyJsonObjectHandler(g, false))
                 .post(ClientAPIr0.Base + "/user_directory/search", new UserDirectorySearchHandler(g))
 
-                // Room endpoints
+                // Room management endpoints
                 .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
-                .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
-                .post(ChannelInviteHandler.Path, new ChannelInviteHandler(g))
+                .post(ClientAPIr0.Room + "/invite", new ChannelInviteHandler(g))
                 .post(ClientAPIr0.Base + "/join/{roomId}", new ChannelJoinHandler(g))
+                .post(ClientAPIr0.Room + "/leave", new ChannelLeaveHandler(g))
+                .post(ClientAPIr0.Room + "/forget", new EmptyJsonObjectHandler(g, true))
+
+                // Room event endpoints
+                .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
 
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))

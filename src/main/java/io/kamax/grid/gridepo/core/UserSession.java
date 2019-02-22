@@ -152,4 +152,20 @@ public class UserSession {
         return r.getEventId();
     }
 
+    public String leaveChannel(String cId) {
+        BareMemberEvent ev = new BareMemberEvent();
+        ev.setSender(user.getUsername());
+        ev.setScope(user.getUsername());
+        ev.getContent().setAction(ChannelMembership.Leave);
+
+        ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndInject(ev.getJson());
+        if (!r.isAuthorized()) {
+            throw new ForbiddenException(r.getReason());
+        }
+
+        return r.getEventId();
+    }
+
+
+
 }
