@@ -24,9 +24,12 @@ import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
+import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.event.EventKey;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
@@ -133,6 +136,20 @@ public class UserSession {
 
     public String inviteToChannel(String cId, EntityAlias uAl) {
         return g.getChannelManager().get(cId).invite(user.getUsername(), uAl).getId();
+    }
+
+    public String joinChannel(String cId) {
+        BareMemberEvent ev = new BareMemberEvent();
+        ev.setSender(user.getUsername());
+        ev.setScope(user.getUsername());
+        ev.getContent().setAction(ChannelMembership.Join);
+
+        ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndInject(ev.getJson());
+        if (!r.isAuthorized()) {
+            throw new ForbiddenException(r.getReason());
+        }
+
+        return r.getEventId();
     }
 
 }

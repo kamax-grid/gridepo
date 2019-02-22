@@ -161,4 +161,9 @@ public class MonolithGridepo implements Gridepo {
         return syncLock;
     }
 
+    @Override
+    public Store getStore() {
+        return store;
+    }
+
 }

@@ -20,32 +20,39 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.SyncData;
-import io.kamax.grid.gridepo.core.SyncOptions;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 
-public class SyncHandler extends ClientApiHandler {
+public class ChannelJoinHandler extends ClientApiHandler {
 
     private final Gridepo g;
 
-    public SyncHandler(Gridepo g) {
+    public ChannelJoinHandler(Gridepo g) {
         this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        UserSession session = g.withToken(exchange.getAccessToken());
-        String since = StringUtils.defaultIfBlank(exchange.getQueryParameter("since"), "");
+        UserSession s = g.withToken(exchange.getAccessToken());
 
-        SyncOptions options = new SyncOptions();
-        options.setToken(since);
+        String cId = exchange.getPathVariable("roomId");
+        if (StringUtils.isEmpty(cId)) {
+            throw new IllegalArgumentException("Missing Room ID in path");
+        }
 
-        SyncData data = session.sync(options);
-        String mxId = ProtocolEventMapper.forUserIdFromGridToMatrix(session.getUser().getUsername());
-        exchange.respondJson(SyncResponse.build(g, mxId, data));
+        JsonObject body = exchange.parseJsonObject();
+        if (body.has("third_party_signed")) {
+            throw new NotImplementedException("3PIDs invites to join rooms");
+        }
+
+        s.joinChannel(cId);
+
+        exchange.respond(GsonUtil.makeObj("room_id", cId));
     }
 
 }

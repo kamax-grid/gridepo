@@ -61,7 +61,8 @@ public class ChannelState {
     }
 
     private Long sid;
-    private Map<String, JsonObject> events = new HashMap<>();
+    private Set<String> ids = new HashSet<>();
+    private Map<String, JsonObject> data = new HashMap<>();
     private transient Set<String> servers = new HashSet<>();
 
     private ChannelState() {
@@ -78,13 +79,16 @@ public class ChannelState {
 
     public ChannelState(Long sid, ChannelState state) {
         this.sid = sid;
-        this.events = new HashMap<>(state.events);
+        this.ids = new HashSet<>(state.ids);
+        this.data = new HashMap<>(state.data);
         this.servers = new HashSet<>(state.servers);
     }
 
     private void addEvent(JsonObject ev) {
+        String id = GsonUtil.getStringOrThrow(ev, EventKey.Id);
         String key = GsonUtil.getStringOrThrow(ev, EventKey.Type) + GsonUtil.getStringOrThrow(ev, EventKey.Scope);
-        events.put(key, ev);
+        ids.add(id);
+        data.put(key, ev);
         servers.add(GsonUtil.getStringOrThrow(ev, EventKey.Origin));
     }
 
@@ -92,8 +96,12 @@ public class ChannelState {
         return sid;
     }
 
+    public List<String> getEventIds() {
+        return new ArrayList<>(ids);
+    }
+
     public Optional<JsonObject> find(String type, String scope) {
-        return Optional.ofNullable(events.get(type + scope));
+        return Optional.ofNullable(data.get(type + scope));
     }
 
     public <T> Optional<T> find(String type, Class<T> c) {
@@ -157,7 +165,8 @@ public class ChannelState {
         }
 
         ChannelState state = new ChannelState();
-        state.events = new HashMap<>(events);
+        state.ids = new HashSet<>(ids);
+        state.data = new HashMap<>(data);
         state.servers = new HashSet<>(servers);
         state.addEvent(ev);
 

@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.http.handler.matrix;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.SyncData;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -188,7 +189,7 @@ public class SyncResponse {
 
     }
 
-    public static SyncResponse build(String uId, SyncData data) {
+    public static SyncResponse build(Gridepo g, String uId, SyncData data) {
         Map<String, Room> roomCache = new HashMap<>();
         SyncResponse r = new SyncResponse();
         r.setNextBatch(data.getPosition());
@@ -201,13 +202,25 @@ public class SyncResponse {
                 JsonObject c = GsonUtil.parseObj(GsonUtil.toJson(rEv.getContent()));
                 GsonUtil.findString(c, "membership").ifPresent(m -> {
                     if ("invite".equals(m)) {
-                        r.rooms.invite.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
-                        room.state.setEvents(room.timeline.events);
-                        room.inviteState.setEvents(room.state.events);
+                        r.rooms.invite.put(rEv.getRoomId(), room);
+                        room.timeline.events = null;
+                        room.state.events = null;
+
+                        room.inviteState.events = new ArrayList<>();
+                        g.getChannelManager().get(rEv.getRoomId()).getState(ev).getEventIds().forEach(sEvId -> {
+                            room.inviteState.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getRoomId(), sEvId)));
+                        });
+                        room.inviteState.events.add(rEv);
                     } else if ("leave".equals(m) || "ban".equals(m)) {
-                        r.rooms.leave.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+                        r.rooms.leave.put(rEv.getRoomId(), room);
+                    } else if ("join".equals(m)) {
+                        room.state.events = new ArrayList<>();
+                        g.getChannelManager().get(rEv.getRoomId()).getState(ev).getEventIds().forEach(sEvId -> {
+                            room.state.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getRoomId(), sEvId)));
+                        });
+                        r.rooms.join.put(rEv.getRoomId(), room);
                     } else {
-                        r.rooms.join.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+                        // unknown, not supported
                     }
                 });
             } else {

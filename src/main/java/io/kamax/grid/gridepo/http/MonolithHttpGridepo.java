@@ -135,6 +135,7 @@ public class MonolithHttpGridepo {
                 .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
                 .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
                 .post(ChannelInviteHandler.Path, new ChannelInviteHandler(g))
+                .post(ClientAPIr0.Base + "/join/{roomId}", new ChannelJoinHandler(g))
 
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))

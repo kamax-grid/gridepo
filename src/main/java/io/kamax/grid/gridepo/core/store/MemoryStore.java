@@ -85,6 +85,7 @@ public class MemoryStore implements Store {
 
     @Override
     public synchronized ChannelEvent getEvent(String channelId, String eventId) throws IllegalStateException {
+        log.info("Getting Event {}/{}", channelId, eventId);
         return findEvent(channelId, eventId).orElseThrow(IllegalStateException::new);
     }
 
