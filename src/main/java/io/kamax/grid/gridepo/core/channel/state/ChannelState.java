@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.channel.state;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.ChannelJoinRule;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.*;
@@ -146,6 +147,10 @@ public class ChannelState {
         return find(ChannelEventType.Member, userId, BareMemberEvent.class)
                 .map(ev -> ev.getContent().getAction())
                 .flatMap(membershipMapper());
+    }
+
+    public ChannelMembership getMembership(UserID uId) {
+        return getMembership(uId.full());
     }
 
     public ChannelMembership getMembership(String userId) {

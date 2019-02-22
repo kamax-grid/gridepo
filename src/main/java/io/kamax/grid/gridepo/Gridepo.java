@@ -20,8 +20,11 @@
 
 package io.kamax.grid.gridepo;
 
+import io.kamax.grid.gridepo.core.ServerSession;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
+import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.event.EventStreamer;
 import io.kamax.grid.gridepo.core.store.Store;
 
@@ -41,6 +44,8 @@ public interface Gridepo {
 
     ChannelManager getChannelManager();
 
+    EventService getEventService();
+
     EventStreamer getStreamer();
 
     UserSession login(String username, String password);
@@ -48,5 +53,9 @@ public interface Gridepo {
     void logout(UserSession session);
 
     UserSession withToken(String token);
+
+    boolean isLocal(UserID uId);
+
+    ServerSession forServer(String srvId);
 
 }

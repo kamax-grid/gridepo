@@ -67,7 +67,7 @@ public class UserSession {
     }
 
     public Channel createChannel() {
-        return g.getChannelManager().createChannel(user.getUsername());
+        return g.getChannelManager().createChannel(user.getId().full());
     }
 
     public SyncData sync(SyncOptions options) {
@@ -110,14 +110,14 @@ public class UserSession {
                         // FIXME move this into channel/state algo to check if a user can see an event in the stream
 
                         // If we are the author
-                        if (StringUtils.equals(user.getUsername(), ev.getBare().getSender())) {
+                        if (StringUtils.equals(user.getId().full(), ev.getBare().getSender())) {
                             return true;
                         }
 
                         // if we are subscribed to the channel at that point in time
                         Channel c = g.getChannelManager().get(ev.getChannelId());
                         ChannelState state = c.getState(ev);
-                        ChannelMembership m = state.getMembership(user.getUsername());
+                        ChannelMembership m = state.getMembership(user.getId());
                         return m.isAny(ChannelMembership.Invite, ChannelMembership.Join);
                     })
                     .collect(Collectors.toList());
@@ -130,18 +130,18 @@ public class UserSession {
     }
 
     public String send(String cId, JsonObject data) {
-        data.addProperty(EventKey.Sender, user.getUsername());
+        data.addProperty(EventKey.Sender, user.getId().full());
         return g.getChannelManager().get(cId).makeAndInject(data).getEventId();
     }
 
     public String inviteToChannel(String cId, EntityAlias uAl) {
-        return g.getChannelManager().get(cId).invite(user.getUsername(), uAl).getId();
+        return g.getChannelManager().get(cId).invite(user.getId().full(), uAl).getId();
     }
 
     public String joinChannel(String cId) {
         BareMemberEvent ev = new BareMemberEvent();
-        ev.setSender(user.getUsername());
-        ev.setScope(user.getUsername());
+        ev.setSender(user.getId().full());
+        ev.setScope(user.getId().full());
         ev.getContent().setAction(ChannelMembership.Join);
 
         ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndInject(ev.getJson());
@@ -154,8 +154,8 @@ public class UserSession {
 
     public String leaveChannel(String cId) {
         BareMemberEvent ev = new BareMemberEvent();
-        ev.setSender(user.getUsername());
-        ev.setScope(user.getUsername());
+        ev.setSender(user.getId().full());
+        ev.setScope(user.getId().full());
         ev.getContent().setAction(ChannelMembership.Leave);
 
         ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndInject(ev.getJson());

@@ -18,34 +18,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.http.handler.grid.server;
 
-public class User {
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.http.handler.Exchange;
 
-    private Long sid;
-    private UserID id;
-    private String username;
+public class DoApproveEventHandler extends ServerApiHandler {
 
-    public User(Long sid, UserID id, String username) {
-        this.sid = sid;
-        this.id = id;
-        this.username = username;
+    private final Gridepo g;
+
+    public DoApproveEventHandler(Gridepo g) {
+        this.g = g;
     }
 
-    public User(UserID id, String username) {
-        this(null, id, username);
-    }
 
-    public Long getSid() {
-        return sid;
-    }
-
-    public UserID getId() {
-        return id;
-    }
-
-    public String getUsername() {
-        return username;
+    @Override
+    protected void handle(Exchange exchange) {
+        // FIXME get the actual server ID
+        exchange.respond(g.forServer("").approveEvent(exchange.parseJsonObject()));
     }
 
 }

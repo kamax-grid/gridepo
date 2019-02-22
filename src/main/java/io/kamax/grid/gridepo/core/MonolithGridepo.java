@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
@@ -38,7 +39,9 @@ import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import org.apache.commons.lang3.StringUtils;
+import org.postgresql.util.Base64;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
@@ -56,6 +59,7 @@ public class MonolithGridepo implements Gridepo {
     private GridepoConfig cfg;
     private Store store;
     private IdentityManager idMgr;
+    private EventService evSvc;
     private ChannelManager chMgr;
     private EventStreamer streamer;
 
@@ -79,7 +83,7 @@ public class MonolithGridepo implements Gridepo {
         DataServerManager dsmgr = new DataServerManager();
         KeyManager keyMgr = new KeyManager(new MemoryKeyStore());
         SignManager signMgr = new SignManager(keyMgr);
-        EventService evSvc = new EventService(cfg.getDomain(), signMgr);
+        evSvc = new EventService(cfg.getDomain(), signMgr);
 
         idMgr = new IdentityManager(store);
         chMgr = new ChannelManager(cfg, evSvc, store, dsmgr);
@@ -119,6 +123,11 @@ public class MonolithGridepo implements Gridepo {
     }
 
     @Override
+    public EventService getEventService() {
+        return evSvc;
+    }
+
+    @Override
     public EventStreamer getStreamer() {
         return streamer;
     }
@@ -127,16 +136,17 @@ public class MonolithGridepo implements Gridepo {
     public UserSession login(String username, String password) {
         String canonicalUsername = idMgr.login(username, password);
         UserID uId = UserID.from(username, cfg.getDomain());
-        User u = new User(canonicalUsername);
+        User u = new User(uId, canonicalUsername);
 
         String token = JWT.create()
                 .withIssuer(cfg.getDomain())
                 .withExpiresAt(Date.from(Instant.ofEpochMilli(Long.MAX_VALUE)))
                 .withClaim("UserID", uId.full())
+                .withClaim("Username", username)
                 .sign(jwtAlgo);
 
         tokens.put(token, true);
-        return new UserSession(u, token);
+        return new UserSession(this, u, token);
     }
 
     @Override
@@ -152,8 +162,20 @@ public class MonolithGridepo implements Gridepo {
             throw new InvalidTokenException("Unknown token");
         }
 
-        String userId = JWT.decode(token).getClaim("UserID").asString();
-        return new UserSession(this, new User(userId), token);
+        DecodedJWT data = JWT.decode(token);
+        UserID uId = UserID.parse(data.getClaim("UserID").asString());
+        String username = JWT.decode(token).getClaim("Username").asString();
+        return new UserSession(this, new User(uId, username), token);
+    }
+
+    @Override
+    public boolean isLocal(UserID uId) {
+        return getDomain().equals(new String(Base64.decode(uId.getId()), StandardCharsets.UTF_8).split("@", 2)[1]);
+    }
+
+    @Override
+    public ServerSession forServer(String srvId) {
+        return new ServerSession(this, srvId);
     }
 
     @Override

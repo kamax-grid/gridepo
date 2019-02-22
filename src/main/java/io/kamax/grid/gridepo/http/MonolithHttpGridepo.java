@@ -21,29 +21,18 @@
 package io.kamax.grid.gridepo.http;
 
 import com.google.gson.JsonArray;
+import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
+import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveEventHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
-import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.io.pem.PemReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.FileReader;
-import java.security.KeyFactory;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.Security;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
@@ -70,32 +59,14 @@ public class MonolithHttpGridepo {
         this.cfg = cfg;
     }
 
-    private SSLContext buildTls(String keyFilePath, String certFilePath) {
-        try {
-            Security.addProvider(new BouncyCastleProvider());
-            KeyFactory factory = KeyFactory.getInstance("RSA", "BC");
-            PemReader key = new PemReader(new FileReader(keyFilePath));
-
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(key.readPemObject().getContent());
-            PrivateKey privateKey = factory.generatePrivate(keySpec);
-
-            X509Certificate certC = TlsUtils.load(certFilePath);
-            KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
-            store.load(null, "".toCharArray());
-            store.setKeyEntry("federation", privateKey, "".toCharArray(), new Certificate[]{certC});
-            return SSLContextBuilder.create().loadKeyMaterial(store, "".toCharArray()).build();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private void buildGridClient(Undertow.Builder b, GridepoConfig.Listener cfg) {
 
     }
 
     private void buildGridServer(Undertow.Builder b, GridepoConfig.Listener cfg) {
-        //SSLContext sslC = buildTls(cfg.getFederation().getKey(), cfg.getFederation().getCert());
-        //b.addHttpsListener(cfg.getFederation().getPort(), cfg.getFederation().getIp(), sslC).setHandler(Handlers.routing());
+        b.addHttpListener(cfg.getPort(), cfg.getAddress()).setHandler(Handlers.routing()
+                .post("/_grid/server/v0/do/approve/event", new DoApproveEventHandler(g))
+        );
     }
 
     private void buildGrid(Undertow.Builder b, GridepoConfig.Listener cfg) {
@@ -188,11 +159,13 @@ public class MonolithHttpGridepo {
         u = b.build();
     }
 
-    public void start() {
+    public Gridepo start() {
         build();
 
         g.start();
         u.start();
+
+        return g;
     }
 
     public void stop() {

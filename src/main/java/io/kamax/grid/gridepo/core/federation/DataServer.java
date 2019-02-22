@@ -35,14 +35,14 @@ public class DataServer {
     private transient final Logger log = LoggerFactory.getLogger(DataServer.class);
 
     private String domain;
-    private DataServerClient client;
+    private DataServerHttpClient client;
     private volatile Instant lastCall;
     private volatile Instant lastActivity;
     private AtomicLong waitTime = new AtomicLong();
 
     public DataServer(String domain) {
         this.domain = domain;
-        this.client = new DataServerClient(domain);
+        this.client = new DataServerHttpClient(domain);
         setAvailable();
     }
 
