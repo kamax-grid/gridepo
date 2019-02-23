@@ -18,18 +18,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.federation;
+package io.kamax.grid.gridepo.core.channel.structure;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
-import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public interface DataServerClient {
+public class InviteApprovalRequest {
 
-    JsonObject push(String as, String to, List<ChannelEvent> events);
+    public static class Context {
 
-    JsonObject approveInvite(String as, String to, InviteApprovalRequest data);
+        private List<JsonObject> state = new ArrayList<>();
+
+        public List<JsonObject> getState() {
+            return state;
+        }
+
+        public void setState(List<JsonObject> state) {
+            this.state = state;
+        }
+
+    }
+
+    private JsonObject object;
+    private Context context = new Context();
+
+    public JsonObject getObject() {
+        return object;
+    }
+
+    public void setObject(JsonObject object) {
+        this.object = object;
+    }
+
+    public Context getContext() {
+        return context;
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
+    }
 
 }

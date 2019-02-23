@@ -20,17 +20,25 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgos;
+import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
+import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareEvent;
+import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
+import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
-import org.apache.commons.codec.binary.Base64;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -62,10 +70,9 @@ public class ChannelManager {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(Instant.now().toEpochMilli() - 1546297200000L); // TS since 2019-01-01T00:00:00Z to keep IDs short
         byte[] tsBytes = buffer.array();
+        String localpart = new String(tsBytes, StandardCharsets.UTF_8) + RandomStringUtils.randomAlphanumeric(2);
 
-        String localId = Base64.encodeBase64URLSafeString(tsBytes) + RandomStringUtils.randomAlphanumeric(2);
-        String decodedId = localId + "@" + g.getDomain();
-        return "#" + Base64.encodeBase64URLSafeString(decodedId.getBytes(StandardCharsets.UTF_8));
+        return ChannelID.from(localpart, g.getConfig().getDomain()).full();
     }
 
     public Channel createChannel(String creator) {
@@ -92,6 +99,30 @@ public class ChannelManager {
             throw new RuntimeException("Room creation failed because of initial event(s) being rejected: " + auth.getReason());
         });
 
+        return ch;
+    }
+
+    public Channel create(String from, JsonObject seedJson, List<JsonObject> stateJson) {
+        BareMemberEvent ev = GsonUtil.fromJson(seedJson, BareMemberEvent.class);
+        ChannelDao dao = new ChannelDao();
+        dao.setId(ev.getChannelId());
+        dao = store.saveChannel(dao);
+
+        BareCreateEvent createEv = GsonUtil.fromJson(stateJson.get(0), BareCreateEvent.class);
+        String version = StringUtils.defaultIfEmpty(createEv.getContent().getVersion(), ChannelAlgoV0_0.Version);
+        Channel ch = new Channel(dao, g.getOrigin(), ChannelAlgos.get(version), evSvc, store, dsmgr, bus);
+        List<ChannelEventAuthorization> auths = ch.injectRemote(from, stateJson);
+
+        auths.stream().filter(auth -> !auth.isAuthorized()).findFirst().ifPresent(auth -> {
+            throw new IllegalArgumentException("State event " + auth.getEventId() + " is not authorized: " + auth.getReason());
+        });
+
+        ChannelEventAuthorization auth = ch.injectRemote(from, seedJson);
+        if (!auth.isAuthorized()) {
+            throw new ForbiddenException("Invite is not allowed as per state: " + auth.getReason());
+        }
+
+        channels.put(ch.getId(), ch);
         return ch;
     }
 

@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.http.handler.grid.server;
 
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.ServerSession;
+import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 
 public class DoApproveInvite extends ServerApiHandler {
@@ -35,7 +36,8 @@ public class DoApproveInvite extends ServerApiHandler {
     @Override
     protected void handle(Exchange exchange) {
         ServerSession s = g.forServer(exchange.authenticate());
-        exchange.respond(s.approveInvite(exchange.parseJsonObject()));
+        InviteApprovalRequest request = exchange.parseJsonTo(InviteApprovalRequest.class);
+        exchange.respond(s.approveInvite(request));
     }
 
 }

@@ -27,6 +27,7 @@ import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEventType;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
+import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -50,22 +51,29 @@ public class ServerSession {
         this.srvId = srvId;
     }
 
-    public JsonObject approveInvite(JsonObject obj) {
-        BareGenericEvent evGen = GsonUtil.fromJson(obj, BareGenericEvent.class);
+    public JsonObject approveInvite(InviteApprovalRequest request) {
+        BareGenericEvent evGen = GsonUtil.fromJson(request.getObject(), BareGenericEvent.class);
         if (!ChannelEventType.Member.match(evGen.getType())) {
-            throw new IllegalArgumentException("Approving event with type " + evGen.getType());
+            throw new IllegalArgumentException("Illegal event type " + evGen.getType());
         }
 
-        BareMemberEvent mEv = GsonUtil.fromJson(obj, BareMemberEvent.class);
+        BareMemberEvent mEv = GsonUtil.fromJson(request.getObject(), BareMemberEvent.class);
         if (!ChannelMembership.Invite.match(mEv.getContent().getAction())) {
-            throw new IllegalArgumentException("Approving membership event with action " + mEv.getContent().getAction());
+            throw new IllegalArgumentException("Illegal membership action " + mEv.getContent().getAction());
         }
 
         if (!g.isLocal(UserID.parse(mEv.getScope()))) {
-            throw new IllegalArgumentException("Approving membership event for user " + mEv.getScope());
+            throw new IllegalArgumentException("Not authoritative for user " + mEv.getScope());
         }
 
-        return g.getEventService().sign(obj);
+        log.info("Approving invite from {} for {} in {}", mEv.getSender(), mEv.getScope(), mEv.getChannelId());
+
+        JsonObject invEv = g.getEventService().sign(request.getObject());
+        g.getChannelManager().create(srvId, invEv, request.getContext().getState());
+
+        log.info("Invite is valid");
+
+        return invEv;
     }
 
     public List<ChannelEventAuthorization> push(List<JsonObject> events) {

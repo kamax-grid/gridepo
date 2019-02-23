@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core.federation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.RemoteServerException;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -188,7 +189,7 @@ public class DataServerHttpClient implements DataServerClient {
     }
 
     @Override
-    public JsonObject approveInvite(String as, String target, JsonObject data) {
+    public JsonObject approveInvite(String as, String target, InviteApprovalRequest data) {
         HttpPost req = new HttpPost();
         req.setHeader("X-Grid-Remote-ID", as);
         req.setEntity(getJsonEntity(data));

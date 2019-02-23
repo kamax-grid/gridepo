@@ -28,6 +28,7 @@ import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServer;
@@ -326,6 +327,10 @@ public class Channel {
         }).collect(Collectors.toList()));
     }
 
+    public ChannelEventAuthorization injectRemote(String from, JsonObject event) {
+        return injectRemote(from, Collections.singletonList(event)).get(0);
+    }
+
     public ChannelEventAuthorization injectLocal(JsonObject ev) {
         ChannelEvent cEv = ChannelEvent.from(ev);
         cEv.setReceivedAt(Instant.now());
@@ -373,7 +378,17 @@ public class Channel {
 
         if (!origin.equals(remoteId)) {
             // This is a remote invite
-            evFull = srvMgr.get(remoteId.full()).approveInvite(domain, evFull);
+
+            List<JsonObject> state = getView().getState().getEventIds().stream()
+                    .map(evId -> store.getEvent(getId(), evId))
+                    .map(ChannelEvent::getData)
+                    .collect(Collectors.toList());
+
+            InviteApprovalRequest request = new InviteApprovalRequest();
+            request.setObject(evFull);
+            request.getContext().setState(state);
+
+            evFull = srvMgr.get(remoteId.full()).approveInvite(origin.full(), request);
         }
 
         ChannelEventAuthorization result = injectLocal(evFull);

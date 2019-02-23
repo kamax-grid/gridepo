@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core.federation;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,8 +121,8 @@ public class DataServer {
         return withHealthCheck(() -> client.push(as, hostname, Collections.singletonList(ev)));
     }
 
-    public JsonObject approveInvite(String as, JsonObject ev) {
-        return withHealthCheck(true, () -> client.approveInvite(as, hostname, ev));
+    public JsonObject approveInvite(String as, InviteApprovalRequest data) {
+        return withHealthCheck(true, () -> client.approveInvite(as, hostname, data));
     }
 
 }

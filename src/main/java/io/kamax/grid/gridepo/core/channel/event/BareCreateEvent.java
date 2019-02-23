@@ -25,6 +25,7 @@ public class BareCreateEvent extends BareEvent<BareCreateEvent.Content> {
     public static class Content {
 
         private String creator;
+        private String version;
 
         public String getCreator() {
             return creator;
@@ -32,6 +33,14 @@ public class BareCreateEvent extends BareEvent<BareCreateEvent.Content> {
 
         public void setCreator(String creator) {
             this.creator = creator;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public void setVersion(String version) {
+            this.version = version;
         }
 
     }
