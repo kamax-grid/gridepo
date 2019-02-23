@@ -35,18 +35,22 @@ public class MonolithHttpGridepoTest {
     public void inviteAndJoinOverFederation() {
         DataServerHttpClient.useHttps = false;
 
+        GridepoConfig.ListenerNetwork net1 = new GridepoConfig.ListenerNetwork();
+        net1.setProtocol("grid");
+        net1.setType("server");
         GridepoConfig.Listener l1 = new GridepoConfig.Listener();
-        l1.setProtocol("grid");
-        l1.setType("server");
+        l1.addNetwork(net1);
         l1.setPort(60001);
         GridepoConfig cfg1 = new GridepoConfig();
         cfg1.setDomain("localhost:" + l1.getPort());
         cfg1.getListeners().add(l1);
         cfg1.getCrypto().getSeed().put("jwt", "jwt");
 
+        GridepoConfig.ListenerNetwork net2 = new GridepoConfig.ListenerNetwork();
+        net2.setProtocol("grid");
+        net2.setType("server");
         GridepoConfig.Listener l2 = new GridepoConfig.Listener();
-        l2.setProtocol("grid");
-        l2.setType("server");
+        l2.addNetwork(net2);
         l2.setPort(60002);
         GridepoConfig cfg2 = new GridepoConfig();
         cfg2.setDomain("localhost:" + l2.getPort());
@@ -66,6 +70,9 @@ public class MonolithHttpGridepoTest {
 
         ChannelMembership mC1u1g2 = g1.getChannelManager().get(c1u1g1).getView().getState().getMembership(u1g2.getUser().getId().full());
         assertEquals(ChannelMembership.Invite, mC1u1g2);
+
+        mg1.stop();
+        mg2.stop();
     }
 
 }

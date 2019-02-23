@@ -18,17 +18,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.federation;
+package io.kamax.grid.gridepo.core.signal;
 
-import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 
-import java.util.List;
+public class ChannelMessageProcessed extends Signal {
 
-public interface DataServerClient {
+    private final ChannelEvent ev;
+    private final ChannelEventAuthorization auth;
 
-    JsonObject push(String as, String to, List<ChannelEvent> events);
+    public ChannelMessageProcessed(ChannelEvent ev, ChannelEventAuthorization auth) {
+        this.ev = ev;
+        this.auth = auth;
+    }
 
-    JsonObject approveInvite(String as, String to, JsonObject data);
+    public ChannelEvent getEvent() {
+        return ev;
+    }
+
+    public ChannelEventAuthorization getAuth() {
+        return auth;
+    }
 
 }

@@ -18,24 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.grid.server;
+package io.kamax.grid.gridepo.core.signal;
 
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.http.handler.Exchange;
-
-public class DoApproveEventHandler extends ServerApiHandler {
-
-    private final Gridepo g;
-
-    public DoApproveEventHandler(Gridepo g) {
-        this.g = g;
-    }
-
-
-    @Override
-    protected void handle(Exchange exchange) {
-        // FIXME get the actual server ID
-        exchange.respond(g.forServer("").approveEvent(exchange.parseJsonObject()));
-    }
-
+public abstract class Signal {
 }

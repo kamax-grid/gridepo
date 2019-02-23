@@ -25,12 +25,17 @@ import java.util.List;
 
 public class GridepoConfig {
 
-    public static class Listener {
+    public static class ListenerNetwork {
+
+        public static ListenerNetwork build(String protocol, String type) {
+            ListenerNetwork v = new ListenerNetwork();
+            v.setProtocol(protocol);
+            v.setType(type);
+            return v;
+        }
 
         private String protocol;
         private String type;
-        private String address;
-        private int port;
 
         public String getProtocol() {
             return protocol;
@@ -46,6 +51,26 @@ public class GridepoConfig {
 
         public void setType(String type) {
             this.type = type;
+        }
+
+    }
+
+    public static class Listener {
+
+        private List<ListenerNetwork> network = new ArrayList<>();
+        private String address;
+        private int port;
+
+        public List<ListenerNetwork> getNetwork() {
+            return network;
+        }
+
+        public void setNetwork(List<ListenerNetwork> network) {
+            this.network = network;
+        }
+
+        public void addNetwork(ListenerNetwork network) {
+            this.network.add(network);
         }
 
         public String getAddress() {

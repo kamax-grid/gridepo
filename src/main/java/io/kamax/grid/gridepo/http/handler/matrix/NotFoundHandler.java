@@ -26,7 +26,7 @@ public class NotFoundHandler extends ClientApiHandler {
 
     @Override
     protected void handle(Exchange exchange) {
-        exchange.respond(404, "M_UNKNOWN_REQUEST", "Request is not supported");
+        exchange.respond(404, "M_UNKNOWN_REQUEST", "No such resource");
     }
 
 }

@@ -18,17 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.federation;
+package io.kamax.grid.gridepo.core.signal;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+public enum SignalTopic {
 
-import java.util.List;
-
-public interface DataServerClient {
-
-    JsonObject push(String as, String to, List<ChannelEvent> events);
-
-    JsonObject approveInvite(String as, String to, JsonObject data);
+    Main,
+    Channel,
+    Store
 
 }

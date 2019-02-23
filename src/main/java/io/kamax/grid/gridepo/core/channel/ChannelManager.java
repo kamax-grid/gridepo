@@ -20,12 +20,13 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
-import io.kamax.grid.gridepo.config.GridepoConfig;
+import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgos;
 import io.kamax.grid.gridepo.core.channel.event.BareEvent;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
+import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import org.apache.commons.codec.binary.Base64;
@@ -41,15 +42,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ChannelManager {
 
-    private GridepoConfig cfg;
+    private Gridepo g;
+    private SignalBus bus;
     private EventService evSvc;
     private Store store;
     private DataServerManager dsmgr;
 
     private Map<String, Channel> channels = new ConcurrentHashMap<>();
 
-    public ChannelManager(GridepoConfig cfg, EventService evSvc, Store store, DataServerManager dsmgr) {
-        this.cfg = cfg;
+    public ChannelManager(Gridepo g, SignalBus bus, EventService evSvc, Store store, DataServerManager dsmgr) {
+        this.g = g;
+        this.bus = bus;
         this.evSvc = evSvc;
         this.store = store;
         this.dsmgr = dsmgr;
@@ -61,12 +64,12 @@ public class ChannelManager {
         byte[] tsBytes = buffer.array();
 
         String localId = Base64.encodeBase64URLSafeString(tsBytes) + RandomStringUtils.randomAlphanumeric(2);
-        String decodedId = localId + "@" + cfg.getDomain();
+        String decodedId = localId + "@" + g.getDomain();
         return "#" + Base64.encodeBase64URLSafeString(decodedId.getBytes(StandardCharsets.UTF_8));
     }
 
     public Channel createChannel(String creator) {
-        return createChannel(creator, cfg.getChannel().getCreation().getVersion());
+        return createChannel(creator, g.getConfig().getChannel().getCreation().getVersion());
     }
 
     public Channel createChannel(String creator, String version) {
@@ -76,14 +79,14 @@ public class ChannelManager {
         dao.setId(generateId());
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
 
-        Channel ch = new Channel(dao, cfg.getDomain(), algo, evSvc, store, dsmgr);
+        Channel ch = new Channel(dao, g.getOrigin(), algo, evSvc, store, dsmgr, bus);
         channels.put(ch.getId(), ch);
 
         List<BareEvent> createEvents = algo.getCreationEvents(creator);
         createEvents.stream()
                 .map(ch::makeEvent)
                 .map(ev -> evSvc.finalize(ev))
-                .map(ch::inject)
+                .map(ch::injectLocal)
                 .filter(auth -> !auth.isAuthorized())
                 .findAny().ifPresent(auth -> {
             throw new RuntimeException("Room creation failed because of initial event(s) being rejected: " + auth.getReason());

@@ -33,13 +33,16 @@ import io.kamax.grid.gridepo.core.crypto.SignManager;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.event.EventStreamer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
+import io.kamax.grid.gridepo.core.federation.FederationPusher;
 import io.kamax.grid.gridepo.core.identity.IdentityManager;
+import io.kamax.grid.gridepo.core.signal.AppStopping;
+import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
-import org.postgresql.util.Base64;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -50,28 +53,36 @@ import java.util.Objects;
 
 public class MonolithGridepo implements Gridepo {
 
-    private final Object syncLock = new Object();
-    private boolean isStopping;
-
-    private Algorithm jwtAlgo;
-    private JWTVerifier jwtVerifier;
+    private final ServerID origin;
+    private final Algorithm jwtAlgo;
+    private final JWTVerifier jwtVerifier;
 
     private GridepoConfig cfg;
+    private SignalBus bus;
     private Store store;
     private IdentityManager idMgr;
     private EventService evSvc;
     private ChannelManager chMgr;
     private EventStreamer streamer;
+    private FederationPusher fedPush;
 
+    private boolean isStopping;
     private Map<String, Boolean> tokens = new HashMap<>();
 
     public MonolithGridepo(GridepoConfig cfg) {
+        this.cfg = cfg;
+
+        if (StringUtils.isBlank(cfg.getDomain())) {
+            throw new RuntimeException("Configuration: domain cannot be blank");
+        }
+        origin = ServerID.from(cfg.getDomain());
+
+        bus = new SignalBus();
+
         jwtAlgo = Algorithm.HMAC256(cfg.getCrypto().getSeed().get("jwt"));
         jwtVerifier = JWT.require(jwtAlgo)
                 .withIssuer(cfg.getDomain())
                 .build();
-
-        this.cfg = cfg;
 
         // FIXME use ServiceLoader
         if (StringUtils.equals("memory", cfg.getStorage().getType())) {
@@ -80,31 +91,30 @@ public class MonolithGridepo implements Gridepo {
             throw new IllegalArgumentException("Unknown storage: " + cfg.getStorage().getType());
         }
 
-        DataServerManager dsmgr = new DataServerManager();
+        DataServerManager dsMgr = new DataServerManager();
         KeyManager keyMgr = new KeyManager(new MemoryKeyStore());
         SignManager signMgr = new SignManager(keyMgr);
         evSvc = new EventService(cfg.getDomain(), signMgr);
 
         idMgr = new IdentityManager(store);
-        chMgr = new ChannelManager(cfg, evSvc, store, dsmgr);
+        chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);
         streamer = new EventStreamer(store);
+
+        fedPush = new FederationPusher(this, dsMgr);
     }
 
     @Override
     public void start() {
         isStopping = false;
-
-        if (StringUtils.isBlank(cfg.getDomain())) {
-            throw new RuntimeException("Configuration: domain cannot be blank");
-        }
     }
 
     @Override
     public void stop() {
         isStopping = true;
-        synchronized (getSyncLock()) {
-            getSyncLock().notifyAll();
-        }
+
+        bus.getMain().publish(AppStopping.Signal);
+
+        fedPush.stop();
     }
 
     @Override
@@ -113,8 +123,23 @@ public class MonolithGridepo implements Gridepo {
     }
 
     @Override
+    public GridepoConfig getConfig() {
+        return cfg;
+    }
+
+    @Override
     public String getDomain() {
         return cfg.getDomain();
+    }
+
+    @Override
+    public ServerID getOrigin() {
+        return origin;
+    }
+
+    @Override
+    public SignalBus getBus() {
+        return bus;
     }
 
     @Override
@@ -162,25 +187,20 @@ public class MonolithGridepo implements Gridepo {
             throw new InvalidTokenException("Unknown token");
         }
 
-        DecodedJWT data = JWT.decode(token);
+        DecodedJWT data = jwtVerifier.verify(JWT.decode(token));
         UserID uId = UserID.parse(data.getClaim("UserID").asString());
-        String username = JWT.decode(token).getClaim("Username").asString();
+        String username = data.getClaim("Username").asString();
         return new UserSession(this, new User(uId, username), token);
     }
 
     @Override
     public boolean isLocal(UserID uId) {
-        return getDomain().equals(new String(Base64.decode(uId.getId()), StandardCharsets.UTF_8).split("@", 2)[1]);
+        return getDomain().equals(new String(Base64.decodeBase64(uId.getId()), StandardCharsets.UTF_8).split("@", 2)[1]);
     }
 
     @Override
     public ServerSession forServer(String srvId) {
         return new ServerSession(this, srvId);
-    }
-
-    @Override
-    public Object getSyncLock() {
-        return syncLock;
     }
 
     @Override

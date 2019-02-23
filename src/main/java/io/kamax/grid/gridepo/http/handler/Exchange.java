@@ -46,6 +46,7 @@ public class Exchange {
         this.exchange = exchange;
     }
 
+    // TODO refactor into a ClientExchange
     public String getAccessToken() {
         String value = exchange.getRequestHeaders().getFirst("Authorization");
         if (!StringUtils.startsWith(value, "Bearer ")) {
@@ -53,6 +54,16 @@ public class Exchange {
         }
 
         return value.substring("Bearer ".length());
+    }
+
+    // TODO refactor into a ServerExchange
+    public String authenticate() {
+        String value = exchange.getRequestHeaders().getFirst("X-Grid-Remote-ID");
+        if (StringUtils.isBlank(value)) {
+            throw new MissingTokenException("Remote header is not set");
+        }
+
+        return value;
     }
 
     public String getQueryParameter(String name) {

@@ -93,13 +93,10 @@ dependencies {
     // HTTP Client
     implementation 'org.apache.httpcomponents:httpclient:4.5.4'
 
-    // JWT for access tokens
-    implementation 'com.auth0:java-jwt:3.3.0'
-
     // HTTP server
     implementation 'io.undertow:undertow-core:2.0.16.Final'
 
-    // TLS
+    // Crypto (Bcrypt for password, TLS/SSL, etc.)
     implementation 'org.bouncycastle:bcprov-jdk14:1.60'
 
     // JWT for various access tokens

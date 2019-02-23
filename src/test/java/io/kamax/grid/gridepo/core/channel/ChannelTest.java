@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.channel;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
 import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
@@ -34,6 +35,7 @@ import io.kamax.grid.gridepo.core.crypto.SignManager;
 import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
+import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -61,13 +63,14 @@ public class ChannelTest {
 
     @Test
     public void basic() {
+        SignalBus bus = new SignalBus();
         KeyManager keyMgr = new KeyManager(new MemoryKeyStore());
         SignManager signMgr = new SignManager(keyMgr);
         Store store = new MemoryStore();
         EventService evSvc = new EventService(domain, signMgr);
         ChannelAlgo algo = new ChannelAlgoV0_0();
         DataServerManager srvMgr = new DataServerManager();
-        Channel c = new Channel(0, chanId, domain, algo, evSvc, store, srvMgr);
+        Channel c = new Channel(0, chanId, ServerID.from(domain), algo, evSvc, store, srvMgr, bus);
         assertNull(c.getView().getHead());
         assertNotNull(c.getView().getState());
         assertEquals(0, c.getView().getState().getServers().size());
@@ -76,7 +79,7 @@ public class ChannelTest {
         createEv.getContent().setCreator(janeId);
         createEv.setSender(janeId);
         JsonObject ev = evSvc.finalize(c.makeEvent(createEv));
-        ChannelEventAuthorization auth = assertAllowed(c.inject(ev));
+        ChannelEventAuthorization auth = assertAllowed(c.injectLocal(ev));
 
         assertNotNull(c.getView().getHead());
         ChannelState state = c.getView().getState();
@@ -97,7 +100,7 @@ public class ChannelTest {
         cJoinEv.getContent().setAction(ChannelMembership.Join.getId());
         ev = evSvc.finalize(c.makeEvent(cJoinEv));
 
-        auth = assertAllowed(c.inject(ev));
+        auth = assertAllowed(c.injectLocal(ev));
         assertEquals(GsonUtil.getStringOrThrow(ev, EventKey.Id), auth.getEventId());
         state = c.getView().getState();
         assertNotEquals(sid, state.getSid());
@@ -109,7 +112,7 @@ public class ChannelTest {
         cPlEv.setSender(janeId);
         cPlEv.getContent().getUsers().put(janeId, 100L);
         ev = evSvc.finalize(c.makeEvent(cPlEv));
-        assertAllowed(c.inject(ev));
+        assertAllowed(c.injectLocal(ev));
         state = c.getView().getState();
         sid = state.getSid();
         assertEquals(1, state.getServers().size());
@@ -121,7 +124,7 @@ public class ChannelTest {
         invEv.setScope(johnId);
         invEv.getContent().setAction(ChannelMembership.Invite);
         ev = evSvc.finalize(c.makeEvent(invEv));
-        assertAllowed(c.inject(ev));
+        assertAllowed(c.injectLocal(ev));
         state = c.getView().getState();
         assertEquals(1, state.getServers().size());
         Optional<ChannelMembership> johnMembership = state.findMembership(johnId);
@@ -134,7 +137,7 @@ public class ChannelTest {
         joinEv.getContent().setAction(ChannelMembership.Join);
         JsonObject madeEvent = c.makeEvent(joinEv);
         ev = evSvc.finalize(madeEvent);
-        assertAllowed(c.inject(ev));
+        assertAllowed(c.injectLocal(ev));
         state = c.getView().getState();
         assertEquals(1, state.getServers().size());
         Optional<ChannelMembership> janeMembership = state.findMembership(janeId);

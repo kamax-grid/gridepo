@@ -26,10 +26,21 @@ import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEventType;
-import io.kamax.grid.gridepo.exception.ForbiddenException;
+import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
+import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ServerSession {
+
+    private static final Logger log = LoggerFactory.getLogger(ServerSession.class);
 
     private final Gridepo g;
     private final String srvId;
@@ -39,22 +50,44 @@ public class ServerSession {
         this.srvId = srvId;
     }
 
-    public JsonObject approveEvent(JsonObject obj) {
+    public JsonObject approveInvite(JsonObject obj) {
         BareGenericEvent evGen = GsonUtil.fromJson(obj, BareGenericEvent.class);
         if (!ChannelEventType.Member.match(evGen.getType())) {
-            throw new ForbiddenException("Approving event with type " + evGen.getType());
+            throw new IllegalArgumentException("Approving event with type " + evGen.getType());
         }
 
         BareMemberEvent mEv = GsonUtil.fromJson(obj, BareMemberEvent.class);
         if (!ChannelMembership.Invite.match(mEv.getContent().getAction())) {
-            throw new ForbiddenException("Approving membership event with action " + mEv.getContent().getAction());
+            throw new IllegalArgumentException("Approving membership event with action " + mEv.getContent().getAction());
         }
 
         if (!g.isLocal(UserID.parse(mEv.getScope()))) {
-            throw new ForbiddenException("Approving membership event for user " + mEv.getScope());
+            throw new IllegalArgumentException("Approving membership event for user " + mEv.getScope());
         }
 
         return g.getEventService().sign(obj);
+    }
+
+    public List<ChannelEventAuthorization> push(List<JsonObject> events) {
+        log.info("Got pushed {} event(s) from {}", events.size(), srvId);
+
+        List<ChannelEventAuthorization> results = new ArrayList<>();
+        Map<String, List<JsonObject>> evChanMap = new HashMap<>();
+        for (JsonObject event : events) {
+            String cId = GsonUtil.findString(event, EventKey.ChannelId).orElse("");
+            if (StringUtils.isEmpty(cId)) {
+                continue;
+            }
+
+            evChanMap.computeIfAbsent(cId, i -> new ArrayList<>()).add(event);
+        }
+
+        evChanMap.forEach((cId, objs) -> {
+            log.info("Injecting {} event(s) in room {}", objs.size(), cId);
+            results.addAll(g.getChannelManager().get(cId).injectRemote(srvId, objs));
+        });
+
+        return results;
     }
 
 }

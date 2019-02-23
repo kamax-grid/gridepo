@@ -35,8 +35,19 @@ public class ChannelEvent {
         return ev;
     }
 
+    public static ChannelEvent from(JsonObject raw) {
+        ChannelEvent ev = new ChannelEvent();
+        ev.setData(raw);
+        BareGenericEvent bare = ev.getBare();
+        ev.setOrigin(bare.getOrigin());
+        ev.setId(bare.getId());
+        ev.setChannelId(bare.getChannelId());
+        return ev;
+    }
+
     private Long sid;
     private String id;
+    private String origin;
     private String channelId;
     private JsonObject data;
     private String receivedFrom;
@@ -92,6 +103,14 @@ public class ChannelEvent {
         this.id = id;
     }
 
+    public String getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(String origin) {
+        this.origin = origin;
+    }
+
     public String getChannelId() {
         if (Objects.isNull(channelId)) {
             channelId = getBare().getChannelId();
@@ -118,6 +137,7 @@ public class ChannelEvent {
 
     public void setData(JsonObject data) {
         this.data = data;
+        bare = null;
     }
 
     public String getReceivedFrom() {

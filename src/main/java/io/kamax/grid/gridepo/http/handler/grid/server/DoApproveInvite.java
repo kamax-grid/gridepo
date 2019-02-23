@@ -18,17 +18,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.federation;
+package io.kamax.grid.gridepo.http.handler.grid.server;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.ServerSession;
+import io.kamax.grid.gridepo.http.handler.Exchange;
 
-import java.util.List;
+public class DoApproveInvite extends ServerApiHandler {
 
-public interface DataServerClient {
+    private final Gridepo g;
 
-    JsonObject push(String as, String to, List<ChannelEvent> events);
+    public DoApproveInvite(Gridepo g) {
+        this.g = g;
+    }
 
-    JsonObject approveInvite(String as, String to, JsonObject data);
+    @Override
+    protected void handle(Exchange exchange) {
+        ServerSession s = g.forServer(exchange.authenticate());
+        exchange.respond(s.approveInvite(exchange.parseJsonObject()));
+    }
 
 }

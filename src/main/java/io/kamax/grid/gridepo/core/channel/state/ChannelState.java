@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.channel.state;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.ChannelJoinRule;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
@@ -86,11 +87,19 @@ public class ChannelState {
     }
 
     private void addEvent(JsonObject ev) {
+        String scope = GsonUtil.getStringOrThrow(ev, EventKey.Scope);
         String id = GsonUtil.getStringOrThrow(ev, EventKey.Id);
-        String key = GsonUtil.getStringOrThrow(ev, EventKey.Type) + GsonUtil.getStringOrThrow(ev, EventKey.Scope);
+        String key = GsonUtil.getStringOrThrow(ev, EventKey.Type) + scope;
         ids.add(id);
         data.put(key, ev);
         servers.add(GsonUtil.getStringOrThrow(ev, EventKey.Origin));
+
+        if (scope.startsWith(UserID.Sigill)) {
+            UserID.parse(scope).tryDecode().ifPresent(v -> {
+                String domain = v.split("@", 2)[1];
+                servers.add(ServerID.from(domain).full());
+            });
+        }
     }
 
     public Long getSid() {

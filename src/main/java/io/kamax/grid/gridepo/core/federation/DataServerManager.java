@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core.federation;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.kamax.grid.gridepo.core.ServerID;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -42,7 +43,7 @@ public class DataServerManager {
 
                     @Override
                     public DataServer load(String key) {
-                        return new DataServer(key);
+                        return new DataServer(ServerID.parse(key));
                     }
 
                 });

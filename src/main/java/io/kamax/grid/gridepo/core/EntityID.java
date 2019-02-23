@@ -20,24 +20,37 @@
 
 package io.kamax.grid.gridepo.core;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Objects;
+import java.util.Optional;
 
 public class EntityID {
 
     public static final String Delimiter = "@";
 
-    private String sigil;
+    protected static String encode(String value) {
+        try {
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8.name()));
+        } catch (UnsupportedEncodingException e) {
+            // Nothing we can do about it
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String sigill;
     private String id;
     private String complete;
 
-    public EntityID(String sigil, String id) {
-        this.sigil = Objects.requireNonNull(sigil);
+    public EntityID(String sigill, String id) {
+        this.sigill = Objects.requireNonNull(sigill);
         this.id = Objects.requireNonNull(id);
-        this.complete = sigil + id;
+        this.complete = sigill + id;
     }
 
-    public String getSigil() {
-        return sigil;
+    public String getSigill() {
+        return sigill;
     }
 
     public String getId() {
@@ -48,6 +61,14 @@ public class EntityID {
         return complete;
     }
 
+    public Optional<String> tryDecode() {
+        try {
+            return Optional.of(new String(Base64.getUrlDecoder().decode(getId()), StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -55,16 +76,14 @@ public class EntityID {
 
         EntityID entityID = (EntityID) o;
 
-        if (!sigil.equals(entityID.sigil)) return false;
-        if (!id.equals(entityID.id)) return false;
-        return complete.equals(entityID.complete);
+        if (!sigill.equals(entityID.sigill)) return false;
+        return id.equals(entityID.id);
     }
 
     @Override
     public int hashCode() {
-        int result = sigil.hashCode();
+        int result = sigill.hashCode();
         result = 31 * result + id.hashCode();
-        result = 31 * result + complete.hashCode();
         return result;
     }
 

@@ -29,8 +29,14 @@ import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.event.EventKey;
+import io.kamax.grid.gridepo.core.signal.AppStopping;
+import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
+import io.kamax.grid.gridepo.core.signal.SignalTopic;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
+import net.engio.mbassy.listener.Handler;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -38,6 +44,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class UserSession {
+
+    private static final Logger log = LoggerFactory.getLogger(UserSession.class);
 
     private Gridepo g;
     private User user;
@@ -58,6 +66,22 @@ public class UserSession {
         this.accessToken = accessToken;
     }
 
+    @Handler
+    private void signal(AppStopping signal) {
+        log.info("Got {} signal, interrupting sync wait", signal.getClass().getSimpleName());
+        synchronized (this) {
+            notifyAll();
+        }
+    }
+
+    @Handler
+    private void signal(ChannelMessageProcessed signal) {
+        log.info("Got {} signal, interrupting sync wait", signal.getClass().getSimpleName());
+        synchronized (this) {
+            notifyAll();
+        }
+    }
+
     public User getUser() {
         return user;
     }
@@ -71,62 +95,71 @@ public class UserSession {
     }
 
     public SyncData sync(SyncOptions options) {
-        Instant end = Instant.now().plusMillis(options.getTimeout());
+        try {
+            g.getBus().getMain().subscribe(this);
+            g.getBus().forTopic(SignalTopic.Channel).subscribe(this);
 
-        SyncData data = new SyncData();
-        data.setPosition(options.getToken());
+            Instant end = Instant.now().plusMillis(options.getTimeout());
 
-        if (StringUtils.isEmpty(options.getToken())) {
-            // Initial sync
-            data.setPosition(Long.toString(0));
-            return data;
-        }
+            SyncData data = new SyncData();
+            data.setPosition(options.getToken());
 
-        long sid = Long.parseLong(options.getToken());
-        while (Instant.now().isBefore(end)) {
-            if (g.isStopping()) {
+            if (StringUtils.isEmpty(options.getToken())) {
+                // Initial sync
+                data.setPosition(Long.toString(0));
+                return data;
+            }
+
+            long sid = Long.parseLong(options.getToken());
+            while (Instant.now().isBefore(end)) {
+                if (g.isStopping()) {
+                    break;
+                }
+
+                List<ChannelEvent> events = g.getStreamer().next(sid);
+                if (events.isEmpty()) {
+                    try {
+                        synchronized (this) {
+                            wait(5000L);
+                        }
+                    } catch (InterruptedException e) {
+                        // We loop back to check if we still need to sync
+                        continue;
+                    }
+
+                    continue;
+                }
+
+                long position = events.stream().filter(ChannelEvent::isProcessed).max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getSid).orElse(0L);
+                data.setPosition(Long.toString(position));
+
+                events = events.stream()
+                        .filter(ev -> ev.isValid() && ev.isAllowed())
+                        .filter(ev -> {
+                            // FIXME move this into channel/state algo to check if a user can see an event in the stream
+
+                            // If we are the author
+                            if (StringUtils.equals(user.getId().full(), ev.getBare().getSender())) {
+                                return true;
+                            }
+
+                            // if we are subscribed to the channel at that point in time
+                            Channel c = g.getChannelManager().get(ev.getChannelId());
+                            ChannelState state = c.getState(ev);
+                            ChannelMembership m = state.getMembership(user.getId());
+                            return m.isAny(ChannelMembership.Invite, ChannelMembership.Join);
+                        })
+                        .collect(Collectors.toList());
+
+                data.setEvents(events);
                 break;
             }
 
-            synchronized (g.getSyncLock()) {
-                try {
-                    g.getSyncLock().wait(1000L);
-                } catch (InterruptedException e) {
-                    // This is ok, we don't need to do anything
-                }
-            }
-
-            List<ChannelEvent> events = g.getStreamer().next(sid);
-            if (events.isEmpty()) {
-                continue;
-            }
-
-            long position = events.stream().filter(ChannelEvent::isProcessed).max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getSid).orElse(0L);
-            data.setPosition(Long.toString(position));
-
-            events = events.stream()
-                    .filter(ev -> ev.isValid() && ev.isAllowed())
-                    .filter(ev -> {
-                        // FIXME move this into channel/state algo to check if a user can see an event in the stream
-
-                        // If we are the author
-                        if (StringUtils.equals(user.getId().full(), ev.getBare().getSender())) {
-                            return true;
-                        }
-
-                        // if we are subscribed to the channel at that point in time
-                        Channel c = g.getChannelManager().get(ev.getChannelId());
-                        ChannelState state = c.getState(ev);
-                        ChannelMembership m = state.getMembership(user.getId());
-                        return m.isAny(ChannelMembership.Invite, ChannelMembership.Join);
-                    })
-                    .collect(Collectors.toList());
-
-            data.setEvents(events);
-            break;
+            return data;
+        } finally {
+            g.getBus().getMain().unsubscribe(this);
+            g.getBus().forTopic(SignalTopic.Channel).unsubscribe(this);
         }
-
-        return data;
     }
 
     public String send(String cId, JsonObject data) {
@@ -165,7 +198,5 @@ public class UserSession {
 
         return r.getEventId();
     }
-
-
 
 }

@@ -72,6 +72,7 @@ public abstract class ServerApiHandler implements HttpHandler {
                 ));
             } finally {
                 exchange.endExchange();
+                log.info("Exchange - {}", exchange.getStatusCode());
             }
         }
     }

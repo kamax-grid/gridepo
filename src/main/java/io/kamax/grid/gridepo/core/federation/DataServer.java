@@ -21,28 +21,33 @@
 package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class DataServer {
 
-    private transient final Logger log = LoggerFactory.getLogger(DataServer.class);
+    private static final Logger log = LoggerFactory.getLogger(DataServer.class);
 
-    private String domain;
+    private final ServerID id;
+    private final String hostname;
     private DataServerHttpClient client;
     private volatile Instant lastCall;
     private volatile Instant lastActivity;
     private AtomicLong waitTime = new AtomicLong();
 
-    public DataServer(String domain) {
-        this.domain = domain;
-        this.client = new DataServerHttpClient(domain);
+    public DataServer(ServerID id) {
+        this.id = id;
+        this.hostname = id.tryDecode().orElseThrow(() -> new IllegalArgumentException("Unable to resolve " + id.full() + " to a hostname"));
+        this.client = new DataServerHttpClient();
         setAvailable();
     }
 
@@ -51,9 +56,11 @@ public class DataServer {
     }
 
     private <T> T withHealthCheck(boolean force, Supplier<T> r) {
-        Instant nextRetry = lastCall.plusMillis(waitTime.get());
-        if (Instant.now().isBefore(nextRetry)) {
-            throw new RuntimeException("Host is not available at this time. Next window is in " + Duration.between(Instant.now(), nextRetry).getSeconds() + " seconds");
+        if (!force) {
+            Instant nextRetry = lastCall.plusMillis(waitTime.get());
+            if (Instant.now().isBefore(nextRetry)) {
+                throw new RuntimeException("Host is not available at this time. Next window is in " + Duration.between(Instant.now(), nextRetry).getSeconds() + " seconds");
+            }
         }
 
         try {
@@ -74,8 +81,8 @@ public class DataServer {
         }
     }
 
-    public String getDomain() {
-        return domain;
+    public ServerID getId() {
+        return id;
     }
 
     public long getLastCall() {
@@ -108,14 +115,13 @@ public class DataServer {
         return Optional.empty();
     }
 
-    public JsonObject approveEvent(JsonObject ev) {
-        return withHealthCheck(true, () -> client.approveEvent(domain, ev));
+    public JsonObject push(String as, ChannelEvent ev) {
+        log.info("Pushing event {} to {} ({}) as {}", ev.getSid(), id.full(), hostname, as);
+        return withHealthCheck(() -> client.push(as, hostname, Collections.singletonList(ev)));
     }
 
-    /*
-    public JsonObject send(String method, String path, Map<String, String> parameters, JsonElement payload) {
-        return withHealthCheck(() -> client.send(domain, method, path, parameters, payload));
+    public JsonObject approveInvite(String as, JsonObject ev) {
+        return withHealthCheck(true, () -> client.approveInvite(as, hostname, ev));
     }
-    */
 
 }

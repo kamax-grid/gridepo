@@ -20,13 +20,17 @@
 
 package io.kamax.grid.gridepo;
 
+import io.kamax.grid.gridepo.config.GridepoConfig;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.event.EventStreamer;
+import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.Store;
+import org.apache.commons.lang3.StringUtils;
 
 public interface Gridepo {
 
@@ -36,9 +40,17 @@ public interface Gridepo {
 
     boolean isStopping();
 
+    GridepoConfig getConfig();
+
     String getDomain();
 
-    Object getSyncLock();
+    ServerID getOrigin();
+
+    default boolean isOrigin(String sId) {
+        return StringUtils.equals(sId, getOrigin().full());
+    }
+
+    SignalBus getBus();
 
     Store getStore();
 

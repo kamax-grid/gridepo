@@ -18,17 +18,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.federation;
+package io.kamax.grid.gridepo.core;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
+public class ServerID extends EntityID {
 
-public interface DataServerClient {
+    public static final String Sigill = ":";
 
-    JsonObject push(String as, String to, List<ChannelEvent> events);
+    public static ServerID parse(String id) {
+        if (!StringUtils.startsWith(id, Sigill)) {
+            throw new IllegalArgumentException("Does not start with " + Sigill);
+        }
 
-    JsonObject approveInvite(String as, String to, JsonObject data);
+        return new ServerID(id.substring(1));
+    }
+
+    public static ServerID from(String domain) {
+        return new ServerID(encode(domain));
+    }
+
+    public ServerID(String id) {
+        super(Sigill, id);
+    }
 
 }

@@ -24,11 +24,13 @@ import com.google.gson.JsonArray;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
-import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveEventHandler;
+import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveInvite;
+import io.kamax.grid.gridepo.http.handler.grid.server.DoPushHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
+import io.undertow.server.RoutingHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +47,6 @@ public class MonolithHttpGridepo {
     private MonolithGridepo g;
     private Undertow u;
 
-    public MonolithHttpGridepo(String domain) {
-        GridepoConfig cfg = new GridepoConfig();
-        cfg.setDomain(domain);
-        init(cfg);
-    }
-
     public MonolithHttpGridepo(GridepoConfig cfg) {
         init(cfg);
     }
@@ -59,30 +55,35 @@ public class MonolithHttpGridepo {
         this.cfg = cfg;
     }
 
-    private void buildGridClient(Undertow.Builder b, GridepoConfig.Listener cfg) {
+    private void buildGridClient(RoutingHandler handler) {
+        log.warn("Tried to add Grid client endpoints but not implemented yet");
 
+        handler
+                .add("OPTIONS", "/_grid/client", new OptionsHandler())
+        ;
     }
 
-    private void buildGridServer(Undertow.Builder b, GridepoConfig.Listener cfg) {
-        b.addHttpListener(cfg.getPort(), cfg.getAddress()).setHandler(Handlers.routing()
-                .post("/_grid/server/v0/do/approve/event", new DoApproveEventHandler(g))
-        );
+    private void buildGridServer(RoutingHandler handler) {
+        handler
+                .post("/_grid/server/v0/do/approve/invite", new DoApproveInvite(g))
+                .post("/_grid/server/v0/do/push", new DoPushHandler(g))
+        ;
     }
 
-    private void buildGrid(Undertow.Builder b, GridepoConfig.Listener cfg) {
-        if (StringUtils.equals("client", cfg.getType())) {
-            buildGridClient(b, cfg);
-        } else if (StringUtils.equals("server", cfg.getType())) {
-            buildGridServer(b, cfg);
+    private void buildGrid(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+        if (StringUtils.equals("client", network.getType())) {
+            buildGridClient(handler);
+        } else if (StringUtils.equals("server", network.getType())) {
+            buildGridServer(handler);
         } else {
-            throw new RuntimeException(cfg.getType() + " is not a supported Grid listener type");
+            throw new RuntimeException(network.getType() + " is not a supported Grid listener type");
         }
     }
 
-    private void buildMatrixClient(Undertow.Builder b, GridepoConfig.Listener cfg) {
-        b.addHttpListener(cfg.getPort(), cfg.getAddress()).setHandler(Handlers.routing()
+    private void buildMatrixClient(RoutingHandler handler) {
+        handler
                 // CORS support
-                .add("OPTIONS", "/**", new OptionsHandler())
+                .add("OPTIONS", ClientAPI.Base, new OptionsHandler())
 
                 // Fundamental endpoints
                 .get(ClientAPI.Base + "/versions", new VersionsHandler())
@@ -124,38 +125,50 @@ public class MonolithHttpGridepo {
                 .get(ClientAPIr0.Base + "/voip/turnServer", new EmptyJsonObjectHandler(g, true))
                 .get(ClientAPIr0.Base + "/joined_groups", new EmptyJsonObjectHandler(g, true))
 
-                .setFallbackHandler(new NotFoundHandler())
-        );
-        log.info("Added Matrix client listener on {}:{}", cfg.getAddress(), cfg.getPort());
+                .setFallbackHandler(new NotFoundHandler());
+
+        log.info("Added Matrix client listener");
     }
 
-    private void buildMatrixServer(Undertow.Builder b, GridepoConfig.Listener cfg) {
-
-    }
-
-    private void buildMatrix(Undertow.Builder b, GridepoConfig.Listener cfg) {
-        if (StringUtils.equals("client", cfg.getType())) {
-            buildMatrixClient(b, cfg);
-        } else if (StringUtils.equals("server", cfg.getType())) {
-            buildMatrixServer(b, cfg);
+    private void buildMatrix(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+        if (StringUtils.equals("client", network.getType())) {
+            buildMatrixClient(handler);
         } else {
-            throw new RuntimeException(cfg.getType() + " is not a supported Matrix listener type");
+            throw new RuntimeException(network.getType() + " is not a supported Matrix listener type");
         }
     }
 
     private void build() {
+        if (cfg.getListeners().isEmpty()) {
+            GridepoConfig.Listener l = new GridepoConfig.Listener();
+            l.setAddress("0.0.0.0");
+            l.setPort(9009);
+            l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "client"));
+            l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "server"));
+            l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "client"));
+            cfg.getListeners().add(l);
+        }
+
         g = new MonolithGridepo(cfg);
 
         Undertow.Builder b = Undertow.builder();
         for (GridepoConfig.Listener cfg : cfg.getListeners()) {
-            if (StringUtils.equals("grid", cfg.getProtocol())) {
-                buildGrid(b, cfg);
-            } else if (StringUtils.equals("matrix", cfg.getProtocol())) {
-                buildMatrix(b, cfg);
-            } else {
-                throw new RuntimeException(cfg.getProtocol() + " is not a supported listener protocol");
+            log.info("Creating HTTP listener on {}:{}", cfg.getAddress(), cfg.getPort());
+            RoutingHandler handler = Handlers.routing();
+
+            for (GridepoConfig.ListenerNetwork network : cfg.getNetwork()) {
+                if (StringUtils.equals("grid", network.getProtocol())) {
+                    buildGrid(handler, network);
+                } else if (StringUtils.equals("matrix", network.getProtocol())) {
+                    buildMatrix(handler, network);
+                } else {
+                    throw new RuntimeException(network.getProtocol() + " is not a supported listener protocol");
+                }
             }
+
+            b.addHttpListener(cfg.getPort(), cfg.getAddress()).setHandler(handler);
         }
+
         u = b.build();
     }
 
@@ -189,7 +202,7 @@ public class MonolithHttpGridepo {
         } catch (InterruptedException e) {
             log.info("Shutdown is dirty: interrupted while waiting for components to stop");
         } catch (ExecutionException e) {
-            log.info("Shutdown is dirty: failure while waiting for components to stop", e);
+            log.info("Shutdown is dirty: unknown failure while waiting for components to stop", e.getCause());
         }
     }
 

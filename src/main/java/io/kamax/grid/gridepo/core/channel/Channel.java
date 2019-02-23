@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.core.channel;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.EntityAlias;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.event.*;
@@ -31,11 +32,13 @@ import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
+import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
+import io.kamax.grid.gridepo.core.signal.SignalBus;
+import io.kamax.grid.gridepo.core.signal.SignalTopic;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.util.GsonUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,33 +46,36 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 public class Channel {
 
     private static final Logger log = LoggerFactory.getLogger(Channel.class);
 
     private ChannelDao dao;
-    private String domain;
+    private ServerID origin;
 
     private Store store;
     private DataServerManager srvMgr;
     private ChannelAlgo algo;
     private EventService evSvc;
+    private SignalBus bus;
 
     private BarePowerEvent.Content defaultPls;
     private ChannelView view;
 
-    public Channel(long sid, String id, String domain, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr) {
-        this(new ChannelDao(sid, id), domain, algo, evSvc, store, srvMgr);
+    public Channel(long sid, String id, ServerID origin, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr, SignalBus bus) {
+        this(new ChannelDao(sid, id), origin, algo, evSvc, store, srvMgr, bus);
     }
 
-    public Channel(ChannelDao dao, String domain, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr) {
+    public Channel(ChannelDao dao, ServerID origin, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr, SignalBus bus) {
         this.dao = dao;
-        this.domain = domain;
+        this.origin = origin;
         this.algo = algo;
         this.evSvc = evSvc;
         this.store = store;
         this.srvMgr = srvMgr;
+        this.bus = bus;
         this.view = new ChannelView();
     }
 
@@ -81,8 +87,8 @@ public class Channel {
         return dao.getId();
     }
 
-    public String getDomain() {
-        return domain;
+    public ServerID getDomain() {
+        return origin;
     }
 
     public String getVersion() {
@@ -113,9 +119,9 @@ public class Channel {
     }
 
     public JsonObject makeEvent(JsonObject obj) {
-        obj.addProperty(EventKey.Origin, domain);
+        obj.addProperty(EventKey.Origin, origin.full());
         obj.addProperty(EventKey.ChannelId, getId());
-        obj.addProperty(EventKey.Id, algo.generateEventId(domain));
+        obj.addProperty(EventKey.Id, algo.generateEventId(origin.full()));
         obj.addProperty(EventKey.Timestamp, Instant.now().toEpochMilli());
 
         List<String> exts = getExtremities();
@@ -210,6 +216,8 @@ public class Channel {
 
         view = new ChannelView(ev.getId(), state);
 
+        bus.forTopic(SignalTopic.Channel).publish(new ChannelMessageProcessed(ev, auth));
+
         return auth;
     }
 
@@ -244,8 +252,9 @@ public class Channel {
             for (DataServer srv : srvMgr.get(getView().getState().getServers())) {
                 Optional<JsonObject> data = srv.getEvent(getId(), evId);
                 if (data.isPresent()) {
+                    chEv = ChannelEvent.from(data.get());
                     chEv.setData(data.get());
-                    chEv.setFetchedFrom(srv.getDomain());
+                    chEv.setFetchedFrom(srv.getId().full());
                     chEv.setFetchedAt(Instant.now());
                     chEv.setValid(false);
                     chEv.setAllowed(false);
@@ -304,20 +313,28 @@ public class Channel {
             auths.add(auth);
         });
 
+
         return auths;
     }
 
-    public ChannelEventAuthorization inject(JsonObject ev) {
-        ChannelEvent cEv = new ChannelEvent();
-        cEv.setData(ev);
-        cEv.setReceivedFrom("-");
+    public List<ChannelEventAuthorization> injectRemote(String from, List<JsonObject> events) {
+        return inject(events.stream().map(raw -> {
+            ChannelEvent ev = ChannelEvent.from(raw);
+            ev.setReceivedFrom(from);
+            ev.setReceivedAt(Instant.now());
+            return ev;
+        }).collect(Collectors.toList()));
+    }
+
+    public ChannelEventAuthorization injectLocal(JsonObject ev) {
+        ChannelEvent cEv = ChannelEvent.from(ev);
         cEv.setReceivedAt(Instant.now());
 
         return inject(Collections.singletonList(cEv)).get(0);
     }
 
     public ChannelEventAuthorization makeAndInject(JsonObject ev) {
-        return inject(makeEvent(ev));
+        return injectLocal(makeEvent(ev));
     }
 
     public ChannelState getState(ChannelEvent ev) {
@@ -346,6 +363,7 @@ public class Channel {
         }
 
         UserID uId = UserID.from(localpart, domain);
+        ServerID remoteId = ServerID.from(domain);
 
         BareMemberEvent ev = new BareMemberEvent();
         ev.setSender(inviter);
@@ -353,11 +371,12 @@ public class Channel {
         ev.getContent().setAction(ChannelMembership.Invite);
         JsonObject evFull = evSvc.finalize(makeEvent(ev));
 
-        if (!StringUtils.equals(this.domain, domain)) {
-            evFull = srvMgr.get(domain).approveEvent(evFull);
+        if (!origin.equals(remoteId)) {
+            // This is a remote invite
+            evFull = srvMgr.get(remoteId.full()).approveInvite(domain, evFull);
         }
 
-        ChannelEventAuthorization result = inject(evFull);
+        ChannelEventAuthorization result = injectLocal(evFull);
         if (!result.isAuthorized()) {
             throw new ForbiddenException(result.getReason());
         }

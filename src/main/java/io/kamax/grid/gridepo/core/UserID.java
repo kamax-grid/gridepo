@@ -22,40 +22,24 @@ package io.kamax.grid.gridepo.core;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-
 public final class UserID extends EntityID {
 
-    public static final String Sigil = "@";
+    public static final String Sigill = "@";
 
     public static UserID parse(String id) {
-        if (!StringUtils.startsWith(id, Sigil)) {
-            throw new IllegalArgumentException("Does not start with " + Sigil);
+        if (!StringUtils.startsWith(id, Sigill)) {
+            throw new IllegalArgumentException("Does not start with " + Sigill);
         }
 
-        id = id.substring(1);
-        Base64.getUrlDecoder().decode(id);
-
-        return new UserID(id);
+        return new UserID(id.substring(1));
     }
 
     public static UserID from(String username, String domain) {
-        try {
-            String id = Base64.getUrlEncoder()
-                    .withoutPadding()
-                    .encodeToString((username + Delimiter + domain).getBytes(StandardCharsets.UTF_8.name()));
-
-            return new UserID(id);
-        } catch (UnsupportedEncodingException e) {
-            // Nothing we can do about it
-            throw new RuntimeException(e);
-        }
+        return new UserID(encode(username + Delimiter + domain));
     }
 
     public UserID(String id) {
-        super(Sigil, id);
+        super(Sigill, id);
     }
 
 }
