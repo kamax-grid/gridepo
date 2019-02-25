@@ -41,19 +41,33 @@ import java.util.Optional;
 public class Exchange {
 
     private final HttpServerExchange exchange;
+    private String error;
 
     public Exchange(HttpServerExchange exchange) {
         this.exchange = exchange;
     }
 
-    // TODO refactor into a ClientExchange
+    // TODO refactor into a MatrixClientExchange
     public String getAccessToken() {
-        String value = exchange.getRequestHeaders().getFirst("Authorization");
-        if (!StringUtils.startsWith(value, "Bearer ")) {
-            throw new MissingTokenException("No access token given");
+        if (exchange.getRequestHeaders().contains(HttpString.tryFromString("Authorization"))) {
+            String value = exchange.getRequestHeaders().getFirst("Authorization");
+            if (!StringUtils.startsWith(value, "Bearer ")) {
+                throw new MissingTokenException("Authorization type is not recognized. Must be \"Bearer \"");
+            }
+
+            return value.substring("Bearer ".length());
         }
 
-        return value.substring("Bearer ".length());
+        if (exchange.getQueryParameters().containsKey("access_token")) {
+            String accessToken = getQueryParameter("access_token");
+            if (StringUtils.isEmpty(accessToken)) {
+                throw new MissingTokenException("Access token in query parameter cannot be empty");
+            }
+
+            return accessToken;
+        }
+
+        throw new MissingTokenException("No access token given");
     }
 
     // TODO refactor into a ServerExchange
@@ -143,14 +157,26 @@ public class Exchange {
 
     public JsonObject buildErrorBody(String errCode, String error) {
         JsonObject obj = new JsonObject();
-        obj.addProperty("errcode", errCode);
+        obj.addProperty("errcode", setError(errCode));
         obj.addProperty("error", error);
         obj.addProperty("success", false);
         return obj;
     }
 
     public void respond(int status, String errCode, String error) {
-        respond(status, buildErrorBody(errCode, error));
+        respond(status, buildErrorBody(setError(errCode), error));
+    }
+
+    public String setError(String code) {
+        return error = code;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public HttpServerExchange getUnderlying() {
+        return exchange;
     }
 
 }
