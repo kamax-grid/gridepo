@@ -25,8 +25,8 @@ import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class MemoryStore implements Store {
 
-    private static final Logger log = LoggerFactory.getLogger(MemoryStore.class);
+    private static final Logger log = KxLog.make(MemoryStore.class);
 
     private AtomicLong chSid = new AtomicLong(0);
     private AtomicLong evSid = new AtomicLong(0);

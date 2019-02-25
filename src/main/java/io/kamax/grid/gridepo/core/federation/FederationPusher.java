@@ -25,9 +25,9 @@ import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
+import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class FederationPusher {
 
-    private static final Logger log = LoggerFactory.getLogger(FederationPusher.class);
+    private static final Logger log = KxLog.make(FederationPusher.class);
 
     private final Gridepo g;
     private final DataServerManager srvMgr;

@@ -27,6 +27,7 @@ import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.RemoteServerException;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.EntityBuilder;
@@ -41,7 +42,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xbill.DNS.*;
 
 import javax.net.ssl.HostnameVerifier;
@@ -63,7 +63,7 @@ public class DataServerHttpClient implements DataServerClient {
     // FIXME pure hack, switch to config - maybe only for testing?
     public static boolean useHttps = true;
 
-    private final Logger log = LoggerFactory.getLogger(DataServerHttpClient.class);
+    private final Logger log = KxLog.make(DataServerHttpClient.class);
 
     private CloseableHttpClient client;
 

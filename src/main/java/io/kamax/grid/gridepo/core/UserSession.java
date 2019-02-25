@@ -33,10 +33,10 @@ import io.kamax.grid.gridepo.core.signal.AppStopping;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
+import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 public class UserSession {
 
-    private static final Logger log = LoggerFactory.getLogger(UserSession.class);
+    private static final Logger log = KxLog.make(UserSession.class);
 
     private Gridepo g;
     private User user;

@@ -28,12 +28,12 @@ import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveInvite;
 import io.kamax.grid.gridepo.http.handler.grid.server.DoPushHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.RoutingHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -41,7 +41,7 @@ import java.util.concurrent.RecursiveAction;
 
 public class MonolithHttpGridepo {
 
-    private static final Logger log = LoggerFactory.getLogger(MonolithHttpGridepo.class);
+    private static final Logger log = KxLog.make(MonolithHttpGridepo.class);
 
     private GridepoConfig cfg;
     private MonolithGridepo g;
@@ -125,7 +125,8 @@ public class MonolithHttpGridepo {
                 .get(ClientAPIr0.Base + "/voip/turnServer", new EmptyJsonObjectHandler(g, true))
                 .get(ClientAPIr0.Base + "/joined_groups", new EmptyJsonObjectHandler(g, true))
 
-                .setFallbackHandler(new NotFoundHandler());
+                .setFallbackHandler(new NotFoundHandler())
+                .setInvalidMethodHandler(new NotFoundHandler());
 
         log.info("Added Matrix client listener");
     }

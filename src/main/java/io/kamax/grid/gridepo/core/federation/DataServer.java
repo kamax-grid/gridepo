@@ -24,8 +24,8 @@ import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -36,7 +36,7 @@ import java.util.function.Supplier;
 
 public class DataServer {
 
-    private static final Logger log = LoggerFactory.getLogger(DataServer.class);
+    private static final Logger log = KxLog.make(DataServer.class);
 
     private final ServerID id;
     private final String hostname;

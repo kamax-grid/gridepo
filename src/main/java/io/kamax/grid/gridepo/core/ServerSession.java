@@ -30,9 +30,9 @@ import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,7 +41,7 @@ import java.util.Map;
 
 public class ServerSession {
 
-    private static final Logger log = LoggerFactory.getLogger(ServerSession.class);
+    private static final Logger log = KxLog.make(ServerSession.class);
 
     private final Gridepo g;
     private final String srvId;

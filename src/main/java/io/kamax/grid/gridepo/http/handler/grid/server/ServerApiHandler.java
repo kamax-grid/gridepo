@@ -25,19 +25,20 @@ import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.MissingTokenException;
 import io.kamax.grid.gridepo.exception.RemoteServerException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.util.KxLog;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.time.Instant;
 
 public abstract class ServerApiHandler implements HttpHandler {
 
-    private transient final Logger log = LoggerFactory.getLogger(ServerApiHandler.class);
+    private transient final Logger log = KxLog.make(ServerApiHandler.class);
 
     @Override
     public void handleRequest(HttpServerExchange exchange) {
@@ -72,7 +73,23 @@ public abstract class ServerApiHandler implements HttpHandler {
                 ));
             } finally {
                 exchange.endExchange();
-                log.info("Exchange - {}", exchange.getStatusCode());
+            }
+
+            // TODO refactor the common code from the various API handlers into a single class
+            if (log.isInfoEnabled()) {
+                String protocol = exchange.getConnection().getTransportProtocol().toUpperCase();
+                String vhost = exchange.getHostName();
+                String remotePeer = exchange.getConnection().getPeerAddress(InetSocketAddress.class).getAddress().getHostAddress();
+                String method = exchange.getRequestMethod().toString();
+                String path = exchange.getRequestURI();
+                int statusCode = exchange.getStatusCode();
+                long writtenByes = exchange.getResponseBytesSent();
+
+                if (StringUtils.isEmpty(ex.getError())) {
+                    log.info("Request - {} - {} - {} - {} {} - {} - {}", protocol, vhost, remotePeer, method, path, statusCode, writtenByes);
+                } else {
+                    log.info("Request - {} - {} - {} - {} {} - {} - {} - {}", protocol, vhost, remotePeer, method, path, statusCode, writtenByes, ex.getError());
+                }
             }
         }
     }

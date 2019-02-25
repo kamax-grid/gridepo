@@ -40,8 +40,8 @@ import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.*;
@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
 
 public class Channel {
 
-    private static final Logger log = LoggerFactory.getLogger(Channel.class);
+    private static final Logger log = KxLog.make(Channel.class);
 
     private ChannelDao dao;
     private ServerID origin;

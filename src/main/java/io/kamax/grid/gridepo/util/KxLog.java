@@ -18,15 +18,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.grid.gridepo.util;
 
-import io.kamax.grid.gridepo.http.handler.Exchange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class NotFoundHandler extends ClientApiHandler {
+public class KxLog {
 
-    @Override
-    protected void handle(Exchange exchange) {
-        exchange.respond(404, "M_UNRECOGNIZED", "No such endpoint");
+    public static Logger make(Class<?> c) {
+        return LoggerFactory.getLogger(c.getCanonicalName().replace("io.kamax.grid.gridepo", "g"));
     }
-
 }
