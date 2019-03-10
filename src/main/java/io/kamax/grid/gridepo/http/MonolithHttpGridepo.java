@@ -41,6 +41,12 @@ import java.util.concurrent.RecursiveAction;
 
 public class MonolithHttpGridepo {
 
+    static {
+        // Used in XNIO package, dependency of Undertow
+        // We switch to slf4j
+        System.setProperty("org.jboss.logging.provider", "slf4j");
+    }
+
     private static final Logger log = KxLog.make(MonolithHttpGridepo.class);
 
     private GridepoConfig cfg;

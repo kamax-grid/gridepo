@@ -130,7 +130,11 @@ public class UserSession {
                     continue;
                 }
 
-                long position = events.stream().filter(ChannelEvent::isProcessed).max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getSid).orElse(0L);
+                long position = events.stream()
+                        .filter(ChannelEvent::isProcessed)
+                        .max(Comparator.comparingLong(ChannelEvent::getSid))
+                        .map(ChannelEvent::getSid)
+                        .orElse(0L);
                 data.setPosition(Long.toString(position));
 
                 events = events.stream()
@@ -168,7 +172,9 @@ public class UserSession {
     }
 
     public String inviteToChannel(String cId, EntityAlias uAl) {
-        return g.getChannelManager().get(cId).invite(user.getId().full(), uAl).getId();
+        Channel c = g.getChannelManager().get(cId);
+        String evId = c.invite(user.getId().full(), uAl).getId();
+        return evId;
     }
 
     public String joinChannel(String cId) {

@@ -45,7 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChannelManager {
@@ -119,20 +119,19 @@ public class ChannelManager {
 
         ChannelEventAuthorization auth = ch.injectRemote(from, seedJson);
         if (!auth.isAuthorized()) {
-            throw new ForbiddenException("Invite is not allowed as per state: " + auth.getReason());
+            throw new ForbiddenException("Seed is not allowed as per state: " + auth.getReason());
         }
 
         channels.put(ch.getId(), ch);
         return ch;
     }
 
-    public Channel get(String id) {
-        Channel c = channels.get(id);
-        if (Objects.isNull(c)) {
-            throw new ObjectNotFoundException("Channel", id);
-        }
+    public Optional<Channel> find(String id) {
+        return Optional.ofNullable(channels.get(id));
+    }
 
-        return c;
+    public Channel get(String id) {
+        return find(id).orElseThrow(() -> new ObjectNotFoundException("Channel", id));
     }
 
 }

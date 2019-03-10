@@ -41,8 +41,10 @@ import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -52,6 +54,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public class MonolithGridepo implements Gridepo {
+
+    private static final Logger log = KxLog.make(MonolithGridepo.class);
 
     private final ServerID origin;
     private final Algorithm jwtAlgo;
@@ -101,6 +105,10 @@ public class MonolithGridepo implements Gridepo {
         streamer = new EventStreamer(store);
 
         fedPush = new FederationPusher(this, dsMgr);
+
+        log.info("We are {}", getDomain());
+        log.info("Serving domain(s):");
+        log.info("  - {}", origin.full());
     }
 
     @Override

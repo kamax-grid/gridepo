@@ -28,4 +28,5 @@ public class KxLog {
     public static Logger make(Class<?> c) {
         return LoggerFactory.getLogger(c.getCanonicalName().replace("io.kamax.grid.gridepo", "g"));
     }
+
 }

@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.core;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
@@ -29,15 +30,13 @@ import io.kamax.grid.gridepo.core.channel.event.ChannelEventType;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.core.event.EventKey;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ServerSession {
 
@@ -66,12 +65,22 @@ public class ServerSession {
             throw new IllegalArgumentException("Not authoritative for user " + mEv.getScope());
         }
 
-        log.info("Approving invite from {} for {} in {}", mEv.getSender(), mEv.getScope(), mEv.getChannelId());
+        String chId = mEv.getChannelId();
+        log.info("Approving invite from {} for {} in {}", mEv.getSender(), mEv.getScope(), chId);
 
         JsonObject invEv = g.getEventService().sign(request.getObject());
-        g.getChannelManager().create(srvId, invEv, request.getContext().getState());
+        Optional<Channel> chOpt = g.getChannelManager().find(chId);
 
-        log.info("Invite is valid");
+        if (chOpt.isPresent()) {
+            ChannelEventAuthorization auth = chOpt.get().injectRemote(srvId, invEv);
+            if (!auth.isAuthorized()) {
+                throw new ForbiddenException("Invite is not allowed given state");
+            }
+        } else {
+            g.getChannelManager().create(srvId, invEv, request.getContext().getState());
+        }
+
+        log.info("Invite is approved");
 
         return invEv;
     }

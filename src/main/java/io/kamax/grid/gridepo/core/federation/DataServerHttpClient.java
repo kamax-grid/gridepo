@@ -211,6 +211,7 @@ public class DataServerHttpClient implements DataServerClient {
                             }
 
                             if (sc == 403) {
+                                log.warn("Remote server refused to sign our invite");
                                 throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
                             }
 

@@ -234,6 +234,7 @@ public class Channel {
         BlockingQueue<String> remaining = new LinkedBlockingQueue<>(latest);
         Stack<ChannelEvent> events = new Stack<>();
 
+        log.info("Need to backfill on {} events", remaining.size());
         while (!remaining.isEmpty()) {
             String evId = remaining.poll();
             ChannelEvent chEv = new ChannelEvent();
@@ -250,6 +251,7 @@ public class Channel {
                 chEv.setProcessed(false);
             }
 
+            log.info("Trying to backfill on {}", evId);
             for (DataServer srv : srvMgr.get(getView().getState().getServers())) {
                 Optional<JsonObject> data = srv.getEvent(getId(), evId);
                 if (data.isPresent()) {
@@ -263,6 +265,7 @@ public class Channel {
 
                     List<String> parents = chEv.getBare().getPreviousEvents();
                     if (chEv.getBare().getDepth() > minDepth && Collections.disjoint(earliest, parents)) {
+                        log.info("Found {} events still needing backfill", parents.size());
                         remaining.addAll(parents);
                     }
 
@@ -283,9 +286,11 @@ public class Channel {
 
         List<ChannelEventAuthorization> auths = new ArrayList<>();
         events.stream().sorted(Comparator.comparingLong(ev -> ev.getBare().getDepth())).forEach(event -> {
+            log.info("Room {} - Processing injection of Event {}", getId(), event.getId());
             Optional<ChannelEvent> evStore = store.findEvent(getId(), event.getId());
 
             if (evStore.isPresent() && evStore.get().isPresent()) {
+                log.info("Event {} is known, skipping", event.getId());
                 // We already have the event, we skip
                 return;
             }
@@ -313,7 +318,6 @@ public class Channel {
 
             auths.add(auth);
         });
-
 
         return auths;
     }
