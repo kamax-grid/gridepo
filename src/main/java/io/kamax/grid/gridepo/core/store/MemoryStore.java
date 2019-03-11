@@ -24,6 +24,7 @@ import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
@@ -179,6 +180,26 @@ public class MemoryStore implements Store {
     @Override
     public Optional<String> findPassword(String username) {
         return Optional.ofNullable(users.get(username));
+    }
+
+    @Override
+    public Optional<String> findChannelIdForAddress(String chId) {
+        throw new NotImplementedException("Room directory storage");
+    }
+
+    @Override
+    public List<String> findChannelAddressForId(String chAd) {
+        throw new NotImplementedException("Room directory storage");
+    }
+
+    @Override
+    public void map(String chAd, String chId) {
+        throw new NotImplementedException("Room directory storage");
+    }
+
+    @Override
+    public void unmap(String chAd, String chId) {
+        throw new NotImplementedException("Room directory storage");
     }
 
 }

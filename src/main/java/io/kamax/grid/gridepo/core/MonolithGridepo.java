@@ -25,6 +25,7 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.codec.GridHash;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.crypto.KeyManager;
@@ -83,10 +84,7 @@ public class MonolithGridepo implements Gridepo {
 
         bus = new SignalBus();
 
-        jwtAlgo = Algorithm.HMAC256(cfg.getCrypto().getSeed().get("jwt"));
-        jwtVerifier = JWT.require(jwtAlgo)
-                .withIssuer(cfg.getDomain())
-                .build();
+
 
         // FIXME use ServiceLoader
         if (StringUtils.equals("memory", cfg.getStorage().getType())) {
@@ -98,6 +96,18 @@ public class MonolithGridepo implements Gridepo {
         DataServerManager dsMgr = new DataServerManager();
         KeyManager keyMgr = new KeyManager(new MemoryKeyStore());
         SignManager signMgr = new SignManager(keyMgr);
+
+        String jwtSeed = cfg.getCrypto().getSeed().get("jwt");
+        if (StringUtils.isEmpty(jwtSeed)) {
+            log.warn("JWT secret is not set, derivating from main signing key. Please set a JWT secret");
+            jwtSeed = GridHash.get().hashFromUtf8(cfg.getDomain() + keyMgr.getPrivateKeyBase64(keyMgr.getCurrentIndex()));
+        }
+
+        jwtAlgo = Algorithm.HMAC256(jwtSeed);
+        jwtVerifier = JWT.require(jwtAlgo)
+                .withIssuer(cfg.getDomain())
+                .build();
+
         evSvc = new EventService(cfg.getDomain(), signMgr);
 
         idMgr = new IdentityManager(store);

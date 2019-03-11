@@ -98,8 +98,16 @@ public class ProtocolEventMapper {
             JsonObject mEv = mapCommon(gEv.getId(), gEv.getBare(), new JsonObject());
 
             String type = gEv.getBare().getType();
-            if (type.startsWith("g.c.")) {
-                type = type.replace("g.c.", "m.room.");
+            if (type.startsWith("g.c.s.")) {
+                type = type.replace("g.c.s.", "m.room.");
+            }
+
+            if (type.startsWith("g.c.p.")) {
+                type = type.replace("g.c.p.", "m.room.");
+            }
+
+            if (type.startsWith("g.c.e.")) {
+                type = type.replace("g.c.e.", "m.room.");
             }
 
             mEv.addProperty("type", type);

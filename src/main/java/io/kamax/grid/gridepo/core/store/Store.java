@@ -61,4 +61,12 @@ public interface Store {
 
     Optional<String> findPassword(String username);
 
+    Optional<String> findChannelIdForAddress(String chId);
+
+    List<String> findChannelAddressForId(String chAd);
+
+    void map(String chAd, String chId);
+
+    void unmap(String chAd, String chId);
+
 }

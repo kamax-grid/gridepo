@@ -24,15 +24,15 @@ import org.apache.commons.lang3.StringUtils;
 
 public enum ChannelEventType {
 
-    Address("g.c.address"),
-    Alias("g.c.alias"),
-    Create("g.c.create"),
-    JoinRules("g.c.join_rules"),
-    Member("g.c.member"),
-    Message("g.c.message"),
-    Name("g.c.name"),
-    Power("g.c.power"),
-    Topic("g.c.topic");
+    Address("g.c.p.address"),
+    Alias("g.c.p.alias"),
+    Create("g.c.s.create"),
+    JoinRules("g.c.s.joining"),
+    Member("g.c.s.member"),
+    Message("g.c.e.message"),
+    Name("g.c.p.name"),
+    Power("g.c.s.power"),
+    Topic("g.c.p.topic");
 
     private String id;
 
