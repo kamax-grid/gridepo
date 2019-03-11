@@ -18,34 +18,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.channel.event;
+package io.kamax.grid.gridepo.core;
 
 import org.apache.commons.lang3.StringUtils;
 
-public enum ChannelEventType {
+public class EventID extends EntityID {
 
-    Address("g.c.address"),
-    Alias("g.c.alias"),
-    Create("g.c.create"),
-    JoinRules("g.c.join_rules"),
-    Member("g.c.member"),
-    Message("g.c.message"),
-    Name("g.c.name"),
-    Power("g.c.power"),
-    Topic("g.c.topic");
+    public static final String Sigill = "$";
 
-    private String id;
+    public static EventID EventID(String id) {
+        if (!StringUtils.startsWith(id, Sigill)) {
+            throw new IllegalArgumentException("Does not start with " + Sigill);
+        }
 
-    ChannelEventType(String id) {
-        this.id = id;
+        return new EventID(id.substring(1));
     }
 
-    public String getId() {
-        return id;
+    public static EventID from(String localpart, String domain) {
+        return new EventID(encode(localpart + "@" + domain));
     }
 
-    public boolean match(String id) {
-        return StringUtils.equals(this.id, id);
+    public EventID(String id) {
+        super(Sigill, id);
     }
 
 }

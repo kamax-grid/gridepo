@@ -35,6 +35,7 @@ import io.undertow.server.RoutingHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
@@ -87,6 +88,8 @@ public class MonolithHttpGridepo {
     }
 
     private void buildMatrixClient(RoutingHandler handler) {
+        SendRoomStateHandler srsHandler = new SendRoomStateHandler(g);
+
         handler
                 // CORS support
                 .add("OPTIONS", ClientAPI.Base, new OptionsHandler())
@@ -118,12 +121,15 @@ public class MonolithHttpGridepo {
 
                 // Room event endpoints
                 .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
+                .put(ClientAPIr0.Room + "/state/{type}", srsHandler)
+                .put(ClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
 
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))
-                .post(ClientAPIr0.Room + "/typing/{userId}", new EmptyJsonObjectHandler(g, true))
-                .get(ClientAPIr0.Base + "/user/{userId}/filter/{filterId}", new FilterGetHandler(g))
-                .post(ClientAPIr0.Base + "/user/{userId}/filter", new FiltersPostHandler(g))
+                .put(ClientAPIr0.Room + "/typing/{userId}", new EmptyJsonObjectHandler(g, true))
+                .put(ClientAPIr0.UserID + "/rooms/{roomId}/account_data/{type}", new EmptyJsonObjectHandler(g, true))
+                .get(ClientAPIr0.UserID + "/filter/{filterId}", new FilterGetHandler(g))
+                .post(ClientAPIr0.UserID + "/filter", new FiltersPostHandler(g))
 
                 // So various Matrix clients (e.g. Riot) stops spamming us with requests
                 .get(ClientAPIr0.Base + "/pushrules/", new PushRulesHandler())
@@ -196,12 +202,18 @@ public class MonolithHttpGridepo {
                     invokeAll(new RecursiveAction() {
                         @Override
                         protected void compute() {
-                            u.stop();
+                            // Protect against early exception and then null pointer
+                            if (Objects.nonNull(u)) {
+                                u.stop();
+                            }
                         }
                     }, new RecursiveAction() {
                         @Override
                         protected void compute() {
-                            g.stop();
+                            // Protect against early exception and then null pointer
+                            if (Objects.nonNull(g)) {
+                                g.stop();
+                            }
                         }
                     });
                 }

@@ -21,23 +21,37 @@
 package io.kamax.grid.gridepo.http.handler.matrix;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class ProtocolEventMapper {
 
-    private static Map<String, Function<ChannelEvent, JsonObject>> mappers = new HashMap<>();
+    private static final String WildcardType = "*";
+    private static final Logger log = KxLog.make(ProtocolEventMapper.class);
+
+    private static Map<String, Function<ChannelEvent, JsonObject>> g2mMappers = new HashMap<>();
+    private static Map<String, Function<JsonObject, JsonObject>> m2gMappers = new HashMap<>();
 
     static {
+        setupGridToMatrix();
+        setupMatrixToGrid();
+    }
+
+    public static void setupGridToMatrix() {
         // Known types mapper
-        mappers.put(ChannelEventType.Create.getId(), ev -> {
+        g2mMappers.put(ChannelEventType.Create.getId(), ev -> {
             BareCreateEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareCreateEvent.class);
             JsonObject mEv = mapCommon(ev.getId(), gEv, new JsonObject());
             mEv.addProperty("type", "m.room.create");
@@ -47,7 +61,7 @@ public class ProtocolEventMapper {
             return mEv;
         });
 
-        mappers.put(ChannelEventType.Member.getId(), ev -> {
+        g2mMappers.put(ChannelEventType.Member.getId(), ev -> {
             BareMemberEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareMemberEvent.class);
             JsonObject mEv = mapCommon(ev.getId(), gEv, new JsonObject());
             mEv.addProperty("type", "m.room.member");
@@ -55,7 +69,7 @@ public class ProtocolEventMapper {
             return mEv;
         });
 
-        mappers.put(ChannelEventType.Power.getId(), ev -> {
+        g2mMappers.put(ChannelEventType.Power.getId(), ev -> {
             BarePowerEvent gEv = GsonUtil.get().fromJson(ev.getData(), BarePowerEvent.class);
             BarePowerEvent.Content c = gEv.getContent();
 
@@ -80,7 +94,7 @@ public class ProtocolEventMapper {
         });
 
         // Default mapper
-        mappers.put("*", gEv -> {
+        g2mMappers.put(WildcardType, gEv -> {
             JsonObject mEv = mapCommon(gEv.getId(), gEv.getBare(), new JsonObject());
 
             String type = gEv.getBare().getType();
@@ -93,6 +107,27 @@ public class ProtocolEventMapper {
         });
     }
 
+    private static void mapCommon(BareEvent ev, JsonObject json) {
+        GsonUtil.findString(json, "room_id").ifPresent(ev::setChannelId);
+        GsonUtil.findString(json, "event_id").ifPresent(ProtocolEventMapper::forEventIdFromMatrixToGrid);
+        GsonUtil.findLong(json, "origin_server_ts").ifPresent(ev::setTimestamp);
+        GsonUtil.findString(json, "sender").ifPresent(ProtocolEventMapper::forUserIdFromMatrixToGrid);
+        GsonUtil.findString(json, "state_key").ifPresent(ev::setScope);
+    }
+
+    public static void setupMatrixToGrid() {
+        m2gMappers.put("m.room.name", json -> {
+            BareNameEvent nEv = new BareNameEvent();
+            mapCommon(nEv, json);
+
+            GsonUtil.findObj(json, "content")
+                    .flatMap(c -> GsonUtil.findString(c, "name"))
+                    .ifPresent(n -> nEv.getContent().setName(n));
+
+            return nEv.getJson();
+        });
+    }
+
     private static JsonObject mapCommon(String id, BareEvent gEv, JsonObject mEv) {
         mEv.addProperty("room_id", gEv.getChannelId());
         mEv.addProperty("event_id", forEventIdFromGridToMatrix(id));
@@ -101,7 +136,7 @@ public class ProtocolEventMapper {
         mEv.add("content", GsonUtil.makeObj(gEv.getContent()));
 
         String scope = gEv.getScope();
-        if (StringUtils.isNotEmpty(scope)) {
+        if (Objects.nonNull(scope)) {
             if (scope.startsWith("@")) {
                 scope = forUserIdFromGridToMatrix(scope);
             }
@@ -116,12 +151,28 @@ public class ProtocolEventMapper {
         String type = gEv.getBare().getType();
 
         // We check if we have a mapper for this type
-        if (mappers.containsKey(type)) {
-            return mappers.get(type).apply(gEv);
+        if (g2mMappers.containsKey(type)) {
+            return g2mMappers.get(type).apply(gEv);
         }
 
         // We use default
-        return mappers.get("*").apply(gEv);
+        return g2mMappers.get(WildcardType).apply(gEv);
+    }
+
+    public static JsonObject convert(JsonObject mEv) {
+        String type = StringUtils.defaultIfBlank(GsonUtil.getStringOrNull(mEv, "type"), "");
+        if (m2gMappers.containsKey(type)) {
+            return m2gMappers.get(type).apply(mEv);
+        }
+
+        log.warn("Not transforming unsupported Matrix event type {}", type);
+        return mEv;
+    }
+
+    public static String forUserIdFromMatrixToGrid(String mId) {
+        String gId = mId.substring(1);
+        String[] parts = gId.split(":", 1);
+        return UserID.from(parts[0], parts[1]).full();
     }
 
     public static String forUserIdFromGridToMatrix(String gId) {
@@ -129,6 +180,12 @@ public class ProtocolEventMapper {
         mId = new String(Base64.decodeBase64(mId), StandardCharsets.UTF_8);
         mId = "@" + mId.replace("@", ":");
         return mId;
+    }
+
+    public static String forEventIdFromMatrixToGrid(String mId) {
+        String gId = mId.substring(1);
+        String[] parts = gId.split(":", 1);
+        return EventID.from(parts[0], parts[1]).full();
     }
 
     public static String forEventIdFromGridToMatrix(String gId) {

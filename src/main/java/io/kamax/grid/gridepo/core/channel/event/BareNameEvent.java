@@ -20,32 +20,26 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
-import org.apache.commons.lang3.StringUtils;
+public class BareNameEvent extends BareEvent<BareNameEvent.Content> {
 
-public enum ChannelEventType {
+    public static class Content {
 
-    Address("g.c.address"),
-    Alias("g.c.alias"),
-    Create("g.c.create"),
-    JoinRules("g.c.join_rules"),
-    Member("g.c.member"),
-    Message("g.c.message"),
-    Name("g.c.name"),
-    Power("g.c.power"),
-    Topic("g.c.topic");
+        private String name;
 
-    private String id;
+        public String getName() {
+            return name;
+        }
 
-    ChannelEventType(String id) {
-        this.id = id;
+        public void setName(String name) {
+            this.name = name;
+        }
+
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public boolean match(String id) {
-        return StringUtils.equals(this.id, id);
+    public BareNameEvent() {
+        setType(ChannelEventType.Name);
+        setScope("");
+        setContent(new BareNameEvent.Content());
     }
 
 }

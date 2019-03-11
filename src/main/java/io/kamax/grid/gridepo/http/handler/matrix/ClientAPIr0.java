@@ -24,6 +24,8 @@ public class ClientAPIr0 {
     public static final String Base = ClientAPI.Base + "/r0";
     public static final String Rooms = Base + "/rooms";
     public static final String Room = Rooms + "/{roomId}";
+    public static final String User = Base + "/user";
+    public static final String UserID = User + "/{userId}";
     public static final String Directory = Base + "/directory";
 
 }
