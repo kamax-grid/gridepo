@@ -122,7 +122,7 @@ public class Channel {
     public JsonObject makeEvent(JsonObject obj) {
         obj.addProperty(EventKey.Origin, origin.full());
         obj.addProperty(EventKey.ChannelId, getId());
-        obj.addProperty(EventKey.Id, algo.generateEventId(origin.full()));
+        obj.addProperty(EventKey.Id, algo.generateEventId(origin.tryDecode().orElse(origin.getId())).full());
         obj.addProperty(EventKey.Timestamp, Instant.now().toEpochMilli());
 
         List<String> exts = getExtremities();

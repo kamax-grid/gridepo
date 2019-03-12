@@ -37,10 +37,12 @@ public class ChannelLeaveHandler extends ClientApiHandler {
     protected void handle(Exchange exchange) {
         UserSession s = g.withToken(exchange.getAccessToken());
 
-        String cId = exchange.getPathVariable("roomId");
-        if (StringUtils.isEmpty(cId)) {
+        String mId = exchange.getPathVariable("roomId");
+        if (StringUtils.isEmpty(mId)) {
             throw new IllegalArgumentException("Missing Room ID in path");
         }
+        String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(mId);
+        
         s.leaveChannel(cId);
 
         exchange.respondJson("{}");

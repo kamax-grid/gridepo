@@ -36,12 +36,15 @@ public class SyncResponse {
     public static class RoomEvent {
 
         public static RoomEvent build(ChannelEvent ev) {
-            return GsonUtil.get().fromJson(ProtocolEventMapper.convert(ev), RoomEvent.class);
+            RoomEvent rEv = GsonUtil.get().fromJson(ProtocolEventMapper.convert(ev), RoomEvent.class);
+            rEv.channelId = ev.getChannelId();
+            return rEv;
         }
 
         private String eventId;
         private String type;
         private long originServerTs;
+        private String channelId;
         private String roomId;
         private String sender;
         private String stateKey;
@@ -77,6 +80,10 @@ public class SyncResponse {
 
         public void setRoomId(String roomId) {
             this.roomId = roomId;
+        }
+
+        public String getChannelId() {
+            return channelId;
         }
 
         public String getSender() {
@@ -207,16 +214,16 @@ public class SyncResponse {
                         room.state.events = null;
 
                         room.inviteState.events = new ArrayList<>();
-                        g.getChannelManager().get(rEv.getRoomId()).getState(ev).getEventIds().forEach(sEvId -> {
-                            room.inviteState.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getRoomId(), sEvId)));
+                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEventIds().forEach(sEvId -> {
+                            room.inviteState.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getChannelId(), sEvId)));
                         });
                         room.inviteState.events.add(rEv);
                     } else if ("leave".equals(m) || "ban".equals(m)) {
                         r.rooms.leave.put(rEv.getRoomId(), room);
                     } else if ("join".equals(m)) {
                         room.state.events = new ArrayList<>();
-                        g.getChannelManager().get(rEv.getRoomId()).getState(ev).getEventIds().forEach(sEvId -> {
-                            room.state.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getRoomId(), sEvId)));
+                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEventIds().forEach(sEvId -> {
+                            room.state.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getChannelId(), sEvId)));
                         });
                         r.rooms.join.put(rEv.getRoomId(), room);
                     } else {

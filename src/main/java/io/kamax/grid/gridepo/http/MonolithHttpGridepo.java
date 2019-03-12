@@ -120,7 +120,7 @@ public class MonolithHttpGridepo {
                 .post(ClientAPIr0.Room + "/forget", new EmptyJsonObjectHandler(g, true))
 
                 // Room event endpoints
-                .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendChannelEventHandler(g))
+                .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendRoomEventHandler(g))
                 .put(ClientAPIr0.Room + "/state/{type}", srsHandler)
                 .put(ClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
 

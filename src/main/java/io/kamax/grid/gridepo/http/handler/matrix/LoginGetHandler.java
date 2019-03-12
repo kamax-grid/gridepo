@@ -28,7 +28,10 @@ public class LoginGetHandler extends ClientApiHandler {
     private final String body;
 
     public LoginGetHandler() {
-        body = GsonUtil.toJson(GsonUtil.makeObj("flows", GsonUtil.asArray(GsonUtil.makeObj("type", "m.login.password"))));
+        body = GsonUtil.toJson(GsonUtil.makeObj("flows", GsonUtil.asArray(
+                GsonUtil.makeObj("type", "m.login.password"),
+                GsonUtil.makeObj("type", "m.login.dummy")))
+        );
     }
 
     @Override

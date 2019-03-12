@@ -41,10 +41,11 @@ public class ChannelInviteHandler extends ClientApiHandler {
         UserSession s = g.withToken(exchange.getAccessToken());
         JsonObject body = exchange.parseJsonObject();
 
-        String cId = exchange.getPathVariable("roomId");
-        if (StringUtils.isEmpty(cId)) {
+        String mId = exchange.getPathVariable("roomId");
+        if (StringUtils.isEmpty(mId)) {
             throw new IllegalArgumentException("Missing Room ID in path");
         }
+        String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(mId);
 
         EntityAlias uAl;
         if (body.has("medium")) {

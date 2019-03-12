@@ -26,11 +26,11 @@ import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class SendChannelEventHandler extends ClientApiHandler {
+public class SendRoomEventHandler extends ClientApiHandler {
 
     private final Gridepo g;
 
-    public SendChannelEventHandler(Gridepo g) {
+    public SendRoomEventHandler(Gridepo g) {
         this.g = g;
     }
 
@@ -47,7 +47,8 @@ public class SendChannelEventHandler extends ClientApiHandler {
         ev.addProperty("type", evType.replace("m.room.", "g.c.")); // just a generic transform for now
         ev.add("content", content);
 
-        String evId = ProtocolEventMapper.forEventIdFromGridToMatrix(session.send(rId, ev));
+        String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId);
+        String evId = ProtocolEventMapper.forEventIdFromGridToMatrix(session.send(cId, ev));
         exchange.respondJson(GsonUtil.makeObj("event_id", evId));
     }
 

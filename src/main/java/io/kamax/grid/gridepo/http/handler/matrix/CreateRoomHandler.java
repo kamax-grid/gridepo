@@ -36,8 +36,8 @@ public class CreateRoomHandler extends ClientApiHandler {
     @Override
     protected void handle(Exchange exchange) {
         Channel c = g.withToken(exchange.getAccessToken()).createChannel();
-
-        exchange.respondJson(GsonUtil.makeObj("room_id", c.getId()));
+        String rId = ProtocolEventMapper.forChannelIdFromGridToMatrix(c.getId());
+        exchange.respondJson(GsonUtil.makeObj("room_id", rId));
     }
 
 }

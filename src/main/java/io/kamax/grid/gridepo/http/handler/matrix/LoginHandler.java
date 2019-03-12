@@ -48,6 +48,10 @@ public class LoginHandler extends ClientApiHandler {
         reply.addProperty("access_token", session.getAccessToken());
         reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
 
+        // Required for some clients who fail if not present, even if not mandatory and deprecated.
+        // https://github.com/Nheko-Reborn/mtxclient/issues/7
+        reply.addProperty("home_server", srv.getDomain());
+
         exchange.respondJson(reply);
     }
 

@@ -24,10 +24,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.exception.MissingTokenException;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -39,6 +41,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public class Exchange {
+
+    private static final Logger log = KxLog.make(Exchange.class);
 
     private final HttpServerExchange exchange;
     private String error;
@@ -152,6 +156,10 @@ public class Exchange {
     }
 
     public void respondJson(Object body) {
+        if (log.isDebugEnabled()) {
+            log.debug("Body:{}", GsonUtil.getPrettyForLog(body));
+        }
+
         respondJson(GsonUtil.toJson(body));
     }
 

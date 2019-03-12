@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.http.handler.matrix;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.event.*;
@@ -116,7 +117,7 @@ public class ProtocolEventMapper {
     }
 
     private static void mapCommon(BareEvent ev, JsonObject json) {
-        GsonUtil.findString(json, "room_id").ifPresent(ev::setChannelId);
+        GsonUtil.findString(json, "room_id").ifPresent(rId -> ev.setChannelId(forChannelIdFromMatrixToGrid(rId)));
         GsonUtil.findString(json, "event_id").ifPresent(ProtocolEventMapper::forEventIdFromMatrixToGrid);
         GsonUtil.findLong(json, "origin_server_ts").ifPresent(ev::setTimestamp);
         GsonUtil.findString(json, "sender").ifPresent(ProtocolEventMapper::forUserIdFromMatrixToGrid);
@@ -137,7 +138,7 @@ public class ProtocolEventMapper {
     }
 
     private static JsonObject mapCommon(String id, BareEvent gEv, JsonObject mEv) {
-        mEv.addProperty("room_id", gEv.getChannelId());
+        mEv.addProperty("room_id", forChannelIdFromGridToMatrix(gEv.getChannelId()));
         mEv.addProperty("event_id", forEventIdFromGridToMatrix(id));
         mEv.addProperty("origin_server_ts", gEv.getTimestamp());
         mEv.addProperty("sender", forUserIdFromGridToMatrix(gEv.getSender()));
@@ -180,27 +181,50 @@ public class ProtocolEventMapper {
     public static String forUserIdFromMatrixToGrid(String mId) {
         String gId = mId.substring(1);
         String[] parts = gId.split(":", 1);
-        return UserID.from(parts[0], parts[1]).full();
+        gId = UserID.from(parts[0], parts[1]).full();
+        log.debug("User ID: Matrix -> Grid: {} -> {}", mId, gId);
+        return gId;
     }
 
     public static String forUserIdFromGridToMatrix(String gId) {
         String mId = gId.substring(1);
         mId = new String(Base64.decodeBase64(mId), StandardCharsets.UTF_8);
         mId = "@" + mId.replace("@", ":");
+        log.debug("User ID: Grid -> Matrix: {} -> {}", mId, gId);
         return mId;
     }
 
     public static String forEventIdFromMatrixToGrid(String mId) {
         String gId = mId.substring(1);
         String[] parts = gId.split(":", 1);
-        return EventID.from(parts[0], parts[1]).full();
+        gId = EventID.from(parts[0], parts[1]).full();
+        log.debug("Event ID: Matrix -> Grid: {} -> {}", mId, gId);
+        return gId;
     }
 
     public static String forEventIdFromGridToMatrix(String gId) {
         String mId = gId.substring(1);
         mId = new String(Base64.decodeBase64(mId), StandardCharsets.UTF_8);
         mId = "$" + mId.replace("@", ":");
+        log.debug("Event ID: Grid -> Matrix: {} -> {}", gId, mId);
         return mId;
+    }
+
+    public static String forChannelIdFromGridToMatrix(String gId) {
+        String mId = gId.substring(1);
+        mId = new String(Base64.decodeBase64(mId), StandardCharsets.UTF_8);
+        String[] parts = mId.split("@");
+        mId = "!" + Base64.encodeBase64URLSafeString(parts[0].getBytes(StandardCharsets.UTF_8)) + ":" + parts[1];
+        log.debug("Channel ID: Grid -> Matrix: {} -> {}", gId, mId);
+        return mId;
+    }
+
+    public static String forChannelIdFromMatrixToGrid(String mId) {
+        String gId = mId.substring(1);
+        String[] parts = gId.split(":", 2);
+        gId = ChannelID.from(parts[0], parts[1]).full();
+        log.debug("Channel ID: Matrix -> Grid: {} -> {}", mId, gId);
+        return gId;
     }
 
 }

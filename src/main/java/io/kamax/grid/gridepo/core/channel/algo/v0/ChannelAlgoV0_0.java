@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.channel.algo.v0;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.channel.ChannelJoinRule;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
@@ -28,11 +29,9 @@ import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.util.GsonUtil;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -171,11 +170,8 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
     }
 
     @Override
-    public String generateEventId(String domain) {
-        // FIXME Consider making Grid <Object> ID class
-        String id = UUID.randomUUID().toString().replace("-", "") + RandomStringUtils.randomAlphanumeric(4) +
-                ":" + domain;
-        return "$" + Base64.encodeBase64URLSafeString(id.getBytes(StandardCharsets.UTF_8));
+    public EventID generateEventId(String domain) {
+        return EventID.from(UUID.randomUUID().toString().replace("-", "") + RandomStringUtils.randomAlphanumeric(4), domain);
     }
 
     @Override

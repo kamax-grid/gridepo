@@ -63,7 +63,7 @@ public class ChannelDirectory {
             throw new ObjectNotFoundException("Room Address", address);
         }
 
-        store.unmap(address, id.get());
+        store.unmap(address);
     }
 
 }

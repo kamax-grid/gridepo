@@ -51,7 +51,8 @@ public class SendRoomStateHandler extends ClientApiHandler {
         mEv.add("content", content);
 
         JsonObject gEv = ProtocolEventMapper.convert(mEv);
-        String evId = ProtocolEventMapper.forEventIdFromGridToMatrix(session.send(rId, gEv));
+        String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId);
+        String evId = ProtocolEventMapper.forEventIdFromGridToMatrix(session.send(cId, gEv));
         exchange.respondJson(GsonUtil.makeObj("event_id", evId));
     }
 

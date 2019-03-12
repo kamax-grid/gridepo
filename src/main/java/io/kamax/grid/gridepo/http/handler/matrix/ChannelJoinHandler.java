@@ -40,10 +40,11 @@ public class ChannelJoinHandler extends ClientApiHandler {
     protected void handle(Exchange exchange) {
         UserSession s = g.withToken(exchange.getAccessToken());
 
-        String cId = exchange.getPathVariable("roomId");
-        if (StringUtils.isEmpty(cId)) {
+        String mId = exchange.getPathVariable("roomId");
+        if (StringUtils.isEmpty(mId)) {
             throw new IllegalArgumentException("Missing Room ID in path");
         }
+        String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(mId);
 
         JsonObject body = exchange.parseJsonObject();
         if (body.has("third_party_signed")) {
@@ -52,7 +53,7 @@ public class ChannelJoinHandler extends ClientApiHandler {
 
         s.joinChannel(cId);
 
-        exchange.respond(GsonUtil.makeObj("room_id", cId));
+        exchange.respond(GsonUtil.makeObj("room_id", mId));
     }
 
 }
