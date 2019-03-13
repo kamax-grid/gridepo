@@ -22,6 +22,10 @@ package io.kamax.grid.gridepo.exception;
 
 public class NotImplementedException extends RuntimeException {
 
+    public NotImplementedException() {
+
+    }
+
     public NotImplementedException(String feature) {
         super("The following feature is not supported: " + feature);
     }

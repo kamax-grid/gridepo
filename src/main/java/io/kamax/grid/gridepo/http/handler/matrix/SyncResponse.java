@@ -44,7 +44,7 @@ public class SyncResponse {
         private String eventId;
         private String type;
         private long originServerTs;
-        private String channelId;
+        private transient String channelId;
         private String roomId;
         private String sender;
         private String stateKey;
@@ -214,16 +214,20 @@ public class SyncResponse {
                         room.state.events = null;
 
                         room.inviteState.events = new ArrayList<>();
-                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEventIds().forEach(sEvId -> {
-                            room.inviteState.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getChannelId(), sEvId)));
+                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
+                            if (sEv.getSid() != ev.getSid()) {
+                                room.inviteState.events.add(RoomEvent.build(sEv));
+                            }
                         });
                         room.inviteState.events.add(rEv);
                     } else if ("leave".equals(m) || "ban".equals(m)) {
                         r.rooms.leave.put(rEv.getRoomId(), room);
                     } else if ("join".equals(m)) {
                         room.state.events = new ArrayList<>();
-                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEventIds().forEach(sEvId -> {
-                            room.state.events.add(RoomEvent.build(g.getStore().getEvent(rEv.getChannelId(), sEvId)));
+                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
+                            if (sEv.getSid() != ev.getSid()) {
+                                room.state.events.add(RoomEvent.build(sEv));
+                            }
                         });
                         r.rooms.join.put(rEv.getRoomId(), room);
                     } else {

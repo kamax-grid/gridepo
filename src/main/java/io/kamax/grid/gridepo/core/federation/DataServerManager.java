@@ -33,27 +33,27 @@ import java.util.stream.Collectors;
 
 public class DataServerManager {
 
-    private LoadingCache<String, DataServer> cache;
+    private LoadingCache<ServerID, DataServer> cache;
 
     public DataServerManager() {
         this.cache = CacheBuilder.newBuilder()
                 .maximumSize(1000) // FIXME make it configurable
                 .expireAfterAccess(3600, TimeUnit.SECONDS) // FIXME make it configurable
-                .build(new CacheLoader<String, DataServer>() {
+                .build(new CacheLoader<ServerID, DataServer>() {
 
                     @Override
-                    public DataServer load(String key) {
-                        return new DataServer(ServerID.parse(key));
+                    public DataServer load(ServerID key) {
+                        return new DataServer(key);
                     }
 
                 });
     }
 
-    public DataServer get(String domain) {
+    public DataServer get(ServerID domain) {
         return cache.getUnchecked(domain);
     }
 
-    public List<DataServer> get(Collection<String> domains) {
+    public List<DataServer> get(Collection<ServerID> domains) {
         return domains.stream()
                 .map(d -> cache.getUnchecked(d))
                 .filter(DataServer::isAvailable)

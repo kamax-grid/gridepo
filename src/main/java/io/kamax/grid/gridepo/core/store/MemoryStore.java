@@ -20,11 +20,12 @@
 
 package io.kamax.grid.gridepo.core.store;
 
-import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
-import io.kamax.grid.gridepo.exception.NotImplementedException;
+import io.kamax.grid.gridepo.exception.AlreadyExistsException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
@@ -42,31 +43,35 @@ public class MemoryStore implements Store {
     private AtomicLong sSid = new AtomicLong(0);
 
     private Map<String, String> users = new ConcurrentHashMap<>();
-    private Map<Long, Channel> channels = new ConcurrentHashMap<>();
+    private Map<Long, ChannelDao> channels = new ConcurrentHashMap<>();
     private Map<Long, ChannelEvent> chEvents = new ConcurrentHashMap<>();
     private Map<Long, ChannelState> chStates = new ConcurrentHashMap<>();
-    private Map<String, List<String>> chExtremities = new ConcurrentHashMap<>();
+    private Map<Long, List<Long>> chExtremities = new ConcurrentHashMap<>();
     private Map<Long, Long> evStates = new ConcurrentHashMap<>();
+
+    private Map<String, ChannelID> chAdrToId = new ConcurrentHashMap<>();
+    private Map<ChannelID, Set<String>> chIdToAdr = new ConcurrentHashMap<>();
 
     private Map<String, Long> evRefToSid = new ConcurrentHashMap<>();
 
     private String makeRef(ChannelEvent ev) {
-        return makeRef(ev.getChannelId(), ev.getId());
+        return makeRef(ChannelID.from(ev.getChannelId()), ev.getId());
     }
 
-    private String makeRef(String chId, String evId) {
-        return chId + "/" + evId;
+    private String makeRef(ChannelID cId, EventID eId) {
+        return cId + "/" + eId;
     }
 
     @Override
-    public boolean hasEvent(String chId, String evId) {
-        return evRefToSid.containsKey(makeRef(chId, evId));
+    public Optional<ChannelDao> findChannel(long cSid) {
+        return Optional.ofNullable(channels.get(cSid));
     }
 
     @Override
     public ChannelDao saveChannel(ChannelDao ch) {
-        // FIXME this will blow up in tests
-        ch.setSid(System.currentTimeMillis());
+        long sid = chSid.incrementAndGet();
+        ch = new ChannelDao(sid, ch.getId());
+        channels.put(sid, ch);
         return ch;
     }
 
@@ -85,25 +90,40 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public synchronized ChannelEvent getEvent(String channelId, String eventId) throws IllegalStateException {
-        log.info("Getting Event {}/{}", channelId, eventId);
-        return findEvent(channelId, eventId).orElseThrow(IllegalStateException::new);
+    public synchronized ChannelEvent getEvent(ChannelID cId, EventID eId) throws ObjectNotFoundException {
+        log.info("Getting Event {}/{}", cId, eId);
+        return findEvent(cId, eId).orElseThrow(() -> new ObjectNotFoundException("Event", cId + "/" + eId));
     }
 
     @Override
-    public List<ChannelEvent> getNext(Long last, long amount) {
+    public ChannelEvent getEvent(long eSid) {
+        return findEvent(eSid).orElseThrow(() -> new ObjectNotFoundException("Event", Long.toString(eSid)));
+    }
+
+    @Override
+    public EventID getEventId(long eSid) {
+        return getEvent(eSid).getId();
+    }
+
+    @Override
+    public long getEventSid(ChannelID cId, EventID eId) throws ObjectNotFoundException {
+        return 0;
+    }
+
+    @Override
+    public List<ChannelEvent> getNext(long lastSid, long amount) {
         List<ChannelEvent> events = new ArrayList<>();
         while (events.size() < amount) {
-            last++;
+            lastSid++;
 
-            log.info("Checking for next event SID {}", last);
-            if (!chEvents.containsKey(last)) {
+            log.info("Checking for next event SID {}", lastSid);
+            if (!chEvents.containsKey(lastSid)) {
                 log.info("No such event, end of stream");
                 return events;
             }
 
-            log.info("Found next event SID {}, adding", last);
-            events.add(chEvents.get(last));
+            log.info("Found next event SID {}, adding", lastSid);
+            events.add(chEvents.get(lastSid));
             log.info("Incrementing SID");
         }
 
@@ -112,23 +132,35 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public synchronized Optional<ChannelEvent> findEvent(String channelId, String eventId) {
-        return Optional.ofNullable(evRefToSid.get(makeRef(channelId, eventId)))
+    public synchronized Optional<ChannelEvent> findEvent(ChannelID cId, EventID eId) {
+        return Optional.ofNullable(evRefToSid.get(makeRef(cId, eId)))
                 .flatMap(sid -> Optional.ofNullable(chEvents.get(sid)));
     }
 
     @Override
-    public void setExtremities(String chId, List<String> extremities) {
-        chExtremities.put(chId, new ArrayList<>(extremities));
+    public Optional<ChannelEvent> findEvent(long eSid) {
+        return Optional.empty();
+    }
+
+    private List<Long> getOrComputeExts(long cSid) {
+        return new ArrayList<>(chExtremities.computeIfAbsent(cSid, k -> new ArrayList<>()));
     }
 
     @Override
-    public List<String> getExtremities(String channelId) {
-        return chExtremities.computeIfAbsent(channelId, i -> new ArrayList<>());
+    public synchronized void updateExtremities(long cSid, List<Long> toRemove, List<Long> toAdd) {
+        List<Long> exts = getOrComputeExts(cSid);
+        exts.removeAll(toRemove);
+        exts.addAll(toAdd);
+        chExtremities.put(cSid, exts);
     }
 
     @Override
-    public long insertIfNew(String chId, ChannelState state) {
+    public List<Long> getExtremities(long cSid) {
+        return getOrComputeExts(cSid);
+    }
+
+    @Override
+    public long insertIfNew(long cSid, ChannelState state) {
         if (Objects.nonNull(state.getSid())) {
             return state.getSid();
         }
@@ -183,23 +215,32 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public Optional<String> findChannelIdForAddress(String chId) {
-        throw new NotImplementedException("Room directory storage");
+    public Optional<ChannelID> findChannelIdForAddress(String chAd) {
+        return Optional.ofNullable(chAdrToId.get(chAd));
     }
 
     @Override
-    public List<String> findChannelAddressForId(String chAd) {
-        throw new NotImplementedException("Room directory storage");
+    public List<String> findChannelAddressForId(ChannelID id) {
+        return new ArrayList<>(chIdToAdr.computeIfAbsent(id, k -> new HashSet<>()));
     }
 
     @Override
-    public void map(String chAd, String chId) {
-        throw new NotImplementedException("Room directory storage");
+    public void map(ChannelID id, String chAd) {
+        if (chAdrToId.containsKey(chAd)) {
+            throw new AlreadyExistsException();
+        }
+
+        chAdrToId.put(chAd, id);
+        chIdToAdr.computeIfAbsent(id, k -> new HashSet<>()).add(chAd);
     }
 
     @Override
-    public void unmap(String chAd, String chId) {
-        throw new NotImplementedException("Room directory storage");
+    public void unmap(String chAd) {
+        if (!chAdrToId.containsKey(chAd)) {
+            throw new ObjectNotFoundException("Channel Address", chAd);
+        }
+
+        chIdToAdr.remove(chAdrToId.remove(chAd));
     }
 
 }

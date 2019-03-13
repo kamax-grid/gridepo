@@ -20,30 +20,10 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.ServerID;
-import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
-import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
-import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
-import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
-import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
-import io.kamax.grid.gridepo.core.channel.state.ChannelState;
-import io.kamax.grid.gridepo.core.crypto.KeyManager;
-import io.kamax.grid.gridepo.core.crypto.MemoryKeyStore;
-import io.kamax.grid.gridepo.core.crypto.SignManager;
-import io.kamax.grid.gridepo.core.event.EventKey;
-import io.kamax.grid.gridepo.core.event.EventService;
-import io.kamax.grid.gridepo.core.federation.DataServerManager;
-import io.kamax.grid.gridepo.core.signal.SignalBus;
-import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
-import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Optional;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 public class ChannelTest {
 
@@ -61,7 +41,8 @@ public class ChannelTest {
     }
 
     // FIXME some parsing error due to recent changes
-    // @Test
+    /*
+    / @Test
     public void basic() {
         SignalBus bus = new SignalBus();
         KeyManager keyMgr = new KeyManager(new MemoryKeyStore());
@@ -147,5 +128,6 @@ public class ChannelTest {
         assertEquals(ChannelMembership.Join, janeMembership.get());
         assertEquals(ChannelMembership.Join, johnMembership.get());
     }
+    */
 
 }

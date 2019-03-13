@@ -21,9 +21,7 @@
 package io.kamax.grid.gridepo.core.channel;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.EntityAlias;
-import io.kamax.grid.gridepo.core.ServerID;
-import io.kamax.grid.gridepo.core.UserID;
+import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
@@ -65,7 +63,7 @@ public class Channel {
     private BarePowerEvent.Content defaultPls;
     private ChannelView view;
 
-    public Channel(long sid, String id, ServerID origin, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr, SignalBus bus) {
+    public Channel(long sid, ChannelID id, ServerID origin, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr, SignalBus bus) {
         this(new ChannelDao(sid, id), origin, algo, evSvc, store, srvMgr, bus);
     }
 
@@ -84,7 +82,7 @@ public class Channel {
         return dao.getSid();
     }
 
-    public String getId() {
+    public ChannelID getId() {
         return dao.getId();
     }
 
@@ -110,8 +108,20 @@ public class Channel {
         return view;
     }
 
-    public List<String> getExtremities() {
-        return store.getExtremities(getId());
+    public List<Long> getExtremitySids() {
+        return store.getExtremities(getSid());
+    }
+
+    public List<EventID> getExtremityIds() {
+        return getExtremitySids().stream()
+                .map(store::getEventId)
+                .collect(Collectors.toList());
+    }
+
+    public List<ChannelEvent> getExtremities() {
+        return getExtremitySids().stream()
+                .map(evId -> store.getEvent(evId))
+                .collect(Collectors.toList());
     }
 
     public JsonObject makeEvent(BareEvent ev) {
@@ -121,41 +131,45 @@ public class Channel {
 
     public JsonObject makeEvent(JsonObject obj) {
         obj.addProperty(EventKey.Origin, origin.full());
-        obj.addProperty(EventKey.ChannelId, getId());
-        obj.addProperty(EventKey.Id, algo.generateEventId(origin.tryDecode().orElse(origin.getId())).full());
+        obj.addProperty(EventKey.ChannelId, getId().full());
+        obj.addProperty(EventKey.Id, algo.generateEventId(origin.tryDecode().orElse(origin.base())).full());
         obj.addProperty(EventKey.Timestamp, Instant.now().toEpochMilli());
 
-        List<String> exts = getExtremities();
+        List<ChannelEvent> exts = getExtremities();
+        List<String> extIds = exts.stream()
+                .map(ChannelEvent::getId)
+                .map(EventID::full)
+                .collect(Collectors.toList());
         long depth = exts.stream()
-                .map(evId -> store.getEvent(getId(), evId))
                 .map(ChannelEvent::getBare)
                 .mapToLong(BareEvent::getDepth)
                 .max()
                 .orElse(algo.getBaseDepth()) + 1;
-        obj.add(EventKey.PrevEvents, GsonUtil.asArray(exts));
+
+        obj.add(EventKey.PrevEvents, GsonUtil.asArray(extIds));
         obj.addProperty(EventKey.Depth, depth);
 
         return obj;
     }
 
     public boolean isUsable(ChannelEvent ev) {
-        if (!ev.isProcessed()) {
+        if (!ev.getMeta().isProcessed()) {
             throw new IllegalStateException("Event " + getId() + "/" + ev.getId() + " has not been processed");
         }
 
-        return ev.isPresent() && ev.isValid() && ev.isAllowed();
+        return ev.getMeta().isPresent() && ev.getMeta().isValid() && ev.getMeta().isAllowed();
     }
 
-    private synchronized ChannelEvent processIfNotAlready(String evId) {
+    private synchronized ChannelEvent processIfNotAlready(EventID evId) {
         process(evId, true, false);
         return store.getEvent(getId(), evId);
     }
 
-    private synchronized ChannelEventAuthorization process(String evId, boolean recursive, boolean force) {
+    private synchronized ChannelEventAuthorization process(EventID evId, boolean recursive, boolean force) {
         ChannelEvent ev = store.getEvent(getId(), evId);
-        if (ev.isProcessed() && !force) {
+        if (ev.getMeta().isProcessed() && !force) {
             return new ChannelEventAuthorization.Builder(evId)
-                    .authorize(ev.isPresent() && ev.isValid() && ev.isAllowed(), "From previous computation");
+                    .authorize(ev.getMeta().isPresent() && ev.getMeta().isValid() && ev.getMeta().isAllowed(), "From previous computation");
         }
 
         return process(ev, recursive);
@@ -164,15 +178,16 @@ public class Channel {
     public synchronized ChannelEventAuthorization process(ChannelEvent ev, boolean recursive) {
         ChannelEventAuthorization.Builder b = new ChannelEventAuthorization.Builder(ev.getId());
         BareGenericEvent bEv = ev.getBare();
-        ev.setPresent(true);
+        ev.getMeta().setPresent(true);
 
         ChannelState state = getView().getState();
         long maxParentDepth = bEv.getPreviousEvents().stream()
+                .map(EventID::from)
                 .map(pEvId -> {
                     if (recursive) {
                         return processIfNotAlready(pEvId);
                     } else {
-                        return store.findEvent(getId(), pEvId).orElseGet(() -> ChannelEvent.forNotFound(pEvId));
+                        return store.findEvent(getId(), pEvId).orElseGet(() -> ChannelEvent.forNotFound(getSid(), pEvId));
                     }
                 })
                 .filter(this::isUsable)
@@ -190,30 +205,28 @@ public class Channel {
             if (expectedDepth != bEv.getDepth()) {
                 b.invalid("Depth is " + bEv.getDepth() + " but was expected to be " + expectedDepth);
             } else {
-                ChannelEventAuthorization auth = algo.authorize(state, ev.getData()); // FIXME do it on the parents
+                ChannelEventAuthorization auth = algo.authorize(state, ev.getId(), ev.getData()); // FIXME do it on the parents
                 b.authorize(auth.isAuthorized(), auth.getReason());
                 if (auth.isAuthorized()) {
-                    state = state.apply(ev.getData());
+                    state = state.apply(ev);
                 }
             }
         }
 
         ChannelEventAuthorization auth = b.get();
-        ev.setValid(auth.isValid());
-        ev.setAllowed(auth.isAuthorized());
-        ev.setProcessed(true);
+        ev.getMeta().setValid(auth.isValid());
+        ev.getMeta().setAllowed(auth.isAuthorized());
+        ev.getMeta().setProcessed(true);
 
         ev = store.saveEvent(ev);
-        state = store.getState(store.insertIfNew(getId(), state));
+        state = store.getState(store.insertIfNew(getSid(), state));
         store.map(ev.getSid(), state.getSid());
 
-        List<String> evIds = store.getExtremities(getId());
-        for (String prevEv : ev.getBare().getPreviousEvents()) {
-            evIds.remove(prevEv);
-        }
-
-        evIds.add(ev.getId());
-        store.setExtremities(getId(), evIds);
+        List<Long> toRemove = ev.getBare().getPreviousEvents().stream()
+                .map(id -> store.getEventSid(getId(), EventID.from(id)))
+                .collect(Collectors.toList());
+        List<Long> toAdd = Collections.singletonList(ev.getSid());
+        store.updateExtremities(getSid(), toRemove, toAdd);
 
         view = new ChannelView(ev.getId(), state);
 
@@ -222,48 +235,49 @@ public class Channel {
         return auth;
     }
 
-    public void backfill(ChannelEvent ev, List<String> earliest, long minDepth) {
+    public void backfill(ChannelEvent ev, List<EventID> earliest, long minDepth) {
         if (ev.getBare().getPreviousEvents().isEmpty()) {
             return;
         }
 
-        backfill(ev.getBare().getPreviousEvents(), earliest, minDepth);
+        backfill(ev.getPreviousEvents(), earliest, minDepth);
     }
 
-    public void backfill(List<String> latest, List<String> earliest, long minDepth) {
-        BlockingQueue<String> remaining = new LinkedBlockingQueue<>(latest);
+    public void backfill(List<EventID> latest, List<EventID> earliest, long minDepth) {
+        BlockingQueue<EventID> remaining = new LinkedBlockingQueue<>(latest);
         Stack<ChannelEvent> events = new Stack<>();
 
         log.info("Need to backfill on {} events", remaining.size());
         while (!remaining.isEmpty()) {
-            String evId = remaining.poll();
+            EventID evId = remaining.poll();
             ChannelEvent chEv = new ChannelEvent();
 
             Optional<ChannelEvent> storeEv = store.findEvent(getId(), evId);
             if (storeEv.isPresent()) {
                 chEv = storeEv.get();
-                if (chEv.isPresent()) {
+                if (chEv.getMeta().isPresent()) {
                     continue;
                 }
-            } else {
-                chEv.setChannelId(getId());
-                chEv.setId(evId);
-                chEv.setProcessed(false);
             }
 
             log.info("Trying to backfill on {}", evId);
-            for (DataServer srv : srvMgr.get(getView().getState().getServers())) {
+            List<ServerID> servers = getView().getState().getEvents().stream()
+                    .map(ChannelEvent::getBare)
+                    .map(BareEvent::getOrigin)
+                    .map(ServerID::from)
+                    .collect(Collectors.toList());
+            for (DataServer srv : srvMgr.get(servers)) {
                 Optional<JsonObject> data = srv.getEvent(getId(), evId);
                 if (data.isPresent()) {
-                    chEv = ChannelEvent.from(data.get());
+                    chEv = ChannelEvent.from(getSid(), data.get());
                     chEv.setData(data.get());
-                    chEv.setFetchedFrom(srv.getId().full());
-                    chEv.setFetchedAt(Instant.now());
-                    chEv.setValid(false);
-                    chEv.setAllowed(false);
-                    chEv.setProcessed(false);
+                    chEv.getMeta().setFetchedFrom(srv.getId().full());
+                    chEv.getMeta().setFetchedAt(Instant.now());
+                    chEv.getMeta().setValid(false);
+                    chEv.getMeta().setAllowed(false);
+                    chEv.getMeta().setProcessed(false);
 
-                    List<String> parents = chEv.getBare().getPreviousEvents();
+                    List<EventID> parents = chEv.getPreviousEvents();
                     if (chEv.getBare().getDepth() > minDepth && Collections.disjoint(earliest, parents)) {
                         log.info("Found {} events still needing backfill", parents.size());
                         remaining.addAll(parents);
@@ -273,7 +287,7 @@ public class Channel {
                 }
             }
 
-            chEv.setPresent(Objects.nonNull(chEv.getData()));
+            chEv.getMeta().setPresent(Objects.nonNull(chEv.getData()));
             events.push(chEv);
         }
 
@@ -282,37 +296,35 @@ public class Channel {
 
     public synchronized List<ChannelEventAuthorization> inject(List<ChannelEvent> events) {
         ChannelState state = getView().getState();
-        List<String> extremities = getExtremities();
 
         List<ChannelEventAuthorization> auths = new ArrayList<>();
         events.stream().sorted(Comparator.comparingLong(ev -> ev.getBare().getDepth())).forEach(event -> {
             log.info("Room {} - Processing injection of Event {}", getId(), event.getId());
             Optional<ChannelEvent> evStore = store.findEvent(getId(), event.getId());
 
-            if (evStore.isPresent() && evStore.get().isPresent()) {
+            if (evStore.isPresent() && evStore.get().getMeta().isPresent()) {
                 log.info("Event {} is known, skipping", event.getId());
                 // We already have the event, we skip
                 return;
             }
 
-            event.setPresent(Objects.nonNull(event.getData()));
+            event.getMeta().setPresent(Objects.nonNull(event.getData()));
 
             // We check if the event is valid and allowed for the current state before considering processing it
-            ChannelEventAuthorization auth = algo.authorize(state, event.getData());
-            event.setValid(auth.isValid());
-            event.setAllowed(auth.isAuthorized());
+            ChannelEventAuthorization auth = algo.authorize(state, event.getId(), event.getData());
+            event.getMeta().setValid(auth.isValid());
+            event.getMeta().setAllowed(auth.isAuthorized());
 
             // Still need to process
-            event.setProcessed(false);
+            event.getMeta().setProcessed(false);
 
-            long minDepth = extremities.stream()
-                    .map(evId -> store.getEvent(getId(), evId))
+            long minDepth = getExtremities().stream()
                     .map(ChannelEvent::getBare)
                     .min(Comparator.comparingLong(BareEvent::getDepth))
                     .map(BareEvent::getDepth)
                     .orElse(0L);
 
-            backfill(event, getExtremities(), minDepth);
+            backfill(event, getExtremityIds(), minDepth);
 
             auth = process(event, true);
 
@@ -324,9 +336,9 @@ public class Channel {
 
     public List<ChannelEventAuthorization> injectRemote(String from, List<JsonObject> events) {
         return inject(events.stream().map(raw -> {
-            ChannelEvent ev = ChannelEvent.from(raw);
-            ev.setReceivedFrom(from);
-            ev.setReceivedAt(Instant.now());
+            ChannelEvent ev = ChannelEvent.from(getSid(), raw);
+            ev.getMeta().setReceivedFrom(from);
+            ev.getMeta().setReceivedAt(Instant.now());
             return ev;
         }).collect(Collectors.toList()));
     }
@@ -336,8 +348,8 @@ public class Channel {
     }
 
     public ChannelEventAuthorization injectLocal(JsonObject ev) {
-        ChannelEvent cEv = ChannelEvent.from(ev);
-        cEv.setReceivedAt(Instant.now());
+        ChannelEvent cEv = ChannelEvent.from(getSid(), ev);
+        cEv.getMeta().setReceivedAt(Instant.now());
 
         return inject(Collections.singletonList(cEv)).get(0);
     }
@@ -383,8 +395,7 @@ public class Channel {
         if (!origin.equals(remoteId)) {
             // This is a remote invite
 
-            List<JsonObject> state = getView().getState().getEventIds().stream()
-                    .map(evId -> store.getEvent(getId(), evId))
+            List<JsonObject> state = getView().getState().getEvents().stream()
                     .map(ChannelEvent::getData)
                     .collect(Collectors.toList());
 
@@ -392,7 +403,7 @@ public class Channel {
             request.setObject(evFull);
             request.getContext().setState(state);
 
-            evFull = srvMgr.get(remoteId.full()).approveInvite(origin.full(), request);
+            evFull = srvMgr.get(remoteId).approveInvite(origin.full(), request);
         }
 
         ChannelEventAuthorization result = injectLocal(evFull);

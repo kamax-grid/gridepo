@@ -213,7 +213,7 @@ public class MonolithGridepo implements Gridepo {
 
     @Override
     public boolean isLocal(UserID uId) {
-        return getDomain().equals(new String(Base64.decodeBase64(uId.getId()), StandardCharsets.UTF_8).split("@", 2)[1]);
+        return getDomain().equals(new String(Base64.decodeBase64(uId.base()), StandardCharsets.UTF_8).split("@", 2)[1]);
     }
 
     @Override

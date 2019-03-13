@@ -18,32 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.exception;
 
-import org.apache.commons.lang3.StringUtils;
-
-public class ChannelID extends EntityID {
-
-    public static final String Sigill = "#";
-
-    public static ChannelID from(String id) {
-        if (!StringUtils.startsWith(id, Sigill)) {
-            throw new IllegalArgumentException("Does not start with " + Sigill);
-        }
-
-        return fromRaw(id.substring(1));
-    }
-
-    public static ChannelID fromRaw(String rawId) {
-        return new ChannelID(rawId);
-    }
-
-    public static ChannelID from(String localpart, String namespace) {
-        return new ChannelID(encode(localpart + Delimiter + namespace));
-    }
-
-    public ChannelID(String id) {
-        super(Sigill, id);
-    }
+public class AlreadyExistsException extends RuntimeException {
 
 }

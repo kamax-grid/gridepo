@@ -20,10 +20,10 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
+import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -39,28 +39,33 @@ public class ChannelDirectory {
         this.store = store;
     }
 
-    public Optional<String> lookup(String address) {
+    public Optional<ChannelID> lookup(String address) {
         return store.findChannelIdForAddress(address);
     }
 
-    public List<String> getAddresses(String id) {
+    public List<String> getAddresses(ChannelID id) {
         return store.findChannelAddressForId(id);
     }
 
-    public void map(String address, String id) {
-        String existingMap = lookup(address).orElse("");
-        if (StringUtils.equals(id, existingMap)) {
+    public void map(String address, ChannelID id) {
+        Optional<ChannelID> existingMap = lookup(address);
+        if (existingMap.isPresent()) {
+            ChannelID cId = existingMap.get();
+            if (!cId.equals(id)) {
+                throw new IllegalStateException("Channel address " + address + " is already mapped to " + cId.full());
+            }
+
             log.info("Mapping {} -> {} already exists, ignoring call", address, id);
             return;
         }
 
-        store.map(address, id);
+        store.map(id, address);
     }
 
     public void unmap(String address) {
-        Optional<String> id = lookup(address);
+        Optional<ChannelID> id = lookup(address);
         if (!id.isPresent()) {
-            throw new ObjectNotFoundException("Room Address", address);
+            throw new ObjectNotFoundException("Channel address", address);
         }
 
         store.unmap(address);

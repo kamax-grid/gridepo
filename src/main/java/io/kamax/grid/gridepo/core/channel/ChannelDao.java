@@ -20,19 +20,21 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
+import io.kamax.grid.gridepo.core.ChannelID;
+
 public class ChannelDao {
 
     private long sid;
-    private String id;
+    private ChannelID id;
 
     public ChannelDao() {
     }
 
-    public ChannelDao(String id) {
+    public ChannelDao(ChannelID id) {
         setId(id);
     }
 
-    public ChannelDao(long sid, String id) {
+    public ChannelDao(long sid, ChannelID id) {
         setSid(sid);
         setId(id);
     }
@@ -45,11 +47,11 @@ public class ChannelDao {
         this.sid = sid;
     }
 
-    public String getId() {
+    public ChannelID getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(ChannelID id) {
         this.id = id;
     }
 

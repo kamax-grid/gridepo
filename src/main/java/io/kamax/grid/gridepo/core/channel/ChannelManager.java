@@ -66,13 +66,13 @@ public class ChannelManager {
         this.dsmgr = dsmgr;
     }
 
-    private String generateId() {
+    private ChannelID generateId() {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(Instant.now().toEpochMilli() - 1546297200000L); // TS since 2019-01-01T00:00:00Z to keep IDs short
         byte[] tsBytes = buffer.array();
         String localpart = new String(tsBytes, StandardCharsets.UTF_8) + RandomStringUtils.randomAlphanumeric(2);
 
-        return ChannelID.from(localpart, g.getConfig().getDomain()).full();
+        return ChannelID.from(localpart, g.getConfig().getDomain());
     }
 
     public Channel createChannel(String creator) {
@@ -87,7 +87,7 @@ public class ChannelManager {
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
 
         Channel ch = new Channel(dao, g.getOrigin(), algo, evSvc, store, dsmgr, bus);
-        channels.put(ch.getId(), ch);
+        channels.put(ch.getId().full(), ch);
 
         List<BareEvent> createEvents = algo.getCreationEvents(creator);
         createEvents.stream()
@@ -105,7 +105,7 @@ public class ChannelManager {
     public Channel create(String from, JsonObject seedJson, List<JsonObject> stateJson) {
         BareMemberEvent ev = GsonUtil.fromJson(seedJson, BareMemberEvent.class);
         ChannelDao dao = new ChannelDao();
-        dao.setId(ev.getChannelId());
+        dao.setId(ChannelID.from(ev.getChannelId()));
         dao = store.saveChannel(dao);
 
         BareCreateEvent createEv = GsonUtil.fromJson(stateJson.get(0), BareCreateEvent.class);
@@ -122,7 +122,7 @@ public class ChannelManager {
             throw new ForbiddenException("Seed is not allowed as per state: " + auth.getReason());
         }
 
-        channels.put(ch.getId(), ch);
+        channels.put(ch.getId().full(), ch);
         return ch;
     }
 

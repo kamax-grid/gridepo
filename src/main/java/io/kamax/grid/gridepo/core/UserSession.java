@@ -131,14 +131,14 @@ public class UserSession {
                 }
 
                 long position = events.stream()
-                        .filter(ChannelEvent::isProcessed)
+                        .filter(ev -> ev.getMeta().isProcessed())
                         .max(Comparator.comparingLong(ChannelEvent::getSid))
                         .map(ChannelEvent::getSid)
                         .orElse(0L);
                 data.setPosition(Long.toString(position));
 
                 events = events.stream()
-                        .filter(ev -> ev.isValid() && ev.isAllowed())
+                        .filter(ev -> ev.getMeta().isValid() && ev.getMeta().isAllowed())
                         .filter(ev -> {
                             // FIXME move this into channel/state algo to check if a user can see an event in the stream
 
@@ -168,12 +168,12 @@ public class UserSession {
 
     public String send(String cId, JsonObject data) {
         data.addProperty(EventKey.Sender, user.getId().full());
-        return g.getChannelManager().get(cId).makeAndInject(data).getEventId();
+        return g.getChannelManager().get(cId).makeAndInject(data).getEventId().full();
     }
 
     public String inviteToChannel(String cId, EntityAlias uAl) {
         Channel c = g.getChannelManager().get(cId);
-        String evId = c.invite(user.getId().full(), uAl).getId();
+        String evId = c.invite(user.getId().full(), uAl).getId().full();
         return evId;
     }
 
@@ -188,7 +188,7 @@ public class UserSession {
             throw new ForbiddenException(r.getReason());
         }
 
-        return r.getEventId();
+        return r.getEventId().full();
     }
 
     public String leaveChannel(String cId) {
@@ -202,7 +202,7 @@ public class UserSession {
             throw new ForbiddenException(r.getReason());
         }
 
-        return r.getEventId();
+        return r.getEventId().full();
     }
 
 }

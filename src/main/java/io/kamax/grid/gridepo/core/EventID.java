@@ -26,7 +26,7 @@ public class EventID extends EntityID {
 
     public static final String Sigill = "$";
 
-    public static EventID EventID(String id) {
+    public static EventID from(String id) {
         if (!StringUtils.startsWith(id, Sigill)) {
             throw new IllegalArgumentException("Does not start with " + Sigill);
         }
@@ -34,8 +34,8 @@ public class EventID extends EntityID {
         return new EventID(id.substring(1));
     }
 
-    public static EventID from(String localpart, String domain) {
-        return new EventID(encode(localpart + "@" + domain));
+    public static EventID from(String localpart, String namespace) {
+        return new EventID(encode(localpart + Delimiter + namespace));
     }
 
     public EventID(String id) {

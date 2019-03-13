@@ -20,34 +20,48 @@
 
 package io.kamax.grid.gridepo.core.store;
 
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface Store {
 
-    default boolean hasEvent(String channelId, String eventId) {
-        return getEvent(channelId, eventId).isPresent();
+    Optional<ChannelDao> findChannel(long cSid);
+
+    default ChannelDao getChannel(long cSid) {
+        return findChannel(cSid).orElseThrow(() -> new ObjectNotFoundException("Channel", Long.toString(cSid)));
     }
 
     ChannelDao saveChannel(ChannelDao ch);
 
     ChannelEvent saveEvent(ChannelEvent ev);
 
-    ChannelEvent getEvent(String channelId, String eventId) throws IllegalStateException;
+    ChannelEvent getEvent(ChannelID cId, EventID eId) throws ObjectNotFoundException;
 
-    List<ChannelEvent> getNext(Long last, long amount);
+    ChannelEvent getEvent(long eSid);
 
-    Optional<ChannelEvent> findEvent(String channelId, String eventId);
+    EventID getEventId(long eSid);
 
-    void setExtremities(String chId, List<String> extremities);
+    long getEventSid(ChannelID cId, EventID eId) throws ObjectNotFoundException;
 
-    List<String> getExtremities(String channelId);
+    // Get the N next events. next = Higher SID
+    List<ChannelEvent> getNext(long lastSid, long amount);
 
-    long insertIfNew(String chId, ChannelState state);
+    Optional<ChannelEvent> findEvent(ChannelID cId, EventID eId);
+
+    Optional<ChannelEvent> findEvent(long eSid);
+
+    void updateExtremities(long cSid, List<Long> toRemove, List<Long> toAdd);
+
+    List<Long> getExtremities(long cSid);
+
+    long insertIfNew(long cSid, ChannelState state);
 
     ChannelState getState(long stateSid);
 
@@ -61,12 +75,12 @@ public interface Store {
 
     Optional<String> findPassword(String username);
 
-    Optional<String> findChannelIdForAddress(String chId);
+    Optional<ChannelID> findChannelIdForAddress(String chAd);
 
-    List<String> findChannelAddressForId(String chAd);
+    List<String> findChannelAddressForId(ChannelID cId);
 
-    void map(String chAd, String chId);
+    void map(ChannelID cId, String chAd);
 
-    void unmap(String chAd, String chId);
+    void unmap(String chAd);
 
 }

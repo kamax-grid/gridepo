@@ -34,8 +34,8 @@ public final class UserID extends EntityID {
         return new UserID(id.substring(1));
     }
 
-    public static UserID from(String username, String domain) {
-        return new UserID(encode(username + Delimiter + domain));
+    public static UserID from(String username, String namespace) {
+        return new UserID(encode(username + Delimiter + namespace));
     }
 
     public UserID(String id) {

@@ -18,32 +18,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.core.store;
 
-import org.apache.commons.lang3.StringUtils;
+import com.mchange.v2.c3p0.ComboPooledDataSource;
+import io.kamax.grid.gridepo.config.StorageConfig;
 
-public class ChannelID extends EntityID {
+import java.sql.Connection;
+import java.sql.SQLException;
 
-    public static final String Sigill = "#";
+public class SqlConnectionPool {
 
-    public static ChannelID from(String id) {
-        if (!StringUtils.startsWith(id, Sigill)) {
-            throw new IllegalArgumentException("Does not start with " + Sigill);
-        }
+    private ComboPooledDataSource ds;
 
-        return fromRaw(id.substring(1));
+    public SqlConnectionPool(StorageConfig cfg) {
+        ds = new ComboPooledDataSource();
+        ds.setJdbcUrl("jdbc:" + cfg.getType() + ":" + cfg.getConnection());
+        ds.setMinPoolSize(1);
+        ds.setMaxPoolSize(10);
+        ds.setAcquireIncrement(2);
     }
 
-    public static ChannelID fromRaw(String rawId) {
-        return new ChannelID(rawId);
-    }
-
-    public static ChannelID from(String localpart, String namespace) {
-        return new ChannelID(encode(localpart + Delimiter + namespace));
-    }
-
-    public ChannelID(String id) {
-        super(Sigill, id);
+    public Connection get() throws SQLException {
+        return ds.getConnection();
     }
 
 }

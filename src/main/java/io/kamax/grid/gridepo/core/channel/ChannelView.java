@@ -20,23 +20,24 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 
 public class ChannelView {
 
-    private String head;
+    private EventID head;
     private ChannelState state;
 
     public ChannelView() {
         this(null, ChannelState.empty());
     }
 
-    public ChannelView(String head, ChannelState state) {
+    public ChannelView(EventID head, ChannelState state) {
         this.head = head;
         this.state = state;
     }
 
-    public String getHead() {
+    public EventID getHead() {
         return head;
     }
 

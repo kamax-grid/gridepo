@@ -40,21 +40,21 @@ public class EntityID {
     }
 
     private String sigill;
-    private String id;
+    private String base;
     private String complete;
 
     public EntityID(String sigill, String id) {
         this.sigill = Objects.requireNonNull(sigill);
-        this.id = Objects.requireNonNull(id);
+        this.base = Objects.requireNonNull(id);
         this.complete = sigill + id;
     }
 
-    public String getSigill() {
+    public String sigill() {
         return sigill;
     }
 
-    public String getId() {
-        return id;
+    public String base() {
+        return base;
     }
 
     public String full() {
@@ -63,7 +63,7 @@ public class EntityID {
 
     public Optional<String> tryDecode() {
         try {
-            return Optional.of(new String(Base64.getUrlDecoder().decode(getId()), StandardCharsets.UTF_8));
+            return Optional.of(new String(Base64.getUrlDecoder().decode(base()), StandardCharsets.UTF_8));
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
@@ -77,14 +77,19 @@ public class EntityID {
         EntityID entityID = (EntityID) o;
 
         if (!sigill.equals(entityID.sigill)) return false;
-        return id.equals(entityID.id);
+        return base.equals(entityID.base);
     }
 
     @Override
     public int hashCode() {
         int result = sigill.hashCode();
-        result = 31 * result + id.hashCode();
+        result = 31 * result + base.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return full();
     }
 
 }

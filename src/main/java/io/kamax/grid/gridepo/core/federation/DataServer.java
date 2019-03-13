@@ -21,6 +21,8 @@
 package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
@@ -112,7 +114,7 @@ public class DataServer {
         setAvailable();
     }
 
-    public Optional<JsonObject> getEvent(String chId, String evId) {
+    public Optional<JsonObject> getEvent(ChannelID chId, EventID evId) {
         return Optional.empty();
     }
 

@@ -21,54 +21,65 @@
 package io.kamax.grid.gridepo.core.channel.event;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.store.postgres.ChannelEventMeta;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ChannelEvent {
 
-    public static ChannelEvent forNotFound(String evId) {
-        ChannelEvent ev = new ChannelEvent();
-        ev.setId(evId);
-        ev.setPresent(false);
+    public static ChannelEvent forNotFound(long cSid, EventID evId) {
+        ChannelEvent ev = new ChannelEvent(cSid);
+        ev.id = evId;
+        ev.getMeta().setPresent(false);
         return ev;
     }
 
-    public static ChannelEvent from(JsonObject raw) {
-        ChannelEvent ev = new ChannelEvent();
+    public static ChannelEvent forNotFound(long cSid, String evId) {
+        return forNotFound(cSid, EventID.from(evId));
+    }
+
+    public static ChannelEvent from(long cSid, JsonObject raw) {
+        ChannelEvent ev = new ChannelEvent(cSid);
         ev.setData(raw);
-        BareGenericEvent bare = ev.getBare();
-        ev.setOrigin(bare.getOrigin());
-        ev.setId(bare.getId());
-        ev.setChannelId(bare.getChannelId());
         return ev;
     }
 
+    private long cSid;
     private Long sid;
-    private String id;
-    private String origin;
-    private String channelId;
+    private EventID id;
     private JsonObject data;
-    private String receivedFrom;
-    private Instant receivedAt;
-    private String fetchedFrom;
-    private Instant fetchedAt;
-    private boolean processed;
-    private Instant processedOn;
-    private boolean present;
-    private boolean valid;
-    private boolean allowed;
-    private Long orderMajor;
-    private Long orderMinor;
+    private ChannelEventMeta meta;
 
     private transient BareGenericEvent bare;
+    private transient List<EventID> prevEvents;
 
     public ChannelEvent() {
+        meta = new ChannelEventMeta();
     }
 
-    public ChannelEvent(long sid) {
+    public ChannelEvent(long cSid) {
+        this();
+
+        this.cSid = cSid;
+    }
+
+    public ChannelEvent(long cSid, long sid) {
+        this(cSid);
+
         this.sid = sid;
+    }
+
+    public ChannelEvent(long cSid, long sid, ChannelEventMeta meta) {
+        this(cSid, sid);
+        this.meta = meta;
+    }
+
+    public long getChannelSid() {
+        return cSid;
     }
 
     public boolean hasSid() {
@@ -91,40 +102,33 @@ public class ChannelEvent {
         this.sid = sid;
     }
 
-    public String getId() {
-        if (Objects.isNull(id)) {
-            id = getBare().getId();
-        }
-
+    public EventID getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public String getOrigin() {
-        return origin;
-    }
-
-    public void setOrigin(String origin) {
-        this.origin = origin;
+        return getBare().getOrigin();
     }
 
     public String getChannelId() {
-        if (Objects.isNull(channelId)) {
-            channelId = getBare().getChannelId();
-        }
-
-        return channelId;
-    }
-
-    public void setChannelId(String channelId) {
-        this.channelId = channelId;
+        return getBare().getChannelId();
     }
 
     public JsonObject getData() {
         return data;
+    }
+
+    public void setData(JsonObject data) {
+        this.data = data;
+        bare = null;
+    }
+
+    public List<EventID> getPreviousEvents() {
+        if (Objects.isNull(prevEvents)) {
+            prevEvents = getBare().getPreviousEvents().stream().map(EventID::from).collect(Collectors.toList());
+        }
+
+        return prevEvents;
     }
 
     public BareGenericEvent getBare() {
@@ -135,107 +139,8 @@ public class ChannelEvent {
         return bare;
     }
 
-    public void setData(JsonObject data) {
-        this.data = data;
-        bare = null;
-    }
-
-    public String getReceivedFrom() {
-        return receivedFrom;
-    }
-
-    public void setReceivedFrom(String receivedFrom) {
-        this.receivedFrom = receivedFrom;
-    }
-
-    public Instant getReceivedAt() {
-        return receivedAt;
-    }
-
-    public void setReceivedAt(Instant receivedAt) {
-        this.receivedAt = receivedAt;
-    }
-
-    public String getFetchedFrom() {
-        return fetchedFrom;
-    }
-
-    public void setFetchedFrom(String fetchedFrom) {
-        this.fetchedFrom = fetchedFrom;
-    }
-
-    public Instant getFetchedAt() {
-        return fetchedAt;
-    }
-
-    public void setFetchedAt(Instant fetchedAt) {
-        this.fetchedAt = fetchedAt;
-    }
-
-    public boolean isProcessed() {
-        return processed;
-    }
-
-    public void setProcessed(boolean processed) {
-        this.processed = processed;
-        if (processed) {
-            setProcessedOn(Instant.now());
-        } else {
-            setValid(false);
-            setAllowed(false);
-        }
-    }
-
-    public Instant getProcessedOn() {
-        if (!isProcessed()) {
-            throw new IllegalStateException();
-        }
-
-        return processedOn;
-    }
-
-    public void setProcessedOn(Instant processedOn) {
-        this.processedOn = processedOn;
-    }
-
-    public boolean isValid() {
-        return valid;
-    }
-
-    public void setValid(boolean valid) {
-        this.valid = valid;
-    }
-
-    public Long getOrderMajor() {
-        return orderMajor;
-    }
-
-    public void setOrderMajor(Long orderMajor) {
-        this.orderMajor = orderMajor;
-    }
-
-    public Long getOrderMinor() {
-        return orderMinor;
-    }
-
-    public void setOrderMinor(Long orderMinor) {
-        this.orderMinor = orderMinor;
-    }
-
-    public boolean isPresent() {
-        return present;
-    }
-
-    public void setPresent(boolean present) {
-        this.present = present;
-    }
-
-    public boolean isAllowed() {
-        return allowed;
-    }
-
-    public void setAllowed(boolean allowed) {
-        this.allowed = allowed;
+    public ChannelEventMeta getMeta() {
+        return meta;
     }
 
 }

@@ -20,8 +20,6 @@
 
 package io.kamax.grid.gridepo.core.channel.state;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.ChannelJoinRule;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
@@ -63,54 +61,36 @@ public class ChannelState {
     }
 
     private Long sid;
-    private Set<String> ids = new HashSet<>();
-    private Map<String, JsonObject> data = new HashMap<>();
-    private transient Set<String> servers = new HashSet<>();
+    private Map<String, ChannelEvent> data = new HashMap<>();
 
     private ChannelState() {
     }
 
-    private ChannelState(List<JsonObject> events) {
+    private ChannelState(List<ChannelEvent> events) {
         this(null, events);
     }
 
-    public ChannelState(Long sid, List<JsonObject> events) {
+    public ChannelState(Long sid, List<ChannelEvent> events) {
         this.sid = sid;
         events.forEach(this::addEvent);
     }
 
     public ChannelState(Long sid, ChannelState state) {
         this.sid = sid;
-        this.ids = new HashSet<>(state.ids);
         this.data = new HashMap<>(state.data);
-        this.servers = new HashSet<>(state.servers);
     }
 
-    private void addEvent(JsonObject ev) {
-        String scope = GsonUtil.getStringOrThrow(ev, EventKey.Scope);
-        String id = GsonUtil.getStringOrThrow(ev, EventKey.Id);
-        String key = GsonUtil.getStringOrThrow(ev, EventKey.Type) + scope;
-        ids.add(id);
+    private void addEvent(ChannelEvent ev) {
+        String scope = GsonUtil.getStringOrThrow(ev.getData(), EventKey.Scope);
+        String key = GsonUtil.getStringOrThrow(ev.getData(), EventKey.Type) + scope;
         data.put(key, ev);
-        servers.add(GsonUtil.getStringOrThrow(ev, EventKey.Origin));
-
-        if (scope.startsWith(UserID.Sigill)) {
-            UserID.parse(scope).tryDecode().ifPresent(v -> {
-                String domain = v.split("@", 2)[1];
-                servers.add(ServerID.from(domain).full());
-            });
-        }
     }
 
     public Long getSid() {
         return sid;
     }
 
-    public List<String> getEventIds() {
-        return new ArrayList<>(ids);
-    }
-
-    public Optional<JsonObject> find(String type, String scope) {
+    public Optional<ChannelEvent> find(String type, String scope) {
         return Optional.ofNullable(data.get(type + scope));
     }
 
@@ -119,7 +99,7 @@ public class ChannelState {
     }
 
     public <T> Optional<T> find(String type, String scope, Class<T> c) {
-        return find(type, scope).map(j -> GsonUtil.fromJson(j, c));
+        return find(type, scope).map(j -> GsonUtil.fromJson(j.getData(), c));
     }
 
     public <T> Optional<T> find(ChannelEventType type, Class<T> c) {
@@ -128,6 +108,10 @@ public class ChannelState {
 
     public <T> Optional<T> find(ChannelEventType type, String scope, Class<T> c) {
         return find(type.getId(), scope, c);
+    }
+
+    public List<ChannelEvent> getEvents() {
+        return new ArrayList<>(data.values());
     }
 
     public BareCreateEvent getCreation() {
@@ -141,10 +125,6 @@ public class ChannelState {
 
     public String getCreator() {
         return getCreation().getContent().getCreator();
-    }
-
-    public Set<String> getServers() {
-        return new HashSet<>(servers);
     }
 
     public Optional<BarePowerEvent.Content> getPowers() {
@@ -172,16 +152,14 @@ public class ChannelState {
                 .flatMap(joinRuleMapper());
     }
 
-    public ChannelState apply(JsonObject ev) {
-        Optional<String> scope = GsonUtil.findString(ev, EventKey.Scope);
-        if (!scope.isPresent()) {
+    public ChannelState apply(ChannelEvent ev) {
+        String scope = ev.getBare().getScope();
+        if (Objects.isNull(scope)) {
             return this;
         }
 
         ChannelState state = new ChannelState();
-        state.ids = new HashSet<>(ids);
         state.data = new HashMap<>(data);
-        state.servers = new HashSet<>(servers);
         state.addEvent(ev);
 
         return state;

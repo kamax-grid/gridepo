@@ -21,6 +21,8 @@
 package io.kamax.grid.gridepo.core.federation;
 
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.channel.event.BareEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
@@ -70,8 +72,11 @@ public class FederationPusher {
             @Override
             protected void compute() {
                 ChannelState state = g.getChannelManager().get(ev.getChannelId()).getState(ev);
-                List<String> servers = state.getServers().stream()
+                List<ServerID> servers = state.getEvents().stream()
+                        .map(ChannelEvent::getBare)
+                        .map(BareEvent::getOrigin)
                         .filter(v -> !g.isOrigin(v))
+                        .map(ServerID::from)
                         .collect(Collectors.toList());
 
                 log.info("Will push to {} server(s)", servers.size());

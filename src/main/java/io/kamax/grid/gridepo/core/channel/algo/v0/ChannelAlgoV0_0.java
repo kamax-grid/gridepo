@@ -214,9 +214,9 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
     }
 
     @Override
-    public ChannelEventAuthorization authorize(ChannelState state, JsonObject evRaw) {
+    public ChannelEventAuthorization authorize(ChannelState state, EventID evId, JsonObject evRaw) {
         BareGenericEvent ev = toProto(evRaw);
-        ChannelEventAuthorization.Builder auth = new ChannelEventAuthorization.Builder(ev.getId());
+        ChannelEventAuthorization.Builder auth = new ChannelEventAuthorization.Builder(evId);
         String validation = validate(evRaw);
         if (StringUtils.isNotEmpty(validation)) {
             return auth.invalid(validation);

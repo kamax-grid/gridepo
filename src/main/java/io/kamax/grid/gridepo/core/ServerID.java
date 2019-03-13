@@ -34,8 +34,8 @@ public class ServerID extends EntityID {
         return new ServerID(id.substring(1));
     }
 
-    public static ServerID from(String domain) {
-        return new ServerID(encode(domain));
+    public static ServerID from(String namespace) {
+        return new ServerID(encode(namespace));
     }
 
     public ServerID(String id) {

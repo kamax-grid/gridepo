@@ -54,7 +54,7 @@ public class DoPushHandler extends ServerApiHandler {
 
             JsonObject evAuthJson = new JsonObject();
             evAuthJson.addProperty("reason", evAuth.getReason());
-            result.add(evAuth.getEventId(), evAuthJson);
+            result.add(evAuth.getEventId().full(), evAuthJson);
         });
         exchange.respond(GsonUtil.makeObj("denied", result));
     }
