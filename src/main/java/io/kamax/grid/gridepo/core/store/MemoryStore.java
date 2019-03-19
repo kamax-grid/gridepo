@@ -201,12 +201,13 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public synchronized void storeUser(String username, String password) {
+    public synchronized long storeUser(String username, String password) {
         if (hasUser(username)) {
             throw new IllegalStateException(username + " already exists");
         }
 
         users.put(username, password);
+        return Long.MIN_VALUE; // FIXME this will most likely fail at some point
     }
 
     @Override

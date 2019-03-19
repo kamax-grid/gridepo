@@ -432,17 +432,37 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public boolean hasUser(String username) {
-        return false;
+        return withStmtFunction("SELECT * FROM users WHERE username = ? LIMIT 1", stmt -> {
+            stmt.setString(1, username);
+            return stmt.executeQuery().next();
+        });
     }
 
     @Override
-    public void storeUser(String username, String password) {
-        throw new NotImplementedException();
+    public long storeUser(String username, String password) {
+        return withStmtFunction("INSERT INTO users (username, password) VALUES (?,?) RETURNING sid", stmt -> {
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new IllegalStateException("Inserted user " + username + " but got no SID back");
+            }
+
+            return rSet.getLong("sid");
+        });
     }
 
     @Override
     public Optional<String> findPassword(String username) {
-        throw new NotImplementedException();
+        return withStmtFunction("SELECT * FROM users WHERE username = ?", stmt -> {
+            stmt.setString(1, username);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                return Optional.empty();
+            }
+
+            return Optional.ofNullable(rSet.getString("password"));
+        });
     }
 
     @Override
