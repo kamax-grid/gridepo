@@ -31,20 +31,23 @@ import java.util.stream.Collectors;
 
 public class ChannelEvent {
 
-    public static ChannelEvent forNotFound(long cSid, EventID evId) {
-        ChannelEvent ev = new ChannelEvent(cSid);
-        ev.id = evId;
-        ev.getMeta().setPresent(false);
-        return ev;
-    }
-
     public static ChannelEvent forNotFound(long cSid, String evId) {
         return forNotFound(cSid, EventID.from(evId));
     }
 
+    public static ChannelEvent forNotFound(long cSid, EventID evId) {
+        return from(cSid, evId, null);
+    }
+
     public static ChannelEvent from(long cSid, JsonObject raw) {
+        return from(cSid, null, raw);
+    }
+
+    public static ChannelEvent from(long cSid, EventID id, JsonObject raw) {
         ChannelEvent ev = new ChannelEvent(cSid);
+        ev.id = id;
         ev.setData(raw);
+        ev.getMeta().setPresent(Objects.nonNull(raw));
         return ev;
     }
 

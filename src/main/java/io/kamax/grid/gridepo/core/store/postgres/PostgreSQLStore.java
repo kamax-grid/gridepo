@@ -62,10 +62,12 @@ public class PostgreSQLStore implements Store {
     }
 
     private interface StmtFunction<T, R> {
+
         R run(T stmt) throws SQLException;
     }
 
     private interface StmtConsumer<T> {
+
         void run(T stmt) throws SQLException;
     }
 
@@ -88,8 +90,9 @@ public class PostgreSQLStore implements Store {
                 conn.setAutoCommit(false);
 
                 long version = getSchemaVersion();
+                log.info("Schema version: {}", version);
                 for (String sql : schemaUpdates) {
-                    log.info("Found schema update: {}", sql);
+                    log.debug("Found schema update: {}", sql);
                     String[] els = sql.split("-", 2);
                     if (els.length < 2) {
                         log.warn("Skipping invalid schema update name format: {}", sql);
@@ -109,7 +112,7 @@ public class PostgreSQLStore implements Store {
                                 throw new RuntimeException("Could not update schema version");
                             }
 
-                            log.info("Updated DB to version {}", elV);
+                            log.info("Updated schema to version {}", elV);
                         }
                     } catch (NumberFormatException e) {
                         log.warn("Invalid schema update version: {}", els[0]);
@@ -306,6 +309,9 @@ public class PostgreSQLStore implements Store {
         long sid = rSet.getLong("sid");
         ChannelEventMeta meta = GsonUtil.parse(rSet.getString("meta"), ChannelEventMeta.class);
         ChannelEvent ev = new ChannelEvent(cSid, sid, meta);
+        if (ev.getMeta().isPresent()) {
+            ev.setData(GsonUtil.parseObj(rSet.getString("data")));
+        }
         return ev;
     }
 
@@ -402,7 +408,7 @@ public class PostgreSQLStore implements Store {
 
             withStmtConsumer(evSql, conn, stmt -> {
                 for (long eSid : state.getEvents().stream().map(ChannelEvent::getSid).collect(Collectors.toList())) {
-                    stmt.setLong(1, cSid);
+                    stmt.setLong(1, sSid);
                     stmt.setLong(2, eSid);
                     stmt.addBatch();
                 }
@@ -417,7 +423,20 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public ChannelState getState(long sid) {
-        throw new NotImplementedException();
+        return withConnFunction(conn -> {
+            String evSql = "SELECT e.* from channel_state_data s LEFT JOIN channel_events e ON e.sid = s.eSid WHERE s.sSid = ?";
+            List<ChannelEvent> events = withStmtFunction(evSql, conn, stmt -> {
+                List<ChannelEvent> list = new ArrayList<>();
+                stmt.setLong(1, sid);
+                ResultSet rSet = stmt.executeQuery();
+                while (rSet.next()) {
+                    list.add(make(rSet));
+                }
+                return list;
+            });
+
+            return new ChannelState(sid, events);
+        });
     }
 
     @Override

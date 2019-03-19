@@ -20,6 +20,8 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
+import io.kamax.grid.gridepo.core.UserID;
+
 public class BareCreateEvent extends BareEvent<BareCreateEvent.Content> {
 
     public static class Content {
@@ -33,6 +35,10 @@ public class BareCreateEvent extends BareEvent<BareCreateEvent.Content> {
 
         public void setCreator(String creator) {
             this.creator = creator;
+        }
+
+        public void setCreator(UserID creator) {
+            setCreator(creator.full());
         }
 
         public String getVersion() {

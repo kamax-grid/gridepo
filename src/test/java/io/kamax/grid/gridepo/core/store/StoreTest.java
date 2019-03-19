@@ -22,8 +22,12 @@ package io.kamax.grid.gridepo.core.store;
 
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
+import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -104,12 +108,39 @@ public abstract class StoreTest {
     }
 
     @Test
-    public void saveAndReadEvent() {
+    public void saveAndReadChannelEvent() {
         long cSid = makeChannel();
-        ChannelEvent ev = ChannelEvent.forNotFound(cSid, EventID.from("a", "example.org"));
-        ChannelEvent evStored = store.saveEvent(ev);
+        ChannelEvent ev1 = ChannelEvent.forNotFound(cSid, EventID.from("sarce1", "example.org"));
+        ChannelEvent evStored = store.saveEvent(ev1);
         ChannelEvent evRead = store.getEvent(evStored.getSid());
         assertEquals(evStored.getSid(), evRead.getSid());
+
+        BareCreateEvent bEv2 = new BareCreateEvent();
+        bEv2.getContent().setCreator(UserID.from("john", "example.org"));
+        ChannelEvent ev2 = ChannelEvent.from(cSid, EventID.from("sarce2", "example.org"), bEv2.getJson());
+        assertNotNull(ev2.getData());
+        ev2 = store.saveEvent(ev2);
+        assertNotNull(ev2.getData());
+    }
+
+    @Test
+    public void saveAndReadChannelState() {
+        long cSid = makeChannel();
+        ChannelEvent ev1 = ChannelEvent.from(cSid, EventID.from("sarcs1", "example.org"), GsonUtil.parseObj("{\"hello\":\"world\"}"));
+        ChannelEvent ev2 = ChannelEvent.from(cSid, EventID.from("sarcs2", "example.org"), GsonUtil.parseObj("{\"type\":\"world\",\"scope\":\"test\"}"));
+        ev1 = store.saveEvent(ev1);
+        ev2 = store.saveEvent(ev2);
+        ChannelState state = ChannelState.empty().apply(ev1).apply(ev2);
+        long evAmountBefore = state.getEvents().size();
+        Long sSid = store.insertIfNew(cSid, state);
+        ChannelState stateRead = store.getState(sSid);
+        long evAmountAfter = stateRead.getEvents().size();
+        assertEquals(stateRead.getSid(), sSid);
+        assertEquals(evAmountBefore, evAmountAfter);
+
+        // TODO implement equals on ChannelEvent - Do we want to?
+        //assertTrue(state.getEvents().containsAll(stateRead.getEvents()));
+        //assertTrue(stateRead.getEvents().containsAll(state.getEvents()));
     }
 
 }
