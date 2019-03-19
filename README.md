@@ -4,6 +4,19 @@ Implementation of a [Grid](https://gitlab.com/thegridprotocol/home) Data Server 
 ## Status
 Work in Progress towards the first usable version as `v0.1`
 
+## Build
+```bash
+./gradlew build
+```
+
+### Tests
+#### PostgreSQL integration
+Via env variable, adapt as needed:
+```bash
+export GRIDEPO_TEST_STORE_POSTGRESQL_CONFIG='{"type":"postgresql","connection":"//localhost/grid?user=grid&password=grid"}'
+./gradlew test
+```
+
 ## Community
 ### On Grid
 ```bash

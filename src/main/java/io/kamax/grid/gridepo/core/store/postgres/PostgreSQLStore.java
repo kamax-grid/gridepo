@@ -31,9 +31,13 @@ import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,9 +72,55 @@ public class PostgreSQLStore implements Store {
     private SqlConnectionPool pool;
 
     public PostgreSQLStore(StorageConfig cfg) {
-        this.pool = new SqlConnectionPool(cfg);
+        this(new SqlConnectionPool(cfg));
+    }
+
+    public PostgreSQLStore(SqlConnectionPool pool) {
+        this.pool = pool;
         withConnConsumer(conn -> conn.isValid(1000));
         log.info("Connected");
+
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("store/postgres/schema/")) {
+            List<String> schemaUpdates = IOUtils.readLines(Objects.requireNonNull(is), StandardCharsets.UTF_8);
+            withConnConsumer(conn -> {
+                Statement stmt = conn.createStatement();
+                stmt.execute("CREATE TABLE IF NOT EXISTS schema (version bigint NOT NULL)");
+                conn.setAutoCommit(false);
+
+                long version = getSchemaVersion();
+                for (String sql : schemaUpdates) {
+                    log.info("Found schema update: {}", sql);
+                    String[] els = sql.split("-", 2);
+                    if (els.length < 2) {
+                        log.warn("Skipping invalid schema update name format: {}", sql);
+                    }
+
+                    try {
+                        long elV = Long.parseLong(els[0]);
+                        if (elV > version) {
+                            try (InputStream elIs = getClass().getClassLoader().getResourceAsStream("store/postgres/schema/" + sql)) {
+                                String update = IOUtils.toString(Objects.requireNonNull(elIs), StandardCharsets.UTF_8);
+                                stmt.execute(update);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            if (stmt.executeUpdate("INSERT INTO schema (version) VALUES (" + elV + ")") != 1) {
+                                throw new RuntimeException("Could not update schema version");
+                            }
+
+                            log.info("Updated DB to version {}", elV);
+                        }
+                    } catch (NumberFormatException e) {
+                        log.warn("Invalid schema update version: {}", els[0]);
+                    }
+                }
+
+                conn.commit();
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private <R> R withConnFunction(ConnFunction<Connection, R> function) {
@@ -114,6 +164,17 @@ public class PostgreSQLStore implements Store {
         }
     }
 
+    public long getSchemaVersion() {
+        return withStmtFunction("SELECT * FROM schema ORDER BY version DESC LIMIT 1", stmt -> {
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                return -1L;
+            }
+
+            return rSet.getLong("version");
+        });
+    }
+
     @Override
     public Optional<ChannelDao> findChannel(long cSid) {
         String sql = "SELECT * FROM channels WHERE network = 'grid' AND sid = ?";
@@ -136,6 +197,10 @@ public class PostgreSQLStore implements Store {
             stmt.setString(1, ch.getId().base());
             ResultSet rSet = stmt.executeQuery();
 
+            if (!rSet.next()) {
+                throw new IllegalStateException("Inserted channel " + ch.getId() + " but got no SID back");
+            }
+
             long sid = rSet.getLong(1);
             ChannelID id = ch.getId();
             return new ChannelDao(sid, id);
@@ -143,20 +208,25 @@ public class PostgreSQLStore implements Store {
     }
 
     private long insertEvent(ChannelEvent ev) {
-        String sql = "INSERT INTO channel_events (id, cSid, properties, data) VALUES (?, ?, ?::jsonb, ?::jsonb) RETURNING sid";
+        String sql = "INSERT INTO channel_events (id, cSid, meta, data) VALUES (?, ?, ?::jsonb, ?::jsonb) RETURNING sid";
         return withStmtFunction(sql, stmt -> {
             stmt.setString(1, ev.getId().base());
             stmt.setLong(2, ev.getChannelSid());
-            stmt.setObject(3, ev.getMeta(), Types.OTHER);
+            stmt.setString(3, GsonUtil.toJson(ev.getMeta()));
             stmt.setString(4, GsonUtil.toJson(ev.getData()));
-            return stmt.executeQuery().getLong(1);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new IllegalStateException("Inserted channel event but got no SID back");
+            }
+
+            return rSet.getLong("sid");
         });
     }
 
     private void updateEvent(ChannelEvent ev) {
-        String sql = "UPDATE channel_events SET properties = ?::jsonb WHERE sid = ?";
+        String sql = "UPDATE channel_events SET meta = ?::jsonb WHERE sid = ?";
         withStmtConsumer(sql, stmt -> {
-            stmt.setObject(1, ev.getMeta(), Types.OTHER);
+            stmt.setString(1, GsonUtil.toJson(ev.getMeta()));
             stmt.setLong(2, ev.getSid());
             int rc = stmt.executeUpdate();
             if (rc != 1) {

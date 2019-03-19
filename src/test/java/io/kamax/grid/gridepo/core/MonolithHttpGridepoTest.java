@@ -44,7 +44,6 @@ public class MonolithHttpGridepoTest {
         GridepoConfig cfg1 = new GridepoConfig();
         cfg1.setDomain("localhost:" + l1.getPort());
         cfg1.getListeners().add(l1);
-        cfg1.getCrypto().getSeed().put("jwt", "jwt");
 
         GridepoConfig.ListenerNetwork net2 = new GridepoConfig.ListenerNetwork();
         net2.setProtocol("grid");
@@ -55,7 +54,6 @@ public class MonolithHttpGridepoTest {
         GridepoConfig cfg2 = new GridepoConfig();
         cfg2.setDomain("localhost:" + l2.getPort());
         cfg2.getListeners().add(l2);
-        cfg2.getCrypto().getSeed().put("jwt", "jwt");
 
         MonolithHttpGridepo mg1 = new MonolithHttpGridepo(cfg1);
         MonolithHttpGridepo mg2 = new MonolithHttpGridepo(cfg2);
