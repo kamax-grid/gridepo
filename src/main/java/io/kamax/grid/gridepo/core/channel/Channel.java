@@ -299,7 +299,7 @@ public class Channel {
 
         List<ChannelEventAuthorization> auths = new ArrayList<>();
         events.stream().sorted(Comparator.comparingLong(ev -> ev.getBare().getDepth())).forEach(event -> {
-            log.info("Room {} - Processing injection of Event {}", getId(), event.getId());
+            log.info("Channel {} - Processing injection of Event {}", getId(), event.getId());
             Optional<ChannelEvent> evStore = store.findEvent(getId(), event.getId());
 
             if (evStore.isPresent() && evStore.get().getMeta().isPresent()) {

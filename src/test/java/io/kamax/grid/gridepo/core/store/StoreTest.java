@@ -20,11 +20,16 @@
 
 package io.kamax.grid.gridepo.core.store;
 
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.channel.ChannelDao;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -33,6 +38,18 @@ public abstract class StoreTest {
     private Store store;
 
     protected abstract Store getNewStore();
+
+    private long makeChannel() {
+        ChannelID id = ChannelID.from(UUID.randomUUID().toString(), "example.org");
+        ChannelDao daoBefore = new ChannelDao(id);
+        assertEquals(id, daoBefore.getId());
+        ChannelDao daoAfter = store.saveChannel(daoBefore);
+        assertEquals(id, daoAfter.getId());
+        assertNotEquals(daoBefore, daoAfter);
+        assertNotEquals(daoBefore.getSid(), daoAfter.getSid());
+        assertEquals(daoBefore.getId(), daoAfter.getId());
+        return daoAfter.getSid();
+    }
 
     @Before
     public void before() {
@@ -79,6 +96,20 @@ public abstract class StoreTest {
 
         assertFalse(store.hasUser(user3));
         assertFalse(store.findPassword(user3).isPresent());
+    }
+
+    @Test
+    public void saveAndGetChannel() {
+        makeChannel();
+    }
+
+    @Test
+    public void saveAndReadEvent() {
+        long cSid = makeChannel();
+        ChannelEvent ev = ChannelEvent.forNotFound(cSid, EventID.from("a", "example.org"));
+        ChannelEvent evStored = store.saveEvent(ev);
+        ChannelEvent evRead = store.getEvent(evStored.getSid());
+        assertEquals(evStored.getSid(), evRead.getSid());
     }
 
 }

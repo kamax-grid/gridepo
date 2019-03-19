@@ -136,10 +136,9 @@ public class PostgreSQLStore implements Store {
             stmt.setString(1, ch.getId().base());
             ResultSet rSet = stmt.executeQuery();
 
-            ChannelDao out = new ChannelDao();
-            out.setSid(rSet.getLong(1));
-            out.setId(ch.getId());
-            return out;
+            long sid = rSet.getLong(1);
+            ChannelID id = ch.getId();
+            return new ChannelDao(sid, id);
         });
     }
 

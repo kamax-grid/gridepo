@@ -103,6 +103,9 @@ public class ChannelEvent {
     }
 
     public EventID getId() {
+        if (Objects.isNull(id)) {
+            id = EventID.from(getBare().getId());
+        }
         return id;
     }
 

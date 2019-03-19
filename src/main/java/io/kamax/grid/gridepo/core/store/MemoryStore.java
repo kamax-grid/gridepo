@@ -55,7 +55,7 @@ public class MemoryStore implements Store {
     private Map<String, Long> evRefToSid = new ConcurrentHashMap<>();
 
     private String makeRef(ChannelEvent ev) {
-        return makeRef(ChannelID.from(ev.getChannelId()), ev.getId());
+        return makeRef(channels.get(ev.getChannelSid()).getId(), ev.getId());
     }
 
     private String makeRef(ChannelID cId, EventID eId) {
@@ -134,12 +134,12 @@ public class MemoryStore implements Store {
     @Override
     public synchronized Optional<ChannelEvent> findEvent(ChannelID cId, EventID eId) {
         return Optional.ofNullable(evRefToSid.get(makeRef(cId, eId)))
-                .flatMap(sid -> Optional.ofNullable(chEvents.get(sid)));
+                .flatMap(this::findEvent);
     }
 
     @Override
     public Optional<ChannelEvent> findEvent(long eSid) {
-        return Optional.empty();
+        return Optional.ofNullable(chEvents.get(eSid));
     }
 
     private List<Long> getOrComputeExts(long cSid) {

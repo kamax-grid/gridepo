@@ -82,8 +82,7 @@ public class ChannelManager {
     public Channel createChannel(String creator, String version) {
         ChannelAlgo algo = ChannelAlgos.get(version);
 
-        ChannelDao dao = new ChannelDao();
-        dao.setId(generateId());
+        ChannelDao dao = new ChannelDao(generateId());
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
 
         Channel ch = new Channel(dao, g.getOrigin(), algo, evSvc, store, dsmgr, bus);
@@ -104,8 +103,7 @@ public class ChannelManager {
 
     public Channel create(String from, JsonObject seedJson, List<JsonObject> stateJson) {
         BareMemberEvent ev = GsonUtil.fromJson(seedJson, BareMemberEvent.class);
-        ChannelDao dao = new ChannelDao();
-        dao.setId(ChannelID.from(ev.getChannelId()));
+        ChannelDao dao = new ChannelDao(ChannelID.from(ev.getChannelId()));
         dao = store.saveChannel(dao);
 
         BareCreateEvent createEv = GsonUtil.fromJson(stateJson.get(0), BareCreateEvent.class);
