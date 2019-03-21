@@ -28,7 +28,6 @@ import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.store.SqlConnectionPool;
 import io.kamax.grid.gridepo.core.store.Store;
-import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.io.IOUtils;
@@ -441,12 +440,28 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public void map(long evSid, long stateSid) {
-        throw new NotImplementedException();
+        withStmtConsumer("INSERT INTO channel_event_states (eSid, sSid) VALUES (?,?)", stmt -> {
+            stmt.setLong(1, evSid);
+            stmt.setLong(2, stateSid);
+            int rc = stmt.executeUpdate();
+            if (rc != 1) {
+                throw new IllegalStateException("Channel Event " + evSid + " state: DB inserted " + rc + " rows. 1 expected");
+            }
+        });
     }
 
     @Override
     public ChannelState getStateForEvent(long evSid) {
-        throw new NotImplementedException();
+        String sql = "SELECT sSid FROM channel_event_states WHERE eSid = ?";
+        return getState(withStmtFunction(sql, stmt -> {
+            stmt.setLong(1, evSid);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new IllegalArgumentException("No state for Channel event " + evSid);
+            }
+
+            return rSet.getLong("sSid");
+        }));
     }
 
     @Override
@@ -485,23 +500,52 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public Optional<ChannelID> findChannelIdForAddress(String chAd) {
-        throw new NotImplementedException();
+    public Optional<ChannelID> lookupChannelAlias(String chAlias) {
+        return withStmtFunction("SELECT * FROM channel_addresses WHERE cAlias = ?", stmt -> {
+            stmt.setString(1, chAlias);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(ChannelID.fromRaw(rSet.getString("cId")));
+        });
     }
 
     @Override
-    public List<String> findChannelAddressForId(ChannelID cId) {
-        throw new NotImplementedException();
+    public List<String> findChannelAlias(ChannelID cId) {
+        return withStmtFunction("SELECT * FROM channel_addresses WHERE cId = ?", stmt -> {
+            List<String> list = new ArrayList<>();
+            stmt.setString(1, cId.base());
+            ResultSet rSet = stmt.executeQuery();
+            while (rSet.next()) {
+                list.add(rSet.getString("cAlias"));
+            }
+            return list;
+        });
     }
 
     @Override
     public void map(ChannelID cId, String chAd) {
-        throw new NotImplementedException();
+        withStmtConsumer("INSERT INTO channel_addresses (cId, cAlias, auto) VALUES (?,?, true)", stmt -> {
+            stmt.setString(1, cId.base());
+            stmt.setString(2, chAd);
+            int rc = stmt.executeUpdate();
+            if (rc != 1) {
+                throw new IllegalStateException("Channel Alias to ID mapping: DB inserted " + rc + " rows. 1 expected");
+            }
+        });
     }
 
     @Override
     public void unmap(String chAd) {
-        throw new NotImplementedException();
+        withStmtConsumer("DELETE FROM channel_addresses WHERE cAlias = ?", stmt -> {
+            stmt.setString(1, chAd);
+            int rc = stmt.executeUpdate();
+            if (rc != 1) {
+                throw new IllegalStateException("Channel Alias to ID mapping: DB deleted " + rc + " rows. 1 expected");
+            }
+        });
     }
 
 }

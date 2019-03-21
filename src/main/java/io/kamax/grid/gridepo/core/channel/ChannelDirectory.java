@@ -39,12 +39,12 @@ public class ChannelDirectory {
         this.store = store;
     }
 
-    public Optional<ChannelID> lookup(String address) {
-        return store.findChannelIdForAddress(address);
+    public Optional<ChannelID> lookup(String alias) {
+        return store.lookupChannelAlias(alias);
     }
 
     public List<String> getAddresses(ChannelID id) {
-        return store.findChannelAddressForId(id);
+        return store.findChannelAlias(id);
     }
 
     public void map(String address, ChannelID id) {
@@ -52,7 +52,7 @@ public class ChannelDirectory {
         if (existingMap.isPresent()) {
             ChannelID cId = existingMap.get();
             if (!cId.equals(id)) {
-                throw new IllegalStateException("Channel address " + address + " is already mapped to " + cId.full());
+                throw new IllegalStateException("Channel alias " + address + " is already mapped to " + cId.full());
             }
 
             log.info("Mapping {} -> {} already exists, ignoring call", address, id);
@@ -62,13 +62,13 @@ public class ChannelDirectory {
         store.map(id, address);
     }
 
-    public void unmap(String address) {
-        Optional<ChannelID> id = lookup(address);
+    public void unmap(String alias) {
+        Optional<ChannelID> id = lookup(alias);
         if (!id.isPresent()) {
-            throw new ObjectNotFoundException("Channel address", address);
+            throw new ObjectNotFoundException("Channel alias", alias);
         }
 
-        store.unmap(address);
+        store.unmap(alias);
     }
 
 }

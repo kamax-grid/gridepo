@@ -49,8 +49,8 @@ public class MemoryStore implements Store {
     private Map<Long, List<Long>> chExtremities = new ConcurrentHashMap<>();
     private Map<Long, Long> evStates = new ConcurrentHashMap<>();
 
-    private Map<String, ChannelID> chAdrToId = new ConcurrentHashMap<>();
-    private Map<ChannelID, Set<String>> chIdToAdr = new ConcurrentHashMap<>();
+    private Map<String, ChannelID> chAliasToId = new ConcurrentHashMap<>();
+    private Map<ChannelID, Set<String>> chIdToAlias = new ConcurrentHashMap<>();
 
     private Map<String, Long> evRefToSid = new ConcurrentHashMap<>();
 
@@ -216,32 +216,32 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public Optional<ChannelID> findChannelIdForAddress(String chAd) {
-        return Optional.ofNullable(chAdrToId.get(chAd));
+    public Optional<ChannelID> lookupChannelAlias(String chAlias) {
+        return Optional.ofNullable(chAliasToId.get(chAlias));
     }
 
     @Override
-    public List<String> findChannelAddressForId(ChannelID id) {
-        return new ArrayList<>(chIdToAdr.computeIfAbsent(id, k -> new HashSet<>()));
+    public List<String> findChannelAlias(ChannelID id) {
+        return new ArrayList<>(chIdToAlias.computeIfAbsent(id, k -> new HashSet<>()));
     }
 
     @Override
     public void map(ChannelID id, String chAd) {
-        if (chAdrToId.containsKey(chAd)) {
+        if (chAliasToId.containsKey(chAd)) {
             throw new AlreadyExistsException();
         }
 
-        chAdrToId.put(chAd, id);
-        chIdToAdr.computeIfAbsent(id, k -> new HashSet<>()).add(chAd);
+        chAliasToId.put(chAd, id);
+        chIdToAlias.computeIfAbsent(id, k -> new HashSet<>()).add(chAd);
     }
 
     @Override
     public void unmap(String chAd) {
-        if (!chAdrToId.containsKey(chAd)) {
+        if (!chAliasToId.containsKey(chAd)) {
             throw new ObjectNotFoundException("Channel Address", chAd);
         }
 
-        chIdToAdr.remove(chAdrToId.remove(chAd));
+        chIdToAlias.remove(chAliasToId.remove(chAd));
     }
 
 }

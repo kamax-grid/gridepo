@@ -75,11 +75,11 @@ public interface Store {
 
     Optional<String> findPassword(String username);
 
-    Optional<ChannelID> findChannelIdForAddress(String chAd);
+    Optional<ChannelID> lookupChannelAlias(String chAlias);
 
-    List<String> findChannelAddressForId(ChannelID cId);
+    List<String> findChannelAlias(ChannelID cId);
 
-    void map(ChannelID cId, String chAd);
+    void map(ChannelID cId, String chAlias);
 
     void unmap(String chAd);
 

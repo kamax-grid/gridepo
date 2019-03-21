@@ -143,4 +143,34 @@ public abstract class StoreTest {
         //assertTrue(stateRead.getEvents().containsAll(state.getEvents()));
     }
 
+    @Test
+    public void channelEventState() {
+        long cSid = makeChannel();
+        BareCreateEvent bEv = new BareCreateEvent();
+        bEv.getContent().setCreator(UserID.from("john", "example.org"));
+        ChannelEvent ev = ChannelEvent.from(cSid, EventID.from("sarce2", "example.org"), bEv.getJson());
+        assertNotNull(ev.getData());
+        ev = store.saveEvent(ev);
+
+        ChannelState state = store.getState(store.insertIfNew(cSid, ChannelState.empty().apply(ev)));
+        store.map(ev.getSid(), state.getSid());
+        ChannelState stateRead = store.getStateForEvent(ev.getSid());
+        assertEquals(state.getSid(), stateRead.getSid());
+    }
+
+    @Test
+    public void channelAddressing() {
+        String localpart = UUID.randomUUID().toString().replace("-", "");
+        ChannelID cId = ChannelID.from(localpart, "example.org");
+        String cAlias = "#" + localpart + "@example.org";
+
+        Optional<ChannelID> addrBefore = store.lookupChannelAlias(cAlias);
+        assertFalse(addrBefore.isPresent());
+
+        store.map(cId, cAlias);
+        Optional<ChannelID> addrAfter = store.lookupChannelAlias(cAlias);
+        assertTrue(addrAfter.isPresent());
+        assertEquals(cId, addrAfter.get());
+    }
+
 }
