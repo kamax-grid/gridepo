@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core.store.postgres;
 import io.kamax.grid.gridepo.config.StorageConfig;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
@@ -42,6 +43,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class PostgreSQLStore implements Store {
@@ -166,6 +169,33 @@ public class PostgreSQLStore implements Store {
         }
     }
 
+    private void withTransaction(Consumer<Connection> c) {
+        withConnConsumer(conn -> {
+            try {
+                conn.setAutoCommit(false);
+                c.accept(conn);
+                conn.setAutoCommit(true);
+            } catch (RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        });
+    }
+
+    private <R> R withTransactionFunction(Function<Connection, R> c) {
+        return withConnFunction(conn -> {
+            try {
+                conn.setAutoCommit(false);
+                R v = c.apply(conn);
+                conn.setAutoCommit(true);
+                return v;
+            } catch (RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        });
+    }
+
     public long getSchemaVersion() {
         return withStmtFunction("SELECT * FROM schema ORDER BY version DESC LIMIT 1", stmt -> {
             ResultSet rSet = stmt.executeQuery();
@@ -194,7 +224,7 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public ChannelDao saveChannel(ChannelDao ch) {
-        String sql = "INSERT INTO channels (id, network) VALUES (?, 'grid') RETURNING sid";
+        String sql = "INSERT INTO channels (id,network) VALUES (?,'grid') RETURNING sid";
         return withStmtFunction(sql, stmt -> {
             stmt.setString(1, ch.getId().base());
             ResultSet rSet = stmt.executeQuery();
@@ -210,7 +240,7 @@ public class PostgreSQLStore implements Store {
     }
 
     private long insertEvent(ChannelEvent ev) {
-        String sql = "INSERT INTO channel_events (id, cSid, meta, data) VALUES (?, ?, ?::jsonb, ?::jsonb) RETURNING sid";
+        String sql = "INSERT INTO channel_events (id,cSid,meta,data) VALUES (?,?,?::jsonb,?::jsonb) RETURNING sid";
         return withStmtFunction(sql, stmt -> {
             stmt.setString(1, ev.getId().base());
             stmt.setLong(2, ev.getChannelSid());
@@ -345,9 +375,7 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public void updateExtremities(long cSid, List<Long> toRemove, List<Long> toAdd) {
-        withConnConsumer(conn -> {
-            conn.setAutoCommit(false);
-
+        withTransaction(conn -> {
             withStmtConsumer("DELETE FROM channel_extremities WHERE eSid = ?", conn, stmt -> {
                 for (long eSid : toRemove) {
                     stmt.setLong(1, eSid);
@@ -356,7 +384,7 @@ public class PostgreSQLStore implements Store {
                 stmt.executeBatch();
             });
 
-            withStmtConsumer("INSERT INTO channel_extremities (cSid, eSid) VALUES (?,?)", conn, stmt -> {
+            withStmtConsumer("INSERT INTO channel_extremities (cSid,eSid) VALUES (?,?)", conn, stmt -> {
                 for (long eSid : toAdd) {
                     stmt.setLong(1, cSid);
                     stmt.setLong(2, eSid);
@@ -364,8 +392,6 @@ public class PostgreSQLStore implements Store {
                 }
                 stmt.executeBatch();
             });
-
-            conn.commit();
         });
     }
 
@@ -390,11 +416,9 @@ public class PostgreSQLStore implements Store {
         }
 
         String sql = "INSERT INTO channel_states (cSid) VALUES (?) RETURNING sid";
-        String evSql = "INSERT INTO channel_state_data (sSid, eSid) VALUES (?,?)";
+        String evSql = "INSERT INTO channel_state_data (sSid,eSid) VALUES (?,?)";
 
-        return withConnFunction(conn -> {
-            conn.setAutoCommit(false);
-
+        return withTransactionFunction(conn -> {
             long sSid = withStmtFunction(sql, conn, stmt -> {
                 stmt.setLong(1, cSid);
                 ResultSet rSet = stmt.executeQuery();
@@ -413,8 +437,6 @@ public class PostgreSQLStore implements Store {
                 }
                 stmt.executeBatch();
             });
-
-            conn.commit();
 
             return sSid;
         });
@@ -440,7 +462,7 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public void map(long evSid, long stateSid) {
-        withStmtConsumer("INSERT INTO channel_event_states (eSid, sSid) VALUES (?,?)", stmt -> {
+        withStmtConsumer("INSERT INTO channel_event_states (eSid,sSid) VALUES (?,?)", stmt -> {
             stmt.setLong(1, evSid);
             stmt.setLong(2, stateSid);
             int rc = stmt.executeUpdate();
@@ -474,7 +496,7 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public long storeUser(String username, String password) {
-        return withStmtFunction("INSERT INTO users (username, password) VALUES (?,?) RETURNING sid", stmt -> {
+        return withStmtFunction("INSERT INTO users (username,password) VALUES (?,?) RETURNING sid", stmt -> {
             stmt.setString(1, username);
             stmt.setString(2, password);
             ResultSet rSet = stmt.executeQuery();
@@ -526,14 +548,21 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public void map(ChannelID cId, String chAd) {
-        withStmtConsumer("INSERT INTO channel_addresses (cId, cAlias, auto) VALUES (?,?, true)", stmt -> {
-            stmt.setString(1, cId.base());
-            stmt.setString(2, chAd);
-            int rc = stmt.executeUpdate();
-            if (rc != 1) {
-                throw new IllegalStateException("Channel Alias to ID mapping: DB inserted " + rc + " rows. 1 expected");
-            }
+    public void setAliases(ServerID origin, ChannelID cId, List<String> chAliases) {
+        withTransaction(conn -> {
+            withStmtConsumer("DELETE FROM channel_addresses WHERE srvId = ?", stmt -> {
+                stmt.setString(1, origin.base());
+                stmt.executeUpdate();
+            });
+            withStmtConsumer("INSERT INTO channel_addresses (cId,cAlias,srvId,auto) VALUES (?,?,?, true)", stmt -> {
+                for (String cAlias : chAliases) {
+                    stmt.setString(1, cId.base());
+                    stmt.setString(2, cAlias);
+                    stmt.setString(3, origin.base());
+                    stmt.addBatch();
+                }
+                stmt.executeBatch();
+            });
         });
     }
 
@@ -542,8 +571,8 @@ public class PostgreSQLStore implements Store {
         withStmtConsumer("DELETE FROM channel_addresses WHERE cAlias = ?", stmt -> {
             stmt.setString(1, chAd);
             int rc = stmt.executeUpdate();
-            if (rc != 1) {
-                throw new IllegalStateException("Channel Alias to ID mapping: DB deleted " + rc + " rows. 1 expected");
+            if (rc < 1) {
+                throw new IllegalStateException("Channel Alias to ID mapping: DB deleted " + rc + " rows. >= 1 expected");
             }
         });
     }

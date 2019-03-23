@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.core.store;
 
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
@@ -32,6 +33,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -167,7 +169,7 @@ public abstract class StoreTest {
         Optional<ChannelID> addrBefore = store.lookupChannelAlias(cAlias);
         assertFalse(addrBefore.isPresent());
 
-        store.map(cId, cAlias);
+        store.setAliases(ServerID.from("example.org"), cId, Collections.singletonList(cAlias));
         Optional<ChannelID> addrAfter = store.lookupChannelAlias(cAlias);
         assertTrue(addrAfter.isPresent());
         assertEquals(cId, addrAfter.get());

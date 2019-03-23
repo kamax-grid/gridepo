@@ -20,13 +20,14 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BareAliasEvent extends BareEvent<BareAliasEvent.Content> {
 
     public static class Content {
 
-        private List<String> aliases;
+        private List<String> aliases = new ArrayList<>();
 
         public List<String> getAliases() {
             return aliases;

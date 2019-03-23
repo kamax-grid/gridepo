@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.core.store;
 
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
@@ -79,8 +80,8 @@ public interface Store {
 
     List<String> findChannelAlias(ChannelID cId);
 
-    void map(ChannelID cId, String chAlias);
+    void setAliases(ServerID origin, ChannelID cId, List<String> chAliases);
 
-    void unmap(String chAd);
+    void unmap(String cAlias);
 
 }

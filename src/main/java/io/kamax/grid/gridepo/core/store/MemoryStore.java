@@ -22,10 +22,10 @@ package io.kamax.grid.gridepo.core.store;
 
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
-import io.kamax.grid.gridepo.exception.AlreadyExistsException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class MemoryStore implements Store {
 
@@ -50,7 +51,7 @@ public class MemoryStore implements Store {
     private Map<Long, Long> evStates = new ConcurrentHashMap<>();
 
     private Map<String, ChannelID> chAliasToId = new ConcurrentHashMap<>();
-    private Map<ChannelID, Set<String>> chIdToAlias = new ConcurrentHashMap<>();
+    private Map<ChannelID, Map<ServerID, Set<String>>> chIdToAlias = new ConcurrentHashMap<>();
 
     private Map<String, Long> evRefToSid = new ConcurrentHashMap<>();
 
@@ -215,28 +216,30 @@ public class MemoryStore implements Store {
         return Optional.ofNullable(users.get(username));
     }
 
+    private Map<ServerID, Set<String>> getChIdToAlias(ChannelID id) {
+        return chIdToAlias.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
+    }
+
     @Override
-    public Optional<ChannelID> lookupChannelAlias(String chAlias) {
+    public synchronized Optional<ChannelID> lookupChannelAlias(String chAlias) {
         return Optional.ofNullable(chAliasToId.get(chAlias));
     }
 
     @Override
-    public List<String> findChannelAlias(ChannelID id) {
-        return new ArrayList<>(chIdToAlias.computeIfAbsent(id, k -> new HashSet<>()));
+    public synchronized List<String> findChannelAlias(ChannelID id) {
+        return getChIdToAlias(id).values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
 
     @Override
-    public void map(ChannelID id, String chAd) {
-        if (chAliasToId.containsKey(chAd)) {
-            throw new AlreadyExistsException();
-        }
-
-        chAliasToId.put(chAd, id);
-        chIdToAlias.computeIfAbsent(id, k -> new HashSet<>()).add(chAd);
+    public synchronized void setAliases(ServerID origin, ChannelID cId, List<String> chAliases) {
+        Map<ServerID, Set<String>> data = getChIdToAlias(cId);
+        data.remove(origin);
+        data.put(origin, new HashSet<>(chAliases));
+        chAliases.forEach(cAlias -> chAliasToId.put(cAlias, cId));
     }
 
     @Override
-    public void unmap(String chAd) {
+    public synchronized void unmap(String chAd) {
         if (!chAliasToId.containsKey(chAd)) {
             throw new ObjectNotFoundException("Channel Address", chAd);
         }

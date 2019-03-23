@@ -52,6 +52,7 @@ CREATE TABLE channel_addresses
 (
     cAlias text NOT NULL,
     cId text NOT NULL,
+    srvId text NOT NULL,
     auto boolean NOT NULL,
     CONSTRAINT c_adr_alias UNIQUE(cAlias)
 );
