@@ -169,7 +169,7 @@ public abstract class StoreTest {
         Optional<ChannelID> addrBefore = store.lookupChannelAlias(cAlias);
         assertFalse(addrBefore.isPresent());
 
-        store.setAliases(ServerID.from("example.org"), cId, Collections.singletonList(cAlias));
+        store.setAliases(ServerID.from("example.org"), cId, Collections.singleton(cAlias));
         Optional<ChannelID> addrAfter = store.lookupChannelAlias(cAlias);
         assertTrue(addrAfter.isPresent());
         assertEquals(cId, addrAfter.get());

@@ -30,6 +30,7 @@ import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface Store {
 
@@ -80,9 +81,9 @@ public interface Store {
 
     Optional<ChannelID> lookupChannelAlias(String chAlias);
 
-    List<String> findChannelAlias(ChannelID cId);
+    Set<String> findChannelAlias(ServerID origin, ChannelID cId);
 
-    void setAliases(ServerID origin, ChannelID cId, List<String> chAliases);
+    void setAliases(ServerID origin, ChannelID cId, Set<String> chAliases);
 
     void unmap(String cAlias);
 

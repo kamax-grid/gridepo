@@ -39,10 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -547,10 +544,11 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public List<String> findChannelAlias(ChannelID cId) {
-        return withStmtFunction("SELECT * FROM channel_addresses WHERE cId = ?", stmt -> {
-            List<String> list = new ArrayList<>();
-            stmt.setString(1, cId.base());
+    public Set<String> findChannelAlias(ServerID srvId, ChannelID cId) {
+        return withStmtFunction("SELECT * FROM channel_addresses WHERE srvId = ? AND cId = ?", stmt -> {
+            Set<String> list = new HashSet<>();
+            stmt.setString(1, srvId.base());
+            stmt.setString(2, cId.base());
             ResultSet rSet = stmt.executeQuery();
             while (rSet.next()) {
                 list.add(rSet.getString("cAlias"));
@@ -560,7 +558,7 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public void setAliases(ServerID origin, ChannelID cId, List<String> chAliases) {
+    public void setAliases(ServerID origin, ChannelID cId, Set<String> chAliases) {
         withTransaction(conn -> {
             withStmtConsumer("DELETE FROM channel_addresses WHERE srvId = ?", stmt -> {
                 stmt.setString(1, origin.base());

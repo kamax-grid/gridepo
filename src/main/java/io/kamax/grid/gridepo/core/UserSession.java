@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
+import io.kamax.grid.gridepo.core.channel.event.BareAliasEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
@@ -41,6 +42,7 @@ import org.slf4j.Logger;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class UserSession {
@@ -203,6 +205,22 @@ public class UserSession {
         }
 
         return r.getEventId().full();
+    }
+
+    public void addChannelAlias(String alias, ChannelID id) {
+        Set<String> aliases = g.getChannelDirectory().getAddresses(id);
+        if (aliases.contains(alias)) {
+            return;
+        }
+
+        aliases.add(alias);
+
+        BareAliasEvent ev = new BareAliasEvent();
+        ev.setScope(g.getOrigin().full());
+        ev.setSender(user.getId().full());
+        ev.getContent().setAliases(aliases);
+
+        g.getChannelManager().get(id).makeAndInject(ev.getJson());
     }
 
 }

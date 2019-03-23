@@ -27,6 +27,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.codec.GridHash;
 import io.kamax.grid.gridepo.config.GridepoConfig;
+import io.kamax.grid.gridepo.core.channel.ChannelDirectory;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.crypto.KeyManager;
 import io.kamax.grid.gridepo.core.crypto.MemoryKeyStore;
@@ -69,6 +70,7 @@ public class MonolithGridepo implements Gridepo {
     private IdentityManager idMgr;
     private EventService evSvc;
     private ChannelManager chMgr;
+    private ChannelDirectory chDir;
     private EventStreamer streamer;
     private FederationPusher fedPush;
 
@@ -117,6 +119,7 @@ public class MonolithGridepo implements Gridepo {
         chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);
         streamer = new EventStreamer(store);
 
+        chDir = new ChannelDirectory(origin, store, bus);
         fedPush = new FederationPusher(this, dsMgr);
 
         log.info("We are {}", getDomain());
@@ -166,6 +169,11 @@ public class MonolithGridepo implements Gridepo {
     @Override
     public ChannelManager getChannelManager() {
         return chMgr;
+    }
+
+    @Override
+    public ChannelDirectory getChannelDirectory() {
+        return chDir;
     }
 
     @Override

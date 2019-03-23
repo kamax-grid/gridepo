@@ -20,9 +20,11 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
@@ -100,10 +102,28 @@ public class ProtocolEventMapper {
             BareAddressEvent.Content c = gEv.getContent();
 
             JsonObject mEvC = new JsonObject();
-            mEvC.addProperty("alias", forChannelIdFromGridToMatrix(c.getAlias()));
+            mEvC.addProperty("alias", c.getAlias().replaceFirst("@", ":"));
 
             JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
             mEv.addProperty("type", "m.room.canonical_alias");
+            mEv.add("content", mEvC);
+
+            return mEv;
+        });
+
+        g2mMappers.put(ChannelEventType.Alias.getId(), ev -> {
+            BareAliasEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareAliasEvent.class);
+            BareAliasEvent.Content c = gEv.getContent();
+
+            JsonArray mEvCV = new JsonArray();
+            c.getAliases().forEach(alias -> mEvCV.add(alias.replaceFirst("@", ":")));
+
+            JsonObject mEvC = new JsonObject();
+            mEvC.add("aliases", mEvCV);
+
+            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
+            mEv.addProperty("type", "m.room.aliases");
+            mEv.addProperty("state_key", ServerID.parse(gEv.getScope()).tryDecode().orElseGet(() -> gEv.getScope().substring(1)));
             mEv.add("content", mEvC);
 
             return mEv;
@@ -136,6 +156,11 @@ public class ProtocolEventMapper {
             JsonObject mEv = mapCommon(gEv.getId().full(), gEv.getBare(), new JsonObject());
 
             String type = gEv.getBare().getType();
+
+            if (ChannelEventType.Alias.match(type)) {
+                type = "m.room.aliases";
+            }
+
             if (type.startsWith("g.c.s.")) {
                 type = type.replace("g.c.s.", "m.room.");
             }
@@ -183,7 +208,10 @@ public class ProtocolEventMapper {
 
             GsonUtil.findObj(json, "content")
                     .flatMap(c -> GsonUtil.findString(c, "alias"))
-                    .ifPresent(n -> gEv.getContent().setAlias(n));
+                    .ifPresent(alias -> {
+                        alias = alias.replaceFirst(":", "@");
+                        gEv.getContent().setAlias(alias);
+                    });
 
             return gEv.getJson();
         });
@@ -194,7 +222,7 @@ public class ProtocolEventMapper {
 
             GsonUtil.findObj(json, "content")
                     .flatMap(c -> GsonUtil.findArray(c, "aliases"))
-                    .ifPresent(v -> gEv.getContent().setAliases(GsonUtil.asList(v, String.class)));
+                    .ifPresent(v -> gEv.getContent().setAliases(GsonUtil.asSet(v, String.class)));
 
             return gEv.getJson();
         });

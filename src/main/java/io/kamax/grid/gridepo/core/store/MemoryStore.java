@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public class MemoryStore implements Store {
 
@@ -233,12 +232,12 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public synchronized List<String> findChannelAlias(ChannelID id) {
-        return getChIdToAlias(id).values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+    public synchronized Set<String> findChannelAlias(ServerID srvId, ChannelID id) {
+        return getChIdToAlias(id).getOrDefault(srvId, new HashSet<>());
     }
 
     @Override
-    public synchronized void setAliases(ServerID origin, ChannelID cId, List<String> chAliases) {
+    public synchronized void setAliases(ServerID origin, ChannelID cId, Set<String> chAliases) {
         Map<ServerID, Set<String>> data = getChIdToAlias(cId);
         data.remove(origin);
         data.put(origin, new HashSet<>(chAliases));

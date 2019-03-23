@@ -25,6 +25,7 @@ import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.core.channel.ChannelDirectory;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.event.EventStreamer;
@@ -55,6 +56,8 @@ public interface Gridepo {
     Store getStore();
 
     ChannelManager getChannelManager();
+
+    ChannelDirectory getChannelDirectory();
 
     EventService getEventService();
 

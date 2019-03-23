@@ -82,6 +82,12 @@ public class GsonUtil {
         return l;
     }
 
+    public static <T> Set<T> asSet(JsonArray a, Class<T> c) {
+        Set<T> l = new HashSet<>();
+        a.forEach(v -> l.add(GsonUtil.get().fromJson(v, c)));
+        return l;
+    }
+
     public static <T> List<T> asList(JsonObject obj, String member, Class<T> c) {
         return asList(getArray(obj, member), c);
     }

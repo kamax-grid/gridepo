@@ -124,6 +124,9 @@ public class MonolithHttpGridepo {
                 .put(ClientAPIr0.Room + "/state/{type}", srsHandler)
                 .put(ClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
 
+                // Room Directory endpoints
+                .put(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryAddHandler(g))
+
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))
                 .put(ClientAPIr0.Room + "/typing/{userId}", new EmptyJsonObjectHandler(g, true))

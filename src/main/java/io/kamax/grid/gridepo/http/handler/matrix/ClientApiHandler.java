@@ -58,20 +58,26 @@ public abstract class ClientApiHandler implements HttpHandler {
                 handle(ex);
             } catch (IllegalArgumentException e) {
                 ex.respond(HttpStatus.SC_BAD_REQUEST, "M_INVALID_PARAM", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (MissingTokenException e) {
                 ex.respond(HttpStatus.SC_UNAUTHORIZED, "M_MISSING_TOKEN", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (InvalidTokenException e) {
                 ex.respond(HttpStatus.SC_UNAUTHORIZED, "M_UNKNOWN_TOKEN", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (ForbiddenException e) {
                 ex.respond(HttpStatus.SC_FORBIDDEN, "M_FORBIDDEN", e.getReason());
+                log.debug("Trigger:", e);
             } catch (NotImplementedException e) {
                 ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "M_NOT_IMPLEMENTED", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (RemoteServerException e) {
                 String code = e.getCode();
                 if (StringUtils.startsWith(code, "G_")) {
                     code = "M_" + code.substring(2); // TODO Generic transform, be smarter about it
                 }
                 ex.respond(HttpStatus.SC_BAD_GATEWAY, code, e.getReason());
+                log.debug("Trigger:", e);
             } catch (RuntimeException e) {
                 log.error("Unknown error when handling {}", exchange.getRequestURL(), e);
                 ex.respond(HttpStatus.SC_INTERNAL_SERVER_ERROR, ex.buildErrorBody("M_UNKNOWN",

@@ -35,8 +35,8 @@ import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class ChannelDirectory {
 
@@ -55,7 +55,7 @@ public class ChannelDirectory {
     }
 
     @Handler
-    private void handler(ChannelMessageProcessed evP) {
+    public void handler(ChannelMessageProcessed evP) {
         if (!evP.getAuth().isAuthorized()) {
             return;
         }
@@ -78,11 +78,11 @@ public class ChannelDirectory {
         return store.lookupChannelAlias(alias);
     }
 
-    public List<String> getAddresses(ChannelID id) {
-        return store.findChannelAlias(id);
+    public Set<String> getAddresses(ChannelID id) {
+        return store.findChannelAlias(origin, id);
     }
 
-    public void map(ChannelID id, List<String> aliases) {
+    public void map(ChannelID id, Set<String> aliases) {
         store.setAliases(origin, id, aliases);
     }
 

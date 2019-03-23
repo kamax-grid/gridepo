@@ -25,6 +25,8 @@ import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.SyncData;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 
 public class SyncResponse {
+
+    private static final Logger log = KxLog.make(SyncResponse.class);
 
     public static class RoomEvent {
 
@@ -201,41 +205,45 @@ public class SyncResponse {
         SyncResponse r = new SyncResponse();
         r.setNextBatch(data.getPosition());
         data.getEvents().forEach(ev -> {
-            RoomEvent rEv = RoomEvent.build(ev);
-            Room room = roomCache.computeIfAbsent(rEv.getRoomId(), id -> new Room());
-            room.getTimeline().getEvents().add(rEv);
+            try {
+                RoomEvent rEv = RoomEvent.build(ev);
+                Room room = roomCache.computeIfAbsent(rEv.getRoomId(), id -> new Room());
+                room.getTimeline().getEvents().add(rEv);
 
-            if ("m.room.member".equals(rEv.getType()) && uId.equals(rEv.getStateKey())) {
-                JsonObject c = GsonUtil.parseObj(GsonUtil.toJson(rEv.getContent()));
-                GsonUtil.findString(c, "membership").ifPresent(m -> {
-                    if ("invite".equals(m)) {
-                        r.rooms.invite.put(rEv.getRoomId(), room);
-                        room.timeline.events = null;
-                        room.state.events = null;
+                if ("m.room.member".equals(rEv.getType()) && uId.equals(rEv.getStateKey())) {
+                    JsonObject c = GsonUtil.parseObj(GsonUtil.toJson(rEv.getContent()));
+                    GsonUtil.findString(c, "membership").ifPresent(m -> {
+                        if ("invite".equals(m)) {
+                            r.rooms.invite.put(rEv.getRoomId(), room);
+                            room.timeline.events = null;
+                            room.state.events = null;
 
-                        room.inviteState.events = new ArrayList<>();
-                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
-                            if (sEv.getSid() != ev.getSid()) {
-                                room.inviteState.events.add(RoomEvent.build(sEv));
-                            }
-                        });
-                        room.inviteState.events.add(rEv);
-                    } else if ("leave".equals(m) || "ban".equals(m)) {
-                        r.rooms.leave.put(rEv.getRoomId(), room);
-                    } else if ("join".equals(m)) {
-                        room.state.events = new ArrayList<>();
-                        g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
-                            if (sEv.getSid() != ev.getSid()) {
-                                room.state.events.add(RoomEvent.build(sEv));
-                            }
-                        });
-                        r.rooms.join.put(rEv.getRoomId(), room);
-                    } else {
-                        // unknown, not supported
-                    }
-                });
-            } else {
-                r.rooms.join.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+                            room.inviteState.events = new ArrayList<>();
+                            g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
+                                if (sEv.getSid() != ev.getSid()) {
+                                    room.inviteState.events.add(RoomEvent.build(sEv));
+                                }
+                            });
+                            room.inviteState.events.add(rEv);
+                        } else if ("leave".equals(m) || "ban".equals(m)) {
+                            r.rooms.leave.put(rEv.getRoomId(), room);
+                        } else if ("join".equals(m)) {
+                            room.state.events = new ArrayList<>();
+                            g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
+                                if (sEv.getSid() != ev.getSid()) {
+                                    room.state.events.add(RoomEvent.build(sEv));
+                                }
+                            });
+                            r.rooms.join.put(rEv.getRoomId(), room);
+                        } else {
+                            // unknown, not supported
+                        }
+                    });
+                } else {
+                    r.rooms.join.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
+                }
+            } catch (RuntimeException e) {
+                log.warn("Unable to map Grid event {} to Matrix event", ev.getId(), e);
             }
         });
 
