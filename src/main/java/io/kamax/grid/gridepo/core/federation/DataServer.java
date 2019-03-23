@@ -21,9 +21,11 @@
 package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.util.KxLog;
@@ -119,12 +121,16 @@ public class DataServer {
     }
 
     public JsonObject push(String as, ChannelEvent ev) {
-        log.info("Pushing event {} to {} ({}) as {}", ev.getSid(), id.full(), hostname, as);
+        log.info("Pushing event {} to {} ({}) as {}", ev.getSid(), id, hostname, as);
         return withHealthCheck(() -> client.push(as, hostname, Collections.singletonList(ev)));
     }
 
     public JsonObject approveInvite(String as, InviteApprovalRequest data) {
         return withHealthCheck(true, () -> client.approveInvite(as, hostname, data));
+    }
+
+    public Optional<ChannelLookup> lookup(String as, ChannelAlias alias) {
+        return withHealthCheck(true, () -> client.lookup(as, hostname, alias));
     }
 
 }

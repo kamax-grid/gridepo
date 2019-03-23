@@ -18,23 +18,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.federation;
+package io.kamax.grid.gridepo.http.handler.grid.server.io;
 
-import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.ChannelAlias;
-import io.kamax.grid.gridepo.core.channel.ChannelLookup;
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
-import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
+import java.util.Set;
 
-import java.util.List;
-import java.util.Optional;
+public class ChannelLookupResponse {
 
-public interface DataServerClient {
+    private String id;
+    private Set<String> servers;
 
-    JsonObject push(String as, String to, List<ChannelEvent> events);
+    public String getId() {
+        return id;
+    }
 
-    JsonObject approveInvite(String as, String to, InviteApprovalRequest data);
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    Optional<ChannelLookup> lookup(String as, String target, ChannelAlias alias);
+    public Set<String> getServers() {
+        return servers;
+    }
+
+    public void setServers(Set<String> servers) {
+        this.servers = servers;
+    }
 
 }

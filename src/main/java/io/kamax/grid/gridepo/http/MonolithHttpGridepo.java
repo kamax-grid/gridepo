@@ -24,6 +24,7 @@ import com.google.gson.JsonArray;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
+import io.kamax.grid.gridepo.http.handler.grid.server.ChannelDirectoryLookupHandler;
 import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveInvite;
 import io.kamax.grid.gridepo.http.handler.grid.server.DoPushHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
@@ -66,14 +67,15 @@ public class MonolithHttpGridepo {
         log.warn("Tried to add Grid client endpoints but not implemented yet");
 
         handler
-                .add("OPTIONS", "/_grid/client", new OptionsHandler())
+                .add("OPTIONS", "/_grid/data/client", new OptionsHandler())
         ;
     }
 
     private void buildGridServer(RoutingHandler handler) {
         handler
-                .post("/_grid/server/v0/do/approve/invite", new DoApproveInvite(g))
-                .post("/_grid/server/v0/do/push", new DoPushHandler(g))
+                .post("/_grid/data/server/v0/do/approve/invite", new DoApproveInvite(g))
+                .post("/_grid/data/server/v0/do/push", new DoPushHandler(g))
+                .post("/_grid/data/server/v0/do/lookup/channel/alias", new ChannelDirectoryLookupHandler(g))
         ;
     }
 
@@ -125,8 +127,10 @@ public class MonolithHttpGridepo {
                 .put(ClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
 
                 // Room Directory endpoints
+                .get(ClientAPIr0.Directory + "/room/{roomAlias}", new ChannelAliasLookupHandler(g))
                 .put(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryAddHandler(g))
                 .delete(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryRemoveHandler(g))
+                .post(ClientAPIr0.Base + "/publicRooms", new PublicChannelListingHandler(g))
 
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))

@@ -20,10 +20,7 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import io.kamax.grid.gridepo.exception.ForbiddenException;
-import io.kamax.grid.gridepo.exception.InvalidTokenException;
-import io.kamax.grid.gridepo.exception.MissingTokenException;
-import io.kamax.grid.gridepo.exception.RemoteServerException;
+import io.kamax.grid.gridepo.exception.*;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.KxLog;
 import io.undertow.server.HttpHandler;
@@ -67,6 +64,9 @@ public abstract class ClientApiHandler implements HttpHandler {
                 log.debug("Trigger:", e);
             } catch (ForbiddenException e) {
                 ex.respond(HttpStatus.SC_FORBIDDEN, "M_FORBIDDEN", e.getReason());
+                log.debug("Trigger:", e);
+            } catch (ObjectNotFoundException e) {
+                ex.respond(HttpStatus.SC_NOT_FOUND, "M_NOT_FOUND", e.getMessage());
                 log.debug("Trigger:", e);
             } catch (NotImplementedException e) {
                 ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "M_NOT_IMPLEMENTED", e.getMessage());

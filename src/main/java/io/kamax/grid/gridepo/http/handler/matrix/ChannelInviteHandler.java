@@ -22,7 +22,7 @@ package io.kamax.grid.gridepo.http.handler.matrix;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.EntityAlias;
+import io.kamax.grid.gridepo.core.EntityGUID;
 import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -47,15 +47,15 @@ public class ChannelInviteHandler extends ClientApiHandler {
         }
         String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(mId);
 
-        EntityAlias uAl;
+        EntityGUID uAl;
         if (body.has("medium")) {
             // This is 3PID invite, generic mapping to alias
             String network = GsonUtil.getStringOrThrow(body, "medium");
             String address = GsonUtil.getStringOrThrow(body, "address");
-            uAl = new EntityAlias(network, address);
+            uAl = new EntityGUID(network, address);
         } else if (body.has("user_id")) {
             // This is a Matrix ID invite, mapping to alias
-            uAl = new EntityAlias("matrix", GsonUtil.getStringOrThrow(body, "user_id"));
+            uAl = new EntityGUID("matrix", GsonUtil.getStringOrThrow(body, "user_id"));
         } else {
             // Nothing else is possible at this time, throwing error
             throw new IllegalArgumentException("Not a Matrix ID or 3PID invite");

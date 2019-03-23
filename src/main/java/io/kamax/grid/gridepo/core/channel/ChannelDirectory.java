@@ -20,11 +20,13 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
+import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.event.BareAliasEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEventType;
+import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
@@ -34,6 +36,7 @@ import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 
@@ -43,12 +46,12 @@ public class ChannelDirectory {
 
     private final ServerID origin;
     private final Store store;
-    private final SignalBus bus;
+    private final DataServerManager srvMgr;
 
-    public ChannelDirectory(ServerID origin, Store store, SignalBus bus) {
+    public ChannelDirectory(ServerID origin, Store store, SignalBus bus, DataServerManager srvMgr) {
         this.origin = origin;
         this.store = store;
-        this.bus = bus;
+        this.srvMgr = srvMgr;
 
         bus.forTopic(SignalTopic.Channel).subscribe(this);
     }
@@ -73,8 +76,17 @@ public class ChannelDirectory {
         setAliases(ChannelID.from(ev.getChannelId()), ev.getContent().getAliases());
     }
 
-    public Optional<ChannelID> lookup(String alias) {
-        return store.lookupChannelAlias(alias);
+    public Optional<ChannelLookup> lookup(ChannelAlias alias, boolean recursive) {
+        ServerID aSrvID = ServerID.from(alias.network());
+        if (origin.equals(aSrvID)) {
+            return store.lookupChannelAlias(alias.full()).map(id -> new ChannelLookup(alias, id, Collections.singleton(origin)));
+        }
+
+        if (!recursive) {
+            return Optional.empty();
+        }
+
+        return srvMgr.get(aSrvID).lookup(origin.full(), alias);
     }
 
     public Set<String> getAliases(ChannelID id) {

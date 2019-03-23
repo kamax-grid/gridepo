@@ -20,10 +20,7 @@
 
 package io.kamax.grid.gridepo.http.handler.grid.server;
 
-import io.kamax.grid.gridepo.exception.ForbiddenException;
-import io.kamax.grid.gridepo.exception.InvalidTokenException;
-import io.kamax.grid.gridepo.exception.MissingTokenException;
-import io.kamax.grid.gridepo.exception.RemoteServerException;
+import io.kamax.grid.gridepo.exception.*;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.KxLog;
 import io.undertow.server.HttpHandler;
@@ -52,16 +49,25 @@ public abstract class ServerApiHandler implements HttpHandler {
                 handle(ex);
             } catch (IllegalArgumentException e) {
                 ex.respond(HttpStatus.SC_BAD_REQUEST, "G_INVALID_PARAM", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (MissingTokenException e) {
                 ex.respond(HttpStatus.SC_UNAUTHORIZED, "G_MISSING_TOKEN", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (InvalidTokenException e) {
                 ex.respond(HttpStatus.SC_UNAUTHORIZED, "G_UNKNOWN_TOKEN", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (ForbiddenException e) {
                 ex.respond(HttpStatus.SC_FORBIDDEN, "G_FORBIDDEN", e.getReason());
+                log.debug("Trigger:", e);
+            } catch (ObjectNotFoundException e) {
+                ex.respond(HttpStatus.SC_NOT_FOUND, "G_NOT_FOUND", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (NotImplementedException e) {
                 ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "G_NOT_IMPLEMENTED", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (RemoteServerException e) {
                 ex.respond(HttpStatus.SC_BAD_GATEWAY, e.getCode(), e.getReason());
+                log.debug("Trigger:", e);
             } catch (RuntimeException e) {
                 log.error("Unknown error when handling {}", exchange.getRequestURL(), e);
                 ex.respond(HttpStatus.SC_INTERNAL_SERVER_ERROR, ex.buildErrorBody("G_UNKNOWN",

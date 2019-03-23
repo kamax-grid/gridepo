@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
@@ -37,6 +38,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ServerSession {
 
@@ -105,6 +107,29 @@ public class ServerSession {
         });
 
         return results;
+    }
+
+    public Optional<ChannelLookup> lookup(ChannelAlias chAlias) {
+        if (!StringUtils.equalsIgnoreCase(g.getDomain(), chAlias.network())) {
+            return Optional.empty();
+        }
+
+        Optional<ChannelLookup> lookup = g.getChannelDirectory().lookup(chAlias, false);
+        if (!lookup.isPresent()) {
+            return Optional.empty();
+        }
+
+        ChannelID cId = lookup.get().getId();
+        Optional<Channel> ch = g.getChannelManager().find(cId);
+        if (!ch.isPresent()) {
+            return Optional.empty();
+        }
+
+        Set<ServerID> servers = ch.get().getView().getState().getEvents().stream()
+                .map(ev -> ServerID.parse(ev.getOrigin()))
+                .collect(Collectors.toSet());
+
+        return Optional.of(new ChannelLookup(chAlias, cId, servers));
     }
 
 }

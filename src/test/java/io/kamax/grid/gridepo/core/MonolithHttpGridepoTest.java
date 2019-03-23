@@ -64,7 +64,7 @@ public class MonolithHttpGridepoTest {
         UserSession u1g1 = g1.login("user1", "gridepo");
         UserSession u1g2 = g2.login("user1", "gridepo");
         String c1u1g1 = u1g1.createChannel().getId().full();
-        u1g1.inviteToChannel(c1u1g1, new EntityAlias("grid", "@user1@" + cfg2.getDomain()));
+        u1g1.inviteToChannel(c1u1g1, new EntityGUID("grid", "@user1@" + cfg2.getDomain()));
 
         ChannelMembership mC1u1g2 = g1.getChannelManager().get(c1u1g1).getView().getState().getMembership(u1g2.getUser().getId().full());
         assertEquals(ChannelMembership.Invite, mC1u1g2);

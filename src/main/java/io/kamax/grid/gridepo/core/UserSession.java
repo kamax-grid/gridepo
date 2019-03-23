@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.BareAliasEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
@@ -43,6 +44,7 @@ import org.slf4j.Logger;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -174,7 +176,7 @@ public class UserSession {
         return g.getChannelManager().get(cId).makeAndInject(data).getEventId().full();
     }
 
-    public String inviteToChannel(String cId, EntityAlias uAl) {
+    public String inviteToChannel(String cId, EntityGUID uAl) {
         Channel c = g.getChannelManager().get(cId);
         String evId = c.invite(user.getId().full(), uAl).getId().full();
         return evId;
@@ -225,8 +227,8 @@ public class UserSession {
     }
 
     public void removeChannelAlias(String alias) {
-        ChannelID cId = g.getChannelDirectory().lookup(alias)
-                .orElseThrow(() -> new ObjectNotFoundException("Channel Alias", alias));
+        ChannelID cId = g.getChannelDirectory().lookup(ChannelAlias.parse(alias), false)
+                .map(ChannelLookup::getId).orElseThrow(() -> new ObjectNotFoundException("Channel Alias", alias));
 
         Set<String> aliases = g.getChannelDirectory().getAliases(cId);
         if (!aliases.contains(alias)) {
@@ -241,6 +243,10 @@ public class UserSession {
         ev.getContent().setAliases(aliases);
 
         g.getChannelManager().get(cId).makeAndInject(ev.getJson());
+    }
+
+    public Optional<ChannelLookup> lookup(ChannelAlias alias) {
+        return g.getChannelDirectory().lookup(alias, true);
     }
 
 }

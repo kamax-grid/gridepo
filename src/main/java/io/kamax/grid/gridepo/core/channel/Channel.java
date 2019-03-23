@@ -380,7 +380,7 @@ public class Channel {
         return store.getStateForEvent(ev.getSid());
     }
 
-    public ChannelEvent invite(String inviter, EntityAlias invitee) {
+    public ChannelEvent invite(String inviter, EntityGUID invitee) {
         // FIXME export to solve resolver class (Back to the Identity!)
         String localpart;
         String domain;

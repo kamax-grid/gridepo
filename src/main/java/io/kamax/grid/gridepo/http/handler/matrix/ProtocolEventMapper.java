@@ -22,10 +22,7 @@ package io.kamax.grid.gridepo.http.handler.matrix;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.ChannelID;
-import io.kamax.grid.gridepo.core.EventID;
-import io.kamax.grid.gridepo.core.ServerID;
-import io.kamax.grid.gridepo.core.UserID;
+import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -324,6 +321,10 @@ public class ProtocolEventMapper {
         return mId;
     }
 
+    public static String fromGridToMatrix(ChannelID id) {
+        return forChannelIdFromGridToMatrix(id.full());
+    }
+
     public static String forChannelIdFromGridToMatrix(String gId) {
         if (StringUtils.isEmpty(gId)) {
             return gId;
@@ -347,6 +348,22 @@ public class ProtocolEventMapper {
         gId = ChannelID.from(new String(Base64.decodeBase64(parts[0]), StandardCharsets.UTF_8), parts[1]).full();
         log.debug("Channel ID: Matrix -> Grid: {} -> {}", mId, gId);
         return gId;
+    }
+
+    public static ChannelAlias forChannelAliasFromMatrixToGrid(String rAlias) {
+        if (StringUtils.isBlank(rAlias)) {
+            throw new IllegalArgumentException("Room alias cannot be empty/blank");
+        }
+
+        return ChannelAlias.parse(rAlias.replaceFirst(":", "@"));
+    }
+
+    public static String forChannelAliasFromGridToMatrix(String rAlias) {
+        if (StringUtils.isEmpty(rAlias)) {
+            return rAlias;
+        }
+
+        return rAlias.replaceFirst("@", ":");
     }
 
 }

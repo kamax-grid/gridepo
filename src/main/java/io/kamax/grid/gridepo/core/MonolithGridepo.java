@@ -119,7 +119,7 @@ public class MonolithGridepo implements Gridepo {
         chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);
         streamer = new EventStreamer(store);
 
-        chDir = new ChannelDirectory(origin, store, bus);
+        chDir = new ChannelDirectory(origin, store, bus, dsMgr);
         fedPush = new FederationPusher(this, dsMgr);
 
         log.info("We are {}", getDomain());

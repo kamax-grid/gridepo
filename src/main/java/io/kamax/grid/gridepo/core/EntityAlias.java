@@ -20,22 +20,49 @@
 
 package io.kamax.grid.gridepo.core;
 
+import java.util.Objects;
+
 public class EntityAlias {
 
-    private final String network;
-    private final String address;
+    public static final String Delimiter = "@";
 
-    public EntityAlias(String network, String address) {
-        this.network = network;
-        this.address = address;
+    private String sigill;
+    private String local;
+    private String network;
+    private String raw;
+    private String full;
+
+    public EntityAlias(String sigill, String local, String network) {
+        this.sigill = Objects.requireNonNull(sigill);
+        this.local = Objects.requireNonNull(local).toLowerCase();
+        this.network = Objects.requireNonNull(network).toLowerCase();
+
+        init();
     }
 
-    public String getNetwork() {
+    private void init() {
+        raw = local() + Delimiter + network();
+        full = sigill() + raw();
+    }
+
+    public String sigill() {
+        return sigill;
+    }
+
+    public String local() {
+        return local;
+    }
+
+    public String network() {
         return network;
     }
 
-    public String getAddress() {
-        return address;
+    public String raw() {
+        return raw;
+    }
+
+    public String full() {
+        return full;
     }
 
 }

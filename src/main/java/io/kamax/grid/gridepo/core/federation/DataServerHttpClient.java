@@ -22,12 +22,18 @@ package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.ChannelAlias;
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.RemoteServerException;
+import io.kamax.grid.gridepo.http.handler.grid.server.io.ChannelLookupResponse;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.EntityBuilder;
@@ -53,9 +59,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DataServerHttpClient implements DataServerClient {
@@ -134,6 +139,10 @@ public class DataServerHttpClient implements DataServerClient {
                 .build();
     }
 
+    private <T> T parse(CloseableHttpResponse res, Class<T> c) throws IOException {
+        return GsonUtil.parse(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8), c);
+    }
+
     @Override
     public JsonObject push(String as, String to, List<ChannelEvent> chEvents) {
         JsonArray events = new JsonArray();
@@ -144,7 +153,7 @@ public class DataServerHttpClient implements DataServerClient {
         req.setEntity(getJsonEntity(GsonUtil.makeObj("events", events)));
 
         for (Address ad : lookupSrv(to)) {
-            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/server/v0/do/push";
+            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/push";
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -195,7 +204,7 @@ public class DataServerHttpClient implements DataServerClient {
         req.setEntity(getJsonEntity(data));
 
         for (Address ad : lookupSrv(target)) {
-            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/server/v0/do/approve/invite";
+            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/approve/invite";
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -225,6 +234,73 @@ public class DataServerHttpClient implements DataServerClient {
                         try {
                             // FIXME check if the server signed the event before returning it
                             return GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                        } catch (IllegalArgumentException e) {
+                            throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
+                        }
+                    }
+                } catch (IOException e) {
+                    log.warn("", e);
+                }
+            } catch (URISyntaxException e) {
+                log.warn("Unable to create URI for server: Invalid URI for {}: {}", srvUriRaw, e.getMessage());
+            }
+        }
+
+        throw new RemoteServerException(target, "G_FEDERATION_ERROR", "Could not find a working server for " + target);
+    }
+
+    @Override
+    public Optional<ChannelLookup> lookup(String as, String target, ChannelAlias alias) {
+        HttpPost req = new HttpPost();
+        req.setHeader("X-Grid-Remote-ID", as);
+        req.setEntity(getJsonEntity(GsonUtil.makeObj("alias", alias.full())));
+
+        for (Address ad : lookupSrv(target)) {
+            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/lookup/channel/alias";
+            try {
+                URI srvUri = new URI(srvUriRaw);
+                try {
+                    req.setURI(srvUri);
+                    try (CloseableHttpResponse res = client.execute(req)) {
+                        int sc = res.getStatusLine().getStatusCode();
+                        if (sc != 200) {
+                            JsonObject b;
+                            try {
+                                b = GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                            } catch (IllegalArgumentException e) {
+                                b = new JsonObject();
+                            }
+
+                            if (sc == 404 && StringUtils.equals("G_NOT_FOUND", GsonUtil.getStringOrNull(b, "errcode"))) {
+                                return Optional.empty();
+                            }
+
+                            if (sc == 403) {
+                                throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
+                            }
+
+                            throw new RemoteServerException(
+                                    target,
+                                    GsonUtil.findString(b, "errcode").orElse("G_UNKNOWN"),
+                                    GsonUtil.findString(b, "error").orElse("Server did not return a valid error message")
+                            );
+                        }
+
+                        try {
+                            ChannelLookupResponse data = parse(res, ChannelLookupResponse.class);
+                            if (Objects.isNull(data.getId())) {
+                                log.warn("Server located at {} does not follow the specification, ignoring response", target);
+                                return Optional.empty();
+                            }
+
+                            if (Objects.isNull(data.getServers())) {
+                                log.warn("Server located at {} does not follow the specification, ignoring response", target);
+                                return Optional.empty();
+                            }
+
+                            ChannelID cId = ChannelID.from(data.getId());
+                            Set<ServerID> srvIds = data.getServers().stream().map(ServerID::parse).collect(Collectors.toSet());
+                            return Optional.of(new ChannelLookup(alias, cId, srvIds));
                         } catch (IllegalArgumentException e) {
                             throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
                         }
