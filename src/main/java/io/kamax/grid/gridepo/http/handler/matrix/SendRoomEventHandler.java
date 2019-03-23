@@ -44,9 +44,10 @@ public class SendRoomEventHandler extends ClientApiHandler {
 
         JsonObject content = exchange.parseJsonObject();
         JsonObject ev = new JsonObject();
-        ev.addProperty("type", evType.replace("m.room.", "g.c.")); // just a generic transform for now
+        ev.addProperty("type", evType);
         ev.add("content", content);
 
+        ev = ProtocolEventMapper.forEventConvertToGrid(ev);
         String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId);
         String evId = ProtocolEventMapper.forEventIdFromGridToMatrix(session.send(cId, ev));
         exchange.respondJson(GsonUtil.makeObj("event_id", evId));

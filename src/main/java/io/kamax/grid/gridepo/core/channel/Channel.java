@@ -75,7 +75,19 @@ public class Channel {
         this.store = store;
         this.srvMgr = srvMgr;
         this.bus = bus;
-        this.view = new ChannelView();
+
+        init();
+    }
+
+    private void init() {
+        // FIXME we need to resolve the extremities as a timeline, get the HEAD and its state
+        view = new ChannelView(null, store.getExtremities(getSid()).stream()
+                .map(store::getEvent)
+                .max(Comparator.comparingLong(ev -> ev.getBare().getDepth()))
+                .map(ChannelEvent::getSid)
+                .map(store::getStateForEvent)
+                .orElseGet(ChannelState::empty));
+        log.info("Channel {}: Loaded saved state SID {}", getSid(), view.getState().getSid());
     }
 
     public long getSid() {
@@ -222,13 +234,14 @@ public class Channel {
         state = store.getState(store.insertIfNew(getSid(), state));
         store.map(ev.getSid(), state.getSid());
 
-        List<Long> toRemove = ev.getBare().getPreviousEvents().stream()
-                .map(id -> store.getEventSid(getId(), EventID.from(id)))
-                .collect(Collectors.toList());
-        List<Long> toAdd = Collections.singletonList(ev.getSid());
-        store.updateExtremities(getSid(), toRemove, toAdd);
-
-        view = new ChannelView(ev.getId(), state);
+        if (ev.getMeta().isAllowed()) {
+            List<Long> toRemove = ev.getBare().getPreviousEvents().stream()
+                    .map(id -> store.getEventSid(getId(), EventID.from(id)))
+                    .collect(Collectors.toList());
+            List<Long> toAdd = Collections.singletonList(ev.getSid());
+            store.updateExtremities(getSid(), toRemove, toAdd);
+            view = new ChannelView(ev.getId(), state);
+        }
 
         bus.forTopic(SignalTopic.Channel).publish(new ChannelMessageProcessed(ev, auth));
 
@@ -314,6 +327,11 @@ public class Channel {
             ChannelEventAuthorization auth = algo.authorize(state, event.getId(), event.getData());
             event.getMeta().setValid(auth.isValid());
             event.getMeta().setAllowed(auth.isAuthorized());
+
+            if (!auth.isAuthorized()) {
+                // TODO switch to debug later
+                log.info("Event not authorized: {}", auth.getReason());
+            }
 
             // Still need to process
             event.getMeta().setProcessed(false);

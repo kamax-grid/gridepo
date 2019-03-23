@@ -36,7 +36,7 @@ public class SyncResponse {
     public static class RoomEvent {
 
         public static RoomEvent build(ChannelEvent ev) {
-            RoomEvent rEv = GsonUtil.get().fromJson(ProtocolEventMapper.convert(ev), RoomEvent.class);
+            RoomEvent rEv = GsonUtil.get().fromJson(ProtocolEventMapper.forEventConvertToMatrix(ev), RoomEvent.class);
             rEv.channelId = ev.getChannelId();
             return rEv;
         }

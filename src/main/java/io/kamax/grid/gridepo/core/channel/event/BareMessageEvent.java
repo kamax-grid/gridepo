@@ -27,7 +27,16 @@ public class BareMessageEvent extends BareEvent<BareMessageEvent.Content> {
 
     public static class Content {
 
+        private String type;
         private Map<String, String> body = new HashMap<>();
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
 
         public Map<String, String> getBody() {
             return body;
@@ -41,7 +50,6 @@ public class BareMessageEvent extends BareEvent<BareMessageEvent.Content> {
 
     public BareMessageEvent() {
         setType(ChannelEventType.Message);
-        setScope("");
         setContent(new Content());
     }
 
