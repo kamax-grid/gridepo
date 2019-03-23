@@ -29,7 +29,6 @@ import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
 import io.kamax.grid.gridepo.core.store.Store;
-import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
@@ -71,28 +70,19 @@ public class ChannelDirectory {
         }
 
         BareAliasEvent ev = GsonUtil.fromJson(evP.getEvent().getData(), BareAliasEvent.class);
-        map(ChannelID.from(ev.getChannelId()), ev.getContent().getAliases());
+        setAliases(ChannelID.from(ev.getChannelId()), ev.getContent().getAliases());
     }
 
     public Optional<ChannelID> lookup(String alias) {
         return store.lookupChannelAlias(alias);
     }
 
-    public Set<String> getAddresses(ChannelID id) {
+    public Set<String> getAliases(ChannelID id) {
         return store.findChannelAlias(origin, id);
     }
 
-    public void map(ChannelID id, Set<String> aliases) {
+    public void setAliases(ChannelID id, Set<String> aliases) {
         store.setAliases(origin, id, aliases);
-    }
-
-    public void unmap(String alias) {
-        Optional<ChannelID> id = lookup(alias);
-        if (!id.isPresent()) {
-            throw new ObjectNotFoundException("Channel alias", alias);
-        }
-
-        store.unmap(alias);
     }
 
 }

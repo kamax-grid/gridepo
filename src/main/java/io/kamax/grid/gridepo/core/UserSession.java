@@ -34,6 +34,7 @@ import io.kamax.grid.gridepo.core.signal.AppStopping;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
 import org.apache.commons.lang3.StringUtils;
@@ -208,7 +209,7 @@ public class UserSession {
     }
 
     public void addChannelAlias(String alias, ChannelID id) {
-        Set<String> aliases = g.getChannelDirectory().getAddresses(id);
+        Set<String> aliases = g.getChannelDirectory().getAliases(id);
         if (aliases.contains(alias)) {
             return;
         }
@@ -221,6 +222,25 @@ public class UserSession {
         ev.getContent().setAliases(aliases);
 
         g.getChannelManager().get(id).makeAndInject(ev.getJson());
+    }
+
+    public void removeChannelAlias(String alias) {
+        ChannelID cId = g.getChannelDirectory().lookup(alias)
+                .orElseThrow(() -> new ObjectNotFoundException("Channel Alias", alias));
+
+        Set<String> aliases = g.getChannelDirectory().getAliases(cId);
+        if (!aliases.contains(alias)) {
+            return;
+        }
+
+        aliases.remove(alias);
+
+        BareAliasEvent ev = new BareAliasEvent();
+        ev.setScope(g.getOrigin().full());
+        ev.setSender(user.getId().full());
+        ev.getContent().setAliases(aliases);
+
+        g.getChannelManager().get(cId).makeAndInject(ev.getJson());
     }
 
 }

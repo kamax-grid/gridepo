@@ -126,6 +126,7 @@ public class MonolithHttpGridepo {
 
                 // Room Directory endpoints
                 .put(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryAddHandler(g))
+                .delete(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryRemoveHandler(g))
 
                 // Not supported over Matrix
                 .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))
