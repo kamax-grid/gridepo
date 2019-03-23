@@ -26,26 +26,29 @@ import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.BeforeClass;
 
+import java.util.Objects;
+
 import static org.junit.Assume.assumeTrue;
 
 public class PostgresSQLStoreTest extends StoreTest {
 
     private static StorageConfig cfg;
+    private static PostgreSQLStore pStore;
 
     @BeforeClass
     public static void beforeClass() {
         String cfgJson = System.getenv("GRIDEPO_TEST_STORE_POSTGRESQL_CONFIG");
         assumeTrue(StringUtils.isNotBlank(cfgJson));
-
         cfg = GsonUtil.parse(cfgJson, StorageConfig.class);
     }
 
     @Override
     protected Store getNewStore() {
-        StorageConfig cfg = new StorageConfig();
-        cfg.setType("postgresql");
-        cfg.setConnection("//localhost/grid?user=grid&password=grid");
-        return new PostgreSQLStore(cfg);
+        if (Objects.isNull(pStore)) {
+            pStore = new PostgreSQLStore(cfg);
+        }
+
+        return pStore;
     }
 
 }
