@@ -207,18 +207,30 @@ public class PostgreSQLStore implements Store {
         });
     }
 
+    private Optional<ChannelDao> findChannel(ResultSet rSet) throws SQLException {
+        if (!rSet.next()) {
+            return Optional.empty();
+        }
+
+        ChannelDao dao = new ChannelDao(rSet.getLong("sid"), ChannelID.fromRaw(rSet.getString("id")));
+        return Optional.of(dao);
+    }
+
     @Override
     public Optional<ChannelDao> findChannel(long cSid) {
         String sql = "SELECT * FROM channels WHERE network = 'grid' AND sid = ?";
         return withStmtFunction(sql, stmt -> {
             stmt.setLong(1, cSid);
-            ResultSet rSet = stmt.executeQuery();
-            if (!rSet.next()) {
-                return Optional.empty();
-            }
+            return findChannel(stmt.executeQuery());
+        });
+    }
 
-            ChannelDao dao = new ChannelDao(rSet.getLong("sid"), ChannelID.fromRaw(rSet.getString("id")));
-            return Optional.of(dao);
+    @Override
+    public Optional<ChannelDao> findChannel(ChannelID cId) {
+        String sql = "SELECT * FROM channels WHERE network = 'grid' AND id = ?";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setString(1, cId.base());
+            return findChannel(stmt.executeQuery());
         });
     }
 

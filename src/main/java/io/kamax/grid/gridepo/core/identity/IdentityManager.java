@@ -36,8 +36,13 @@ public class IdentityManager {
         this.store = store;
 
         // FIXME remove before first release
-        register("user1", "gridepo");
-        register("user2", "gridepo");
+        if (!store.findPassword("user1").isPresent()) {
+            register("user1", "gridepo");
+        }
+
+        if (!store.findPassword("user1").isPresent()) {
+            register("user2", "gridepo");
+        }
     }
 
     public synchronized void register(String username, String password) {

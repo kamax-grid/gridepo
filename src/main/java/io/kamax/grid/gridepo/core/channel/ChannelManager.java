@@ -56,7 +56,7 @@ public class ChannelManager {
     private Store store;
     private DataServerManager dsmgr;
 
-    private Map<String, Channel> channels = new ConcurrentHashMap<>();
+    private Map<ChannelID, Channel> channels = new ConcurrentHashMap<>();
 
     public ChannelManager(Gridepo g, SignalBus bus, EventService evSvc, Store store, DataServerManager dsmgr) {
         this.g = g;
@@ -64,6 +64,11 @@ public class ChannelManager {
         this.evSvc = evSvc;
         this.store = store;
         this.dsmgr = dsmgr;
+    }
+
+    private Channel fromDao(ChannelDao dao) {
+        // FIXME get version from somewhere
+        return new Channel(dao, g.getOrigin(), ChannelAlgos.get(null), evSvc, store, dsmgr, bus);
     }
 
     private ChannelID generateId() {
@@ -86,7 +91,7 @@ public class ChannelManager {
         dao = store.saveChannel(dao); // FIXME rollback creation in case of failure, or use transaction
 
         Channel ch = new Channel(dao, g.getOrigin(), algo, evSvc, store, dsmgr, bus);
-        channels.put(ch.getId().full(), ch);
+        channels.put(ch.getId(), ch);
 
         List<BareEvent> createEvents = algo.getCreationEvents(creator);
         createEvents.stream()
@@ -120,16 +125,24 @@ public class ChannelManager {
             throw new ForbiddenException("Seed is not allowed as per state: " + auth.getReason());
         }
 
-        channels.put(ch.getId().full(), ch);
+        channels.put(ch.getId(), ch);
         return ch;
     }
 
-    public Optional<Channel> find(String id) {
-        return Optional.ofNullable(channels.get(id));
+    public synchronized Optional<Channel> find(ChannelID cId) {
+        if (!channels.containsKey(cId)) {
+            store.findChannel(cId).ifPresent(channelDao -> channels.put(cId, fromDao(channelDao)));
+        }
+
+        return Optional.ofNullable(channels.get(cId));
+    }
+
+    public Channel get(ChannelID cId) {
+        return find(cId).orElseThrow(() -> new ObjectNotFoundException("Channel", cId));
     }
 
     public Channel get(String id) {
-        return find(id).orElseThrow(() -> new ObjectNotFoundException("Channel", id));
+        return get(ChannelID.from(id));
     }
 
 }

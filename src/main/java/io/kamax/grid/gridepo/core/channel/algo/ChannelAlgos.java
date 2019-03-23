@@ -20,13 +20,24 @@
 
 package io.kamax.grid.gridepo.core.channel.algo;
 
+import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.ServiceLoader;
 
 public class ChannelAlgos {
 
+    public static String defaultVersion() {
+        return ChannelAlgoV0_0.Version;
+    }
+
     public static ChannelAlgo get(String channelVersion) throws NoSuchElementException {
+        if (StringUtils.isEmpty(channelVersion)) {
+            channelVersion = defaultVersion();
+        }
+
         ServiceLoader<ChannelAlgoLoader> svcLoader = ServiceLoader.load(ChannelAlgoLoader.class);
         while (svcLoader.iterator().hasNext()) {
             Optional<ChannelAlgo> algo = svcLoader.iterator().next().apply(channelVersion);

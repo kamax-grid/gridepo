@@ -69,7 +69,7 @@ public class ServerSession {
         log.info("Approving invite from {} for {} in {}", mEv.getSender(), mEv.getScope(), chId);
 
         JsonObject invEv = g.getEventService().sign(request.getObject());
-        Optional<Channel> chOpt = g.getChannelManager().find(chId);
+        Optional<Channel> chOpt = g.getChannelManager().find(ChannelID.from(chId));
 
         if (chOpt.isPresent()) {
             ChannelEventAuthorization auth = chOpt.get().injectRemote(srvId, invEv);

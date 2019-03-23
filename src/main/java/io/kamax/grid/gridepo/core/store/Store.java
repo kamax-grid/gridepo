@@ -35,6 +35,8 @@ public interface Store {
 
     Optional<ChannelDao> findChannel(long cSid);
 
+    Optional<ChannelDao> findChannel(ChannelID cId);
+
     default ChannelDao getChannel(long cSid) {
         return findChannel(cSid).orElseThrow(() -> new ObjectNotFoundException("Channel", Long.toString(cSid)));
     }

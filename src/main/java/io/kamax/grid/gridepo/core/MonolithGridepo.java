@@ -40,6 +40,7 @@ import io.kamax.grid.gridepo.core.signal.AppStopping;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLStore;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
@@ -89,6 +90,8 @@ public class MonolithGridepo implements Gridepo {
         // FIXME use ServiceLoader
         if (StringUtils.equals("memory", cfg.getStorage().getType())) {
             store = new MemoryStore();
+        } else if (StringUtils.equals("postgresql", cfg.getStorage().getType())) {
+            store = new PostgreSQLStore(cfg.getStorage());
         } else {
             throw new IllegalArgumentException("Unknown storage: " + cfg.getStorage().getType());
         }
@@ -99,7 +102,7 @@ public class MonolithGridepo implements Gridepo {
 
         String jwtSeed = cfg.getCrypto().getSeed().get("jwt");
         if (StringUtils.isEmpty(jwtSeed)) {
-            log.warn("JWT secret is not set, derivating from main signing key. Please set a JWT secret");
+            log.warn("JWT secret is not set, computing one from main signing key. Please set a JWT secret in your config");
             jwtSeed = GridHash.get().hashFromUtf8(cfg.getDomain() + keyMgr.getPrivateKeyBase64(keyMgr.getCurrentIndex()));
         }
 

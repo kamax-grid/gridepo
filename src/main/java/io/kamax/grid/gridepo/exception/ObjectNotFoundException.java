@@ -22,7 +22,7 @@ package io.kamax.grid.gridepo.exception;
 
 public class ObjectNotFoundException extends RuntimeException {
 
-    public ObjectNotFoundException(String type, String id) {
+    public ObjectNotFoundException(String type, Object id) {
         super(type + " with ID " + id);
     }
 

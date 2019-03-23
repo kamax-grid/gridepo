@@ -45,6 +45,7 @@ public class MemoryStore implements Store {
 
     private Map<String, String> users = new ConcurrentHashMap<>();
     private Map<Long, ChannelDao> channels = new ConcurrentHashMap<>();
+    private Map<ChannelID, ChannelDao> chIdToDao = new ConcurrentHashMap<>();
     private Map<Long, ChannelEvent> chEvents = new ConcurrentHashMap<>();
     private Map<Long, ChannelState> chStates = new ConcurrentHashMap<>();
     private Map<Long, List<Long>> chExtremities = new ConcurrentHashMap<>();
@@ -69,10 +70,16 @@ public class MemoryStore implements Store {
     }
 
     @Override
+    public Optional<ChannelDao> findChannel(ChannelID cId) {
+        return Optional.ofNullable(chIdToDao.get(cId));
+    }
+
+    @Override
     public ChannelDao saveChannel(ChannelDao ch) {
         long sid = chSid.incrementAndGet();
         ch = new ChannelDao(sid, ch.getId());
         channels.put(sid, ch);
+        chIdToDao.put(ch.getId(), ch);
         return ch;
     }
 
