@@ -116,10 +116,11 @@ public class MonolithHttpGridepo {
 
                 // Room management endpoints
                 .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
-                .post(ClientAPIr0.Room + "/invite", new ChannelInviteHandler(g))
-                .post(ClientAPIr0.Base + "/join/{roomId}", new ChannelJoinHandler(g))
-                .post(ClientAPIr0.Room + "/leave", new ChannelLeaveHandler(g))
+                .post(ClientAPIr0.Room + "/invite", new RoomInviteHandler(g))
+                .post(ClientAPIr0.Base + "/join/{roomId}", new RoomJoinHandler(g))
+                .post(ClientAPIr0.Room + "/leave", new RoomLeaveHandler(g))
                 .post(ClientAPIr0.Room + "/forget", new EmptyJsonObjectHandler(g, true))
+                .get(ClientAPIr0.Room + "/initialSync", new RoomInitialSyncHandler(g))
 
                 // Room event endpoints
                 .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendRoomEventHandler(g))
@@ -127,7 +128,7 @@ public class MonolithHttpGridepo {
                 .put(ClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
 
                 // Room Directory endpoints
-                .get(ClientAPIr0.Directory + "/room/{roomAlias}", new ChannelAliasLookupHandler(g))
+                .get(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomAliasLookupHandler(g))
                 .put(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryAddHandler(g))
                 .delete(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryRemoveHandler(g))
                 .post(ClientAPIr0.Base + "/publicRooms", new PublicChannelListingHandler(g))

@@ -54,9 +54,14 @@ public class DataServerManager {
     }
 
     public List<DataServer> get(Collection<ServerID> domains) {
+        return get(domains, false);
+    }
+
+    public List<DataServer> get(Collection<ServerID> domains, boolean all) {
+        // FIXME we should use
         return domains.stream()
                 .map(d -> cache.getUnchecked(d))
-                .filter(DataServer::isAvailable)
+                .filter(d -> all || d.isAvailable())
                 .sorted(Comparator.comparingLong(DataServer::getLastCall).reversed())
                 .collect(Collectors.toList());
     }

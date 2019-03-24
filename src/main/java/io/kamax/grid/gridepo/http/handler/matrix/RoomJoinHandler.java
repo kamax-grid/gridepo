@@ -22,17 +22,20 @@ package io.kamax.grid.gridepo.http.handler.matrix;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.ChannelAlias;
+import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 
-public class ChannelJoinHandler extends ClientApiHandler {
+public class RoomJoinHandler extends ClientApiHandler {
 
     private final Gridepo g;
 
-    public ChannelJoinHandler(Gridepo g) {
+    public RoomJoinHandler(Gridepo g) {
         this.g = g;
     }
 
@@ -40,10 +43,28 @@ public class ChannelJoinHandler extends ClientApiHandler {
     protected void handle(Exchange exchange) {
         UserSession s = g.withToken(exchange.getAccessToken());
 
-        String mId = exchange.getPathVariable("roomId");
-        if (StringUtils.isEmpty(mId)) {
+        String mIdOrAlias = exchange.getPathVariable("roomId");
+        if (StringUtils.isEmpty(mIdOrAlias)) {
             throw new IllegalArgumentException("Missing Room ID in path");
         }
+
+        if (mIdOrAlias.startsWith(ChannelID.Sigill)) {
+            handleRoomAlias(exchange, s, mIdOrAlias);
+        } else if (mIdOrAlias.startsWith("!")) {
+            handleRoomId(exchange, s, mIdOrAlias);
+        } else {
+            throw new IllegalArgumentException("Invalid Room ID/Alias in path: " + mIdOrAlias);
+        }
+
+    }
+
+    private void handleRoomAlias(Exchange exchange, UserSession s, String mAlias) {
+        ChannelAlias cAlias = ProtocolEventMapper.forChannelAliasFromMatrixToGrid(mAlias);
+        Channel c = s.joinChannel(cAlias);
+        exchange.respond(GsonUtil.makeObj("room_id", ProtocolEventMapper.fromGridToMatrix(c.getId())));
+    }
+
+    private void handleRoomId(Exchange exchange, UserSession s, String mId) {
         String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(mId);
 
         JsonObject body = exchange.parseJsonObject();

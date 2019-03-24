@@ -71,6 +71,7 @@ public class EntityID {
 
     @Override
     public boolean equals(Object o) {
+        if (Objects.isNull(o)) return false;
         if (this == o) return true;
         if (!(o instanceof EntityID)) return false;
 

@@ -20,31 +20,48 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.EntityGUID;
 import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 
-public class ChannelLeaveHandler extends ClientApiHandler {
+public class RoomInviteHandler extends ClientApiHandler {
 
     private final Gridepo g;
 
-    public ChannelLeaveHandler(Gridepo g) {
+    public RoomInviteHandler(Gridepo g) {
         this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
         UserSession s = g.withToken(exchange.getAccessToken());
+        JsonObject body = exchange.parseJsonObject();
 
         String mId = exchange.getPathVariable("roomId");
         if (StringUtils.isEmpty(mId)) {
             throw new IllegalArgumentException("Missing Room ID in path");
         }
         String cId = ProtocolEventMapper.forChannelIdFromMatrixToGrid(mId);
-        
-        s.leaveChannel(cId);
 
+        EntityGUID uAl;
+        if (body.has("medium")) {
+            // This is 3PID invite, generic mapping to alias
+            String network = GsonUtil.getStringOrThrow(body, "medium");
+            String address = GsonUtil.getStringOrThrow(body, "address");
+            uAl = new EntityGUID(network, address);
+        } else if (body.has("user_id")) {
+            // This is a Matrix ID invite, mapping to alias
+            uAl = new EntityGUID("matrix", GsonUtil.getStringOrThrow(body, "user_id"));
+        } else {
+            // Nothing else is possible at this time, throwing error
+            throw new IllegalArgumentException("Not a Matrix ID or 3PID invite");
+        }
+
+        s.inviteToChannel(cId, uAl);
         exchange.respondJson("{}");
     }
 

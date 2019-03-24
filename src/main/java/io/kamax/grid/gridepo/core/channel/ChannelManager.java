@@ -22,7 +22,9 @@ package io.kamax.grid.gridepo.core.channel;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgos;
 import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
@@ -30,15 +32,20 @@ import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
+import io.kamax.grid.gridepo.core.channel.structure.ApprovalExchange;
 import io.kamax.grid.gridepo.core.event.EventService;
+import io.kamax.grid.gridepo.core.federation.DataServer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.exception.EntityUnreachableException;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +56,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChannelManager {
+
+    private static final Logger log = KxLog.make(ChannelManager.class);
 
     private Gridepo g;
     private SignalBus bus;
@@ -77,7 +86,7 @@ public class ChannelManager {
         byte[] tsBytes = buffer.array();
         String localpart = new String(tsBytes, StandardCharsets.UTF_8) + RandomStringUtils.randomAlphanumeric(2);
 
-        return ChannelID.from(localpart, g.getConfig().getDomain());
+        return ChannelID.from(localpart, g.getDomain());
     }
 
     public Channel createChannel(String creator) {
@@ -143,6 +152,60 @@ public class ChannelManager {
 
     public Channel get(String id) {
         return get(ChannelID.from(id));
+    }
+
+    public Channel join(ChannelAlias cAlias, UserID uId) {
+        BareMemberEvent bEv = new BareMemberEvent();
+        bEv.setSender(uId.full());
+        bEv.setScope(uId.full());
+        bEv.getContent().setAction(ChannelMembership.Join);
+
+        ChannelLookup data = g.getChannelDirectory().lookup(cAlias, true)
+                .orElseThrow(() -> new ObjectNotFoundException("Channel alias", cAlias.full()));
+
+        Optional<Channel> cOpt = find(data.getId());
+        if (cOpt.isPresent()) {
+            Channel c = cOpt.get();
+            if (c.getView().getJoinedServers().stream().anyMatch(g::isLocal)) {
+                // We are joined, so we can make our own event
+
+                ChannelEventAuthorization auth = c.makeAndInject(bEv.getJson());
+                if (!auth.isAuthorized()) {
+                    throw new ForbiddenException(auth.getReason());
+                }
+
+                return c;
+            }
+        }
+
+        // Couldn't join locally, let's try remotely
+        if (data.getServers().isEmpty()) {
+            // We have no peer we can use to join
+            throw new EntityUnreachableException();
+        }
+
+        for (DataServer srv : dsmgr.get(data.getServers(), true)) {
+            String origin = srv.getId().full();
+            try {
+                ApprovalExchange ex = srv.approveJoin(g.getOrigin().full(), bEv);
+                JsonObject seed = g.getEventService().finalize(ex.getObject());
+                if (cOpt.isPresent()) {
+                    Channel c = cOpt.get();
+
+                    // The room already exists, so we need to add the join to it
+                    c.injectRemote(origin, ex.getContext().getState());
+                    c.injectRemote(origin, seed);
+
+                    return c;
+                } else {
+                    return create(origin, seed, ex.getContext().getState());
+                }
+            } catch (ForbiddenException e) {
+                log.warn("{} refused to sign our join request to {} because: {}", srv.getId(), data.getId(), e.getReason());
+            }
+        }
+
+        throw new ForbiddenException("No resident server approved the join request");
     }
 
 }

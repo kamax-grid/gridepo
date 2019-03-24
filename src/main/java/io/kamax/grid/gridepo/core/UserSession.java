@@ -196,6 +196,10 @@ public class UserSession {
         return r.getEventId().full();
     }
 
+    public Channel joinChannel(ChannelAlias cAlias) {
+        return g.getChannelManager().join(cAlias, getUser().getId());
+    }
+
     public String leaveChannel(String cId) {
         BareMemberEvent ev = new BareMemberEvent();
         ev.setSender(user.getId().full());

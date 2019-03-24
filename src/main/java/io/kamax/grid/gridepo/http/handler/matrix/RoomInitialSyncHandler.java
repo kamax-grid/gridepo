@@ -20,38 +20,31 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.ChannelAlias;
-import io.kamax.grid.gridepo.core.UserSession;
-import io.kamax.grid.gridepo.core.channel.ChannelLookup;
-import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import org.apache.commons.lang3.StringUtils;
 
-public class ChannelAliasLookupHandler extends ClientApiHandler {
+public class RoomInitialSyncHandler extends ClientApiHandler {
 
     private final Gridepo g;
 
-    public ChannelAliasLookupHandler(Gridepo g) {
+    public RoomInitialSyncHandler(Gridepo g) {
         this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        UserSession s = g.withToken(exchange.getAccessToken());
+        g.withToken(exchange.getAccessToken());
 
-        String rAlias = exchange.getPathVariable("roomAlias");
-        ChannelAlias cAlias = ProtocolEventMapper.forChannelAliasFromMatrixToGrid(rAlias);
-
-        ChannelLookup lookup = s.lookup(cAlias).orElseThrow(() -> new ObjectNotFoundException("Room alias", rAlias));
-
-        JsonArray servers = new JsonArray();
-        lookup.getServers().forEach(id -> id.tryDecode().ifPresent(servers::add));
+        String rId = exchange.getPathVariable("roomId");
+        if (StringUtils.isBlank(rId)) {
+            throw new IllegalArgumentException("Room ID is invalid: " + rId);
+        }
 
         JsonObject response = new JsonObject();
-        response.addProperty("room_id", ProtocolEventMapper.fromGridToMatrix(lookup.getId()));
-        response.add("servers", servers);
+        response.addProperty("room_id", rId);
+        response.addProperty("membership", "leave");
 
         exchange.respond(response);
     }

@@ -71,6 +71,9 @@ public abstract class ClientApiHandler implements HttpHandler {
             } catch (NotImplementedException e) {
                 ex.respond(HttpStatus.SC_NOT_IMPLEMENTED, "M_NOT_IMPLEMENTED", e.getMessage());
                 log.debug("Trigger:", e);
+            } catch (EntityUnreachableException e) {
+                ex.respond(523, "ORG_GRIDIFY_ENTITY_UNREACHABLE", e.getMessage());
+                log.debug("Trigger:", e);
             } catch (RemoteServerException e) {
                 String code = e.getCode();
                 if (StringUtils.startsWith(code, "G_")) {

@@ -20,14 +20,10 @@
 
 package io.kamax.grid.gridepo.exception;
 
-public class ObjectNotFoundException extends RuntimeException {
+public class EntityUnreachableException extends RuntimeException {
 
-    public ObjectNotFoundException(String message) {
-        super(message);
-    }
-
-    public ObjectNotFoundException(String type, Object id) {
-        this(type + " with ID " + id);
+    public EntityUnreachableException() {
+        super("The requested entity cannot be reached, no means to reach it was found");
     }
 
 }

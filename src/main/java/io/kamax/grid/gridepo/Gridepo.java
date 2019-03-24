@@ -51,6 +51,8 @@ public interface Gridepo {
         return StringUtils.equals(sId, getOrigin().full());
     }
 
+    boolean isLocal(ServerID sId);
+
     SignalBus getBus();
 
     Store getStore();

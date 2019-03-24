@@ -26,6 +26,7 @@ import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
+import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
@@ -144,7 +145,7 @@ public class DataServerHttpClient implements DataServerClient {
     }
 
     @Override
-    public JsonObject push(String as, String to, List<ChannelEvent> chEvents) {
+    public JsonObject push(String as, String target, List<ChannelEvent> chEvents) {
         JsonArray events = new JsonArray();
         chEvents.forEach(chEv -> events.add(chEv.getData()));
 
@@ -152,7 +153,7 @@ public class DataServerHttpClient implements DataServerClient {
         req.setHeader("X-Grid-Remote-ID", as);
         req.setEntity(getJsonEntity(GsonUtil.makeObj("events", events)));
 
-        for (Address ad : lookupSrv(to)) {
+        for (Address ad : lookupSrv(target)) {
             String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/push";
             try {
                 URI srvUri = new URI(srvUriRaw);
@@ -172,18 +173,14 @@ public class DataServerHttpClient implements DataServerClient {
                                 throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
                             }
 
-                            throw new RemoteServerException(
-                                    to,
-                                    GsonUtil.findString(b, "errcode").orElse("G_UNKNOWN"),
-                                    GsonUtil.findString(b, "error").orElse("Server did not return a valid error message")
-                            );
+                            throw new RemoteServerException(target, b);
                         }
 
                         try {
                             // FIXME check if the server signed the event before returning it
-                            return GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                            return GsonUtil.parseObj(EntityUtils.toByteArray(res.getEntity()));
                         } catch (IllegalArgumentException e) {
-                            throw new RemoteServerException(to, "G_REMOTE_ERROR", "Server did not send us back JSON");
+                            throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
                         }
                     }
                 } catch (IOException e) {
@@ -194,7 +191,7 @@ public class DataServerHttpClient implements DataServerClient {
             }
         }
 
-        throw new RemoteServerException(to, "G_FEDERATION_ERROR", "Could not find a working server for " + to);
+        throw new RemoteServerException(target, "G_FEDERATION_ERROR", "Could not find a working server for " + target);
     }
 
     @Override
@@ -224,16 +221,60 @@ public class DataServerHttpClient implements DataServerClient {
                                 throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
                             }
 
-                            throw new RemoteServerException(
-                                    target,
-                                    GsonUtil.findString(b, "errcode").orElse("G_UNKNOWN"),
-                                    GsonUtil.findString(b, "error").orElse("Server did not return a valid error message")
-                            );
+                            throw new RemoteServerException(target, b);
                         }
 
                         try {
                             // FIXME check if the server signed the event before returning it
-                            return GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                            return GsonUtil.parseObj(EntityUtils.toByteArray(res.getEntity()));
+                        } catch (IllegalArgumentException e) {
+                            throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
+                        }
+                    }
+                } catch (IOException e) {
+                    log.warn("", e);
+                }
+            } catch (URISyntaxException e) {
+                log.warn("Unable to create URI for server: Invalid URI for {}: {}", srvUriRaw, e.getMessage());
+            }
+        }
+
+        throw new RemoteServerException(target, "G_FEDERATION_ERROR", "Could not find a working server for " + target);
+    }
+
+    @Override
+    public JsonObject approveJoin(String as, String target, BareMemberEvent ev) {
+        HttpPost req = new HttpPost();
+        req.setHeader("X-Grid-Remote-ID", as);
+        req.setEntity(getJsonEntity(ev.getJson()));
+
+        for (Address ad : lookupSrv(target)) {
+            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/approve/join";
+            try {
+                URI srvUri = new URI(srvUriRaw);
+                try {
+                    req.setURI(srvUri);
+                    try (CloseableHttpResponse res = client.execute(req)) {
+                        int sc = res.getStatusLine().getStatusCode();
+                        if (sc != 200) {
+                            JsonObject b;
+                            try {
+                                b = GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                            } catch (IllegalArgumentException e) {
+                                b = new JsonObject();
+                            }
+
+                            if (sc == 403) {
+                                log.warn("Remote server refused to sign our join");
+                                throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
+                            }
+
+                            throw new RemoteServerException(target, b);
+                        }
+
+                        try {
+                            // FIXME check if the server signed the event before returning it
+                            return GsonUtil.parseObj(EntityUtils.toByteArray(res.getEntity()));
                         } catch (IllegalArgumentException e) {
                             throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
                         }
@@ -279,11 +320,7 @@ public class DataServerHttpClient implements DataServerClient {
                                 throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
                             }
 
-                            throw new RemoteServerException(
-                                    target,
-                                    GsonUtil.findString(b, "errcode").orElse("G_UNKNOWN"),
-                                    GsonUtil.findString(b, "error").orElse("Server did not return a valid error message")
-                            );
+                            throw new RemoteServerException(target, b);
                         }
 
                         try {

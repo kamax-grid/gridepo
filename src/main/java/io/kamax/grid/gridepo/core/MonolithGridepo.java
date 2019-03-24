@@ -113,7 +113,7 @@ public class MonolithGridepo implements Gridepo {
                 .withIssuer(cfg.getDomain())
                 .build();
 
-        evSvc = new EventService(cfg.getDomain(), signMgr);
+        evSvc = new EventService(origin, signMgr);
 
         idMgr = new IdentityManager(store);
         chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);
@@ -159,6 +159,11 @@ public class MonolithGridepo implements Gridepo {
     @Override
     public ServerID getOrigin() {
         return origin;
+    }
+
+    @Override
+    public boolean isLocal(ServerID sId) {
+        return getOrigin().equals(sId);
     }
 
     @Override

@@ -20,10 +20,21 @@
 
 package io.kamax.grid.gridepo.exception;
 
+import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.util.GsonUtil;
+
 public class RemoteServerException extends RuntimeException {
 
     private final String code;
     private final String reason;
+
+    public RemoteServerException(String domain, JsonObject response) {
+        this(
+                domain,
+                GsonUtil.findString(response, "errcode").orElse("G_UNKNOWN"),
+                GsonUtil.findString(response, "error").orElse("Server did not return a valid error message")
+        );
+    }
 
     public RemoteServerException(String domain, String code, String reason) {
         super("Remote server " + domain + " replied with an error: " + code + " - " + reason);

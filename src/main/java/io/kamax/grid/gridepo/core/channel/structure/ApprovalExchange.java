@@ -18,26 +18,47 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.federation;
+package io.kamax.grid.gridepo.core.channel.structure;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.ChannelAlias;
-import io.kamax.grid.gridepo.core.channel.ChannelLookup;
-import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
-import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
-public interface DataServerClient {
+// TODO should obsolete InviteApprovalRequest?
+public class ApprovalExchange {
 
-    JsonObject push(String as, String target, List<ChannelEvent> events);
+    public static class Context {
 
-    JsonObject approveInvite(String as, String target, InviteApprovalRequest data);
+        private List<JsonObject> state = new ArrayList<>();
 
-    JsonObject approveJoin(String as, String target, BareMemberEvent ev);
+        public List<JsonObject> getState() {
+            return state;
+        }
 
-    Optional<ChannelLookup> lookup(String as, String target, ChannelAlias alias);
+        public void setState(List<JsonObject> state) {
+            this.state = state;
+        }
+
+    }
+
+    private JsonObject object;
+    private Context context = new Context();
+
+    public JsonObject getObject() {
+        return object;
+    }
+
+    public void setObject(JsonObject object) {
+        this.object = object;
+    }
+
+    public Context getContext() {
+        return context;
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
+    }
 
 }

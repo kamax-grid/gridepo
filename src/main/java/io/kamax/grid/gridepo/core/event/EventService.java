@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core.event;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.codec.GridHash;
 import io.kamax.grid.gridepo.codec.GridJson;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.core.crypto.SignManager;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -32,13 +33,13 @@ import java.util.Map;
 
 public class EventService {
 
-    private final String domain;
+    private final ServerID origin;
     private SignManager signMgr;
 
     private Map<String, Class<? extends BareEvent>> bares = new HashMap<>();
 
-    public EventService(String domain, SignManager signMgr) {
-        this.domain = domain;
+    public EventService(ServerID origin, SignManager signMgr) {
+        this.origin = origin;
         this.signMgr = signMgr;
 
         bares.put(ChannelEventType.Create.getId(), BareCreateEvent.class);
@@ -63,7 +64,7 @@ public class EventService {
         String minCanonical = GridJson.encodeCanonical(minEvJson);
 
         JsonObject signLocal = signMgr.getSignatures(minCanonical);
-        signatures.add(domain, signLocal);
+        signatures.add(origin.full(), signLocal);
         ev.add(EventKey.Signatures, signatures);
 
         return ev;

@@ -26,8 +26,11 @@ import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
+import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.structure.ApprovalExchange;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
 
@@ -127,6 +130,13 @@ public class DataServer {
 
     public JsonObject approveInvite(String as, InviteApprovalRequest data) {
         return withHealthCheck(true, () -> client.approveInvite(as, hostname, data));
+    }
+
+    public ApprovalExchange approveJoin(String as, BareMemberEvent ev) {
+        return withHealthCheck(true, () -> {
+            JsonObject json = client.approveJoin(as, hostname, ev);
+            return GsonUtil.fromJson(json, ApprovalExchange.class);
+        });
     }
 
     public Optional<ChannelLookup> lookup(String as, ChannelAlias alias) {

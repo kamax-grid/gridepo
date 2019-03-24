@@ -21,12 +21,19 @@
 package io.kamax.grid.gridepo.core.channel;
 
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ChannelView {
 
     private EventID head;
     private ChannelState state;
+
+    private transient Set<ServerID> srvJoined;
 
     public ChannelView() {
         this(null, ChannelState.empty());
@@ -43,6 +50,16 @@ public class ChannelView {
 
     public ChannelState getState() {
         return state;
+    }
+
+    public Set<ServerID> getJoinedServers() {
+        if (Objects.isNull(srvJoined)) {
+            srvJoined = getState().getEvents().stream()
+                    .map(ev -> ServerID.parse(ev.getOrigin()))
+                    .collect(Collectors.toSet());
+        }
+
+        return srvJoined;
     }
 
 }
