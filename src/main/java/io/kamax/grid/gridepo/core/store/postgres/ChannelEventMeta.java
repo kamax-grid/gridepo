@@ -24,6 +24,7 @@ import java.time.Instant;
 
 public class ChannelEventMeta {
 
+    private boolean seed;
     private String receivedFrom;
     private Instant receivedAt;
     private String fetchedFrom;
@@ -35,6 +36,14 @@ public class ChannelEventMeta {
     private boolean allowed;
     private Long orderMajor;
     private Long orderMinor;
+
+    public boolean isSeed() {
+        return seed;
+    }
+
+    public void setSeed(boolean seed) {
+        this.seed = seed;
+    }
 
     public String getReceivedFrom() {
         return receivedFrom;

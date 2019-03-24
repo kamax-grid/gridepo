@@ -106,7 +106,7 @@ public class ChannelManager {
         createEvents.stream()
                 .map(ch::makeEvent)
                 .map(ev -> evSvc.finalize(ev))
-                .map(ch::injectLocal)
+                .map(ch::offer)
                 .filter(auth -> !auth.isAuthorized())
                 .findAny().ifPresent(auth -> {
             throw new RuntimeException("Room creation failed because of initial event(s) being rejected: " + auth.getReason());
@@ -123,13 +123,8 @@ public class ChannelManager {
         BareCreateEvent createEv = GsonUtil.fromJson(stateJson.get(0), BareCreateEvent.class);
         String version = StringUtils.defaultIfEmpty(createEv.getContent().getVersion(), ChannelAlgoV0_0.Version);
         Channel ch = new Channel(dao, g.getOrigin(), ChannelAlgos.get(version), evSvc, store, dsmgr, bus);
-        List<ChannelEventAuthorization> auths = ch.injectRemote(from, stateJson);
 
-        auths.stream().filter(auth -> !auth.isAuthorized()).findFirst().ifPresent(auth -> {
-            throw new IllegalArgumentException("State event " + auth.getEventId() + " is not authorized: " + auth.getReason());
-        });
-
-        ChannelEventAuthorization auth = ch.injectRemote(from, seedJson);
+        ChannelEventAuthorization auth = ch.inject(from, seedJson, stateJson);
         if (!auth.isAuthorized()) {
             throw new ForbiddenException("Seed is not allowed as per state: " + auth.getReason());
         }
@@ -155,13 +150,14 @@ public class ChannelManager {
     }
 
     public Channel join(ChannelAlias cAlias, UserID uId) {
+        ChannelLookup data = g.getChannelDirectory().lookup(cAlias, true)
+                .orElseThrow(() -> new ObjectNotFoundException("Channel alias", cAlias.full()));
+
         BareMemberEvent bEv = new BareMemberEvent();
+        bEv.setChannelId(data.getId().full());
         bEv.setSender(uId.full());
         bEv.setScope(uId.full());
         bEv.getContent().setAction(ChannelMembership.Join);
-
-        ChannelLookup data = g.getChannelDirectory().lookup(cAlias, true)
-                .orElseThrow(() -> new ObjectNotFoundException("Channel alias", cAlias.full()));
 
         Optional<Channel> cOpt = find(data.getId());
         if (cOpt.isPresent()) {
@@ -169,7 +165,7 @@ public class ChannelManager {
             if (c.getView().getJoinedServers().stream().anyMatch(g::isLocal)) {
                 // We are joined, so we can make our own event
 
-                ChannelEventAuthorization auth = c.makeAndInject(bEv.getJson());
+                ChannelEventAuthorization auth = c.makeAndOffer(bEv.getJson());
                 if (!auth.isAuthorized()) {
                     throw new ForbiddenException(auth.getReason());
                 }
@@ -193,8 +189,8 @@ public class ChannelManager {
                     Channel c = cOpt.get();
 
                     // The room already exists, so we need to add the join to it
-                    c.injectRemote(origin, ex.getContext().getState());
-                    c.injectRemote(origin, seed);
+                    c.offer(origin, ex.getContext().getState());
+                    c.offer(origin, seed);
 
                     return c;
                 } else {

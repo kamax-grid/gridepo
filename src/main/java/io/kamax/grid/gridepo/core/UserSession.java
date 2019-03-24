@@ -173,7 +173,7 @@ public class UserSession {
 
     public String send(String cId, JsonObject data) {
         data.addProperty(EventKey.Sender, user.getId().full());
-        return g.getChannelManager().get(cId).makeAndInject(data).getEventId().full();
+        return g.getChannelManager().get(cId).makeAndOffer(data).getEventId().full();
     }
 
     public String inviteToChannel(String cId, EntityGUID uAl) {
@@ -188,7 +188,7 @@ public class UserSession {
         ev.setScope(user.getId().full());
         ev.getContent().setAction(ChannelMembership.Join);
 
-        ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndInject(ev.getJson());
+        ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndOffer(ev.getJson());
         if (!r.isAuthorized()) {
             throw new ForbiddenException(r.getReason());
         }
@@ -206,7 +206,7 @@ public class UserSession {
         ev.setScope(user.getId().full());
         ev.getContent().setAction(ChannelMembership.Leave);
 
-        ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndInject(ev.getJson());
+        ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndOffer(ev.getJson());
         if (!r.isAuthorized()) {
             throw new ForbiddenException(r.getReason());
         }
@@ -227,7 +227,7 @@ public class UserSession {
         ev.setSender(user.getId().full());
         ev.getContent().setAliases(aliases);
 
-        g.getChannelManager().get(id).makeAndInject(ev.getJson());
+        g.getChannelManager().get(id).makeAndOffer(ev.getJson());
     }
 
     public void removeChannelAlias(String alias) {
@@ -246,7 +246,7 @@ public class UserSession {
         ev.setSender(user.getId().full());
         ev.getContent().setAliases(aliases);
 
-        g.getChannelManager().get(cId).makeAndInject(ev.getJson());
+        g.getChannelManager().get(cId).makeAndOffer(ev.getJson());
     }
 
     public Optional<ChannelLookup> lookup(ChannelAlias alias) {

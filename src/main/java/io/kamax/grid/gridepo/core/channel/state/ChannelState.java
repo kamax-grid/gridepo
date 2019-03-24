@@ -147,7 +147,7 @@ public class ChannelState {
     }
 
     public Optional<ChannelJoinRule> getJoinRule() {
-        return find(ChannelEventType.JoinRules, BareJoinRules.class)
+        return find(ChannelEventType.JoinRules, BareJoiningEvent.class)
                 .map(ev -> ev.getContent().getRule())
                 .flatMap(joinRuleMapper());
     }

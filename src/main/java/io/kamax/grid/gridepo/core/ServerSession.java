@@ -27,11 +27,15 @@ import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.BareGenericEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEventType;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
+import io.kamax.grid.gridepo.core.channel.structure.ApprovalExchange;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.core.event.EventKey;
+import io.kamax.grid.gridepo.exception.EntityUnreachableException;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;
@@ -45,11 +49,11 @@ public class ServerSession {
     private static final Logger log = KxLog.make(ServerSession.class);
 
     private final Gridepo g;
-    private final String srvId;
+    private final ServerID id;
 
-    public ServerSession(Gridepo g, String srvId) {
+    public ServerSession(Gridepo g, ServerID id) {
         this.g = g;
-        this.srvId = srvId;
+        this.id = id;
     }
 
     public JsonObject approveInvite(InviteApprovalRequest request) {
@@ -74,12 +78,12 @@ public class ServerSession {
         Optional<Channel> chOpt = g.getChannelManager().find(ChannelID.from(chId));
 
         if (chOpt.isPresent()) {
-            ChannelEventAuthorization auth = chOpt.get().injectRemote(srvId, invEv);
+            ChannelEventAuthorization auth = chOpt.get().offer(id.full(), invEv);
             if (!auth.isAuthorized()) {
                 throw new ForbiddenException("Invite is not allowed given state");
             }
         } else {
-            g.getChannelManager().create(srvId, invEv, request.getContext().getState());
+            g.getChannelManager().create(id.full(), invEv, request.getContext().getState());
         }
 
         log.info("Invite is approved");
@@ -87,8 +91,41 @@ public class ServerSession {
         return invEv;
     }
 
+    // FIXME we are not atomic when it comes to state - we auth on an unknown state, and then fetch state again to send back
+    public ApprovalExchange approveJoin(BareMemberEvent ev) {
+        // We make sure we are given a valid Channel ID
+        ChannelID cId = ChannelID.from(ev.getChannelId());
+
+        // We make sure we know the channel itself
+        Channel c = g.getChannelManager().find(cId).orElseThrow(() -> new ObjectNotFoundException("Channel", cId));
+
+        // We make sure we are in the channel in the first place, else it's not possible for us to approve the join
+        if (!c.getView().isJoined(g.getOrigin())) {
+            throw new EntityUnreachableException();
+        }
+
+        ev.setOrigin(id.full());
+        JsonObject evBuilt = c.makeEvent(ev);
+        JsonObject evFinal = g.getEventService().finalize(evBuilt);
+        ChannelEventAuthorization auth = c.authorize(evFinal);
+        if (!auth.isAuthorized()) {
+            throw new ForbiddenException("Approval to join channel " + cId + ": " + auth.getReason());
+        }
+
+        List<JsonObject> state = c.getView().getState().getEvents().stream()
+                .sorted(Comparator.comparingLong(v -> v.getBare().getDepth()))
+                .map(ChannelEvent::getData)
+                .collect(Collectors.toList());
+
+        ApprovalExchange reply = new ApprovalExchange();
+        reply.setObject(evFinal);
+        reply.getContext().setState(state);
+
+        return reply;
+    }
+
     public List<ChannelEventAuthorization> push(List<JsonObject> events) {
-        log.info("Got pushed {} event(s) from {}", events.size(), srvId);
+        log.info("Got pushed {} event(s) from {}", events.size(), id);
 
         List<ChannelEventAuthorization> results = new ArrayList<>();
         Map<String, List<JsonObject>> evChanMap = new HashMap<>();
@@ -103,7 +140,7 @@ public class ServerSession {
 
         evChanMap.forEach((cId, objs) -> {
             log.info("Injecting {} event(s) in room {}", objs.size(), cId);
-            results.addAll(g.getChannelManager().get(cId).injectRemote(srvId, objs));
+            results.addAll(g.getChannelManager().get(cId).offer(id.full(), objs));
         });
 
         return results;

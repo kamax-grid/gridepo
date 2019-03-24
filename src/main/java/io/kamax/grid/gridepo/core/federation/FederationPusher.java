@@ -31,7 +31,7 @@ import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.TimeUnit;
@@ -72,12 +72,12 @@ public class FederationPusher {
             @Override
             protected void compute() {
                 ChannelState state = g.getChannelManager().get(ev.getChannelId()).getState(ev);
-                List<ServerID> servers = state.getEvents().stream()
+                Set<ServerID> servers = state.getEvents().stream()
                         .map(ChannelEvent::getBare)
                         .map(BareEvent::getOrigin)
                         .filter(v -> !g.isOrigin(v))
-                        .map(ServerID::from)
-                        .collect(Collectors.toList());
+                        .map(ServerID::parse)
+                        .collect(Collectors.toSet());
 
                 log.info("Will push to {} server(s)", servers.size());
 

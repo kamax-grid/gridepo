@@ -148,6 +148,19 @@ public class ProtocolEventMapper {
             return mEv;
         });
 
+        g2mMappers.put(ChannelEventType.JoinRules.getId(), ev -> {
+            BareJoiningEvent gEv = GsonUtil.fromJson(ev.getData(), BareJoiningEvent.class);
+
+            JsonObject mEvC = new JsonObject();
+            mEvC.addProperty("join_rule", gEv.getContent().getRule());
+
+            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
+            mEv.addProperty("type", "m.room.join_rules");
+            mEv.add("content", mEvC);
+
+            return mEv;
+        });
+
         // Default mapper
         g2mMappers.put(WildcardType, gEv -> {
             JsonObject mEv = mapCommon(gEv.getId().full(), gEv.getBare(), new JsonObject());
@@ -220,6 +233,17 @@ public class ProtocolEventMapper {
             GsonUtil.findObj(json, "content")
                     .flatMap(c -> GsonUtil.findArray(c, "aliases"))
                     .ifPresent(v -> gEv.getContent().setAliases(GsonUtil.asSet(v, String.class)));
+
+            return gEv.getJson();
+        });
+
+        m2gMappers.put("m.room.join_rules", json -> {
+            BareJoiningEvent gEv = new BareJoiningEvent();
+            mapCommon(gEv, json);
+
+            GsonUtil.findObj(json, "content")
+                    .flatMap(c -> GsonUtil.findString(c, "join_rule"))
+                    .ifPresent(v -> gEv.getContent().setRule(v));
 
             return gEv.getJson();
         });

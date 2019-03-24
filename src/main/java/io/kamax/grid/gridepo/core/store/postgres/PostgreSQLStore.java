@@ -312,17 +312,17 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public long getEventSid(ChannelID cId, EventID eId) throws ObjectNotFoundException {
+    public Optional<Long> findEventSid(ChannelID cId, EventID eId) throws ObjectNotFoundException {
         String sql = "SELECT e.sid FROM channels c JOIN channel_events e ON e.cSid = c.sid WHERE c.id = ? AND e.id = ?";
         return withStmtFunction(sql, stmt -> {
             stmt.setString(1, cId.base());
             stmt.setString(2, eId.base());
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
-                throw new ObjectNotFoundException("Event ", cId.full() + "/" + eId.full());
+                return Optional.empty();
             }
 
-            return rSet.getLong("sid");
+            return Optional.of(rSet.getLong("sid"));
         });
     }
 

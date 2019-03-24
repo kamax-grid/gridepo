@@ -60,7 +60,7 @@ public class ChannelTest {
         createEv.getContent().setCreator(janeId);
         createEv.setSender(janeId);
         JsonObject ev = evSvc.finalize(c.makeEvent(createEv));
-        ChannelEventAuthorization auth = assertAllowed(c.injectLocal(ev));
+        ChannelEventAuthorization auth = assertAllowed(c.offer(ev));
 
         assertNotNull(c.getView().getHead());
         ChannelState state = c.getView().getState();
@@ -81,7 +81,7 @@ public class ChannelTest {
         cJoinEv.getContent().setAction(ChannelMembership.Join.getId());
         ev = evSvc.finalize(c.makeEvent(cJoinEv));
 
-        auth = assertAllowed(c.injectLocal(ev));
+        auth = assertAllowed(c.offer(ev));
         assertEquals(GsonUtil.getStringOrThrow(ev, EventKey.Id), auth.getEventId());
         state = c.getView().getState();
         assertNotEquals(sid, state.getSid());
@@ -93,7 +93,7 @@ public class ChannelTest {
         cPlEv.setSender(janeId);
         cPlEv.getContent().getUsers().put(janeId, 100L);
         ev = evSvc.finalize(c.makeEvent(cPlEv));
-        assertAllowed(c.injectLocal(ev));
+        assertAllowed(c.offer(ev));
         state = c.getView().getState();
         sid = state.getSid();
         assertEquals(1, state.getServers().size());
@@ -105,7 +105,7 @@ public class ChannelTest {
         invEv.setScope(johnId);
         invEv.getContent().setAction(ChannelMembership.Invite);
         ev = evSvc.finalize(c.makeEvent(invEv));
-        assertAllowed(c.injectLocal(ev));
+        assertAllowed(c.offer(ev));
         state = c.getView().getState();
         assertEquals(1, state.getServers().size());
         Optional<ChannelMembership> johnMembership = state.findMembership(johnId);
@@ -118,7 +118,7 @@ public class ChannelTest {
         joinEv.getContent().setAction(ChannelMembership.Join);
         JsonObject madeEvent = c.makeEvent(joinEv);
         ev = evSvc.finalize(madeEvent);
-        assertAllowed(c.injectLocal(ev));
+        assertAllowed(c.offer(ev));
         state = c.getView().getState();
         assertEquals(1, state.getServers().size());
         Optional<ChannelMembership> janeMembership = state.findMembership(janeId);

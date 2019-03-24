@@ -62,4 +62,8 @@ public class ChannelView {
         return srvJoined;
     }
 
+    public boolean isJoined(ServerID id) {
+        return getJoinedServers().contains(id);
+    }
+
 }

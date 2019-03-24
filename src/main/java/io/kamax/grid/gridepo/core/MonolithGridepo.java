@@ -234,7 +234,7 @@ public class MonolithGridepo implements Gridepo {
 
     @Override
     public ServerSession forServer(String srvId) {
-        return new ServerSession(this, srvId);
+        return new ServerSession(this, ServerID.parse(srvId));
     }
 
     @Override

@@ -23,7 +23,7 @@ package io.kamax.grid.gridepo.exception;
 public class EntityUnreachableException extends RuntimeException {
 
     public EntityUnreachableException() {
-        super("The requested entity cannot be reached, no means to reach it was found");
+        super("The requested entity cannot be acted upon, no means to reach it was found");
     }
 
 }

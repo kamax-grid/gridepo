@@ -43,7 +43,7 @@ public class EventService {
         this.signMgr = signMgr;
 
         bares.put(ChannelEventType.Create.getId(), BareCreateEvent.class);
-        bares.put(ChannelEventType.JoinRules.getId(), BareJoinRules.class);
+        bares.put(ChannelEventType.JoinRules.getId(), BareJoiningEvent.class);
         bares.put(ChannelEventType.Member.getId(), BareMemberEvent.class);
         bares.put(ChannelEventType.Power.getId(), BarePowerEvent.class);
     }

@@ -20,7 +20,7 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
-public class BareJoinRules extends BareEvent<BareJoinRules.Content> {
+public class BareJoiningEvent extends BareEvent<BareJoiningEvent.Content> {
 
     public static class Content {
 
@@ -36,7 +36,7 @@ public class BareJoinRules extends BareEvent<BareJoinRules.Content> {
 
     }
 
-    public BareJoinRules() {
+    public BareJoiningEvent() {
         setType(ChannelEventType.JoinRules);
         setScope("");
         setContent(new Content());

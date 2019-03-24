@@ -113,8 +113,8 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public long getEventSid(ChannelID cId, EventID eId) throws ObjectNotFoundException {
-        return 0;
+    public Optional<Long> findEventSid(ChannelID cId, EventID eId) {
+        return Optional.ofNullable(evRefToSid.get(makeRef(cId, eId)));
     }
 
     @Override

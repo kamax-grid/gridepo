@@ -69,11 +69,11 @@ public abstract class ServerApiHandler implements HttpHandler {
                 ex.respond(HttpStatus.SC_BAD_GATEWAY, e.getCode(), e.getReason());
                 log.debug("Trigger:", e);
             } catch (RuntimeException e) {
-                log.error("Unknown error when handling {}", exchange.getRequestURL(), e);
+                log.error("Unknown error when handling {} - CHECK THE SURROUNDING LOG LINES TO KNOW THE ACTUAL CAUSE!", exchange.getRequestURL(), e);
                 ex.respond(HttpStatus.SC_INTERNAL_SERVER_ERROR, ex.buildErrorBody("G_UNKNOWN",
                         StringUtils.defaultIfBlank(
                                 e.getMessage(),
-                                "An internal server error occurred. If this error persists, please contact support with reference #" +
+                                "An internal server error occurred. Contact your system administrator with Log Reference " +
                                         Instant.now().toEpochMilli()
                         )
                 ));

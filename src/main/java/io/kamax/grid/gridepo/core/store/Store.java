@@ -52,7 +52,7 @@ public interface Store {
 
     EventID getEventId(long eSid);
 
-    long getEventSid(ChannelID cId, EventID eId) throws ObjectNotFoundException;
+    Optional<Long> findEventSid(ChannelID cId, EventID eId);
 
     // Get the N next events. next = Higher SID
     List<ChannelEvent> getNext(long lastSid, long amount);
