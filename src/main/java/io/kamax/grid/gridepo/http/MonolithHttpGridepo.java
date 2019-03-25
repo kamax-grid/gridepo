@@ -106,7 +106,7 @@ public class MonolithHttpGridepo {
                 .post(ClientAPIr0.Base + "/logout", new LogoutHandler(g))
 
                 // Account endpoints
-                .get(ClientAPIr0.Base + "/register", new RegisterGetHandler(g))
+                .get(ClientAPIr0.Base + "/register/available", new RegisterAvailableHandler(g))
                 .post(ClientAPIr0.Base + "/register", new RegisterPostHandler(g))
                 .get(ClientAPIr0.Base + "/account/3pid", new JsonObjectHandler(
                         g,

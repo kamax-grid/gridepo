@@ -20,52 +20,30 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-import java.util.UUID;
-
-public class RegisterGetHandler extends ClientApiHandler {
-
-    static JsonObject makeFlows() {
-        JsonArray stages = new JsonArray();
-        stages.add("m.login.password");
-
-        JsonArray flows = new JsonArray();
-        flows.add(GsonUtil.makeObj("stages", stages));
-
-        JsonObject body = new JsonObject();
-        body.addProperty("session", UUID.randomUUID().toString());
-        body.add("flows", flows);
-
-        return body;
-    }
+public class RegisterAvailableHandler extends ClientApiHandler {
 
     private final Gridepo g;
 
-    public RegisterGetHandler(Gridepo g) {
+    public RegisterAvailableHandler(Gridepo g) {
         this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
         if (!g.getIdentity().canRegister()) {
+            throw new ForbiddenException("Registrations are not allowed");
+        }
 
+        String username = exchange.getQueryParameter("username");
+        if (g.getIdentity().isUsernameAvailable(username)) {
+            exchange.respond(GsonUtil.makeObj("available", true));
         } else {
-            JsonArray stages = new JsonArray();
-            stages.add("m.login.password");
-
-            JsonArray flows = new JsonArray();
-            flows.add(GsonUtil.makeObj("stages", stages));
-
-            JsonObject body = new JsonObject();
-            body.addProperty("session", UUID.randomUUID().toString());
-            body.add("flows", flows);
-
-            exchange.respond(body);
+            throw new IllegalArgumentException("Not available, not allowed, who knows?");
         }
     }
 

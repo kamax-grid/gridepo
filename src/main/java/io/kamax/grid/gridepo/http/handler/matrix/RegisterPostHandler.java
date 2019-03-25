@@ -20,9 +20,11 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -31,6 +33,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 
 import java.util.Optional;
+import java.util.UUID;
 
 public class RegisterPostHandler extends ClientApiHandler {
 
@@ -40,8 +43,26 @@ public class RegisterPostHandler extends ClientApiHandler {
         this.g = g;
     }
 
+    private JsonObject makeFlows() {
+        JsonArray stages = new JsonArray();
+        stages.add("m.login.password");
+
+        JsonArray flows = new JsonArray();
+        flows.add(GsonUtil.makeObj("stages", stages));
+
+        JsonObject body = new JsonObject();
+        body.addProperty("session", UUID.randomUUID().toString());
+        body.add("flows", flows);
+
+        return body;
+    }
+
     @Override
     protected void handle(Exchange exchange) {
+        if (!g.getIdentity().canRegister()) {
+            throw new ForbiddenException("Registrations are not allowed");
+        }
+
         String kind = StringUtils.defaultIfEmpty(exchange.getQueryParameter("kind"), "user");
         if (!StringUtils.equals("user", kind)) {
             throw new NotImplementedException("Registration with a kind other than user");
@@ -50,30 +71,21 @@ public class RegisterPostHandler extends ClientApiHandler {
         JsonObject req = exchange.parseJsonObject();
 
         Optional<JsonObject> authOpt = GsonUtil.findObj(req, "auth");
-        if (!authOpt.isPresent()) {
-            JsonObject res = RegisterGetHandler.makeFlows();
-            res.addProperty("errcode", "M_INVALID_PARAM");
-            res.addProperty("error", "Auth data is missing");
-            exchange.respond(HttpStatus.SC_BAD_REQUEST, res);
+        Optional<String> sessionOpt = authOpt.flatMap(v -> GsonUtil.findString(v, "session"));
+        if (!authOpt.isPresent() || !sessionOpt.isPresent()) {
+            exchange.respond(HttpStatus.SC_UNAUTHORIZED, makeFlows());
             return;
         }
         JsonObject auth = authOpt.get();
+        String sessionId = sessionOpt.get();
 
-        Optional<String> typeOpt = GsonUtil.findString(auth, "type");
-        if (!typeOpt.isPresent()) {
-            JsonObject res = RegisterGetHandler.makeFlows();
-            res.addProperty("errcode", "M_INVALID_PARAM");
-            res.addProperty("error", "Auth data type is missing");
-            exchange.respond(HttpStatus.SC_BAD_REQUEST, res);
-            return;
-        }
-        String type = typeOpt.get();
+        String type = GsonUtil.findString(auth, "type").orElse("m.login.password");
 
         if (!StringUtils.equals("m.login.password", type)) {
             throw new IllegalArgumentException("Type " + type + " is not valid");
         }
 
-        String password = GsonUtil.getStringOrNull(auth, "password");
+        String password = GsonUtil.getStringOrNull(req, "password");
         String username = GsonUtil.getStringOrThrow(req, "username");
 
         g.getIdentity().register(username, password);

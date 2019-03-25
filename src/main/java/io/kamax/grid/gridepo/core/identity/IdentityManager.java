@@ -44,6 +44,10 @@ public class IdentityManager {
         return store.getUserCount() == 0 || cfg.getRegister().isEnabled();
     }
 
+    public boolean isUsernameAvailable(String username) {
+        return !store.hasUser(username);
+    }
+
     public synchronized void register(String username, String password) {
         username = Objects.requireNonNull(username).toLowerCase();
         password = Objects.requireNonNull(password);
