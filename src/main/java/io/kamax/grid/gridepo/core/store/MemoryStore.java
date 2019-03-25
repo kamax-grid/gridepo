@@ -208,6 +208,11 @@ public class MemoryStore implements Store {
     }
 
     @Override
+    public long getUserCount() {
+        return users.size();
+    }
+
+    @Override
     public synchronized long storeUser(String username, String password) {
         if (hasUser(username)) {
             throw new IllegalStateException(username + " already exists");

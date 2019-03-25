@@ -115,7 +115,7 @@ public class MonolithGridepo implements Gridepo {
 
         evSvc = new EventService(origin, signMgr);
 
-        idMgr = new IdentityManager(store);
+        idMgr = new IdentityManager(cfg.getIdentity(), store);
         chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);
         streamer = new EventStreamer(store);
 
@@ -240,6 +240,11 @@ public class MonolithGridepo implements Gridepo {
     @Override
     public Store getStore() {
         return store;
+    }
+
+    @Override
+    public IdentityManager getIdentity() {
+        return idMgr;
     }
 
 }

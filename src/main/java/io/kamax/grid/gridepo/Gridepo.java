@@ -29,6 +29,7 @@ import io.kamax.grid.gridepo.core.channel.ChannelDirectory;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.event.EventStreamer;
+import io.kamax.grid.gridepo.core.identity.IdentityManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.Store;
 import org.apache.commons.lang3.StringUtils;
@@ -56,6 +57,8 @@ public interface Gridepo {
     SignalBus getBus();
 
     Store getStore();
+
+    IdentityManager getIdentity();
 
     ChannelManager getChannelManager();
 

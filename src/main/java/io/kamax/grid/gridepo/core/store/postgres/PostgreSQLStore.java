@@ -504,6 +504,18 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
+    public long getUserCount() {
+        return withStmtFunction("SELECT COUNT(*) as total FROM users", stmt -> {
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new IllegalStateException("Expected one row for count, but got none");
+            }
+
+            return rSet.getLong("total");
+        });
+    }
+
+    @Override
     public long storeUser(String username, String password) {
         return withStmtFunction("INSERT INTO users (username,password) VALUES (?,?) RETURNING sid", stmt -> {
             stmt.setString(1, username);

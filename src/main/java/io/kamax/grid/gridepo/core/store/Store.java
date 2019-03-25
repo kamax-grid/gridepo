@@ -75,6 +75,8 @@ public interface Store {
 
     boolean hasUser(String username);
 
+    long getUserCount();
+
     long storeUser(String username, String password);
 
     Optional<String> findPassword(String username);

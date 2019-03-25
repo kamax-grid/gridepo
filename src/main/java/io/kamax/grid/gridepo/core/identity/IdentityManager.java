@@ -20,7 +20,9 @@
 
 package io.kamax.grid.gridepo.core.identity;
 
+import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.exception.ForbiddenException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
@@ -30,19 +32,16 @@ import java.util.Optional;
 
 public class IdentityManager {
 
+    private IdentityConfig cfg;
     private Store store;
 
-    public IdentityManager(Store store) {
+    public IdentityManager(IdentityConfig cfg, Store store) {
+        this.cfg = cfg;
         this.store = store;
+    }
 
-        // FIXME remove before first release
-        if (!store.findPassword("user1").isPresent()) {
-            register("user1", "gridepo");
-        }
-
-        if (!store.findPassword("user1").isPresent()) {
-            register("user2", "gridepo");
-        }
+    public boolean canRegister() {
+        return store.getUserCount() == 0 || cfg.getRegister().isEnabled();
     }
 
     public synchronized void register(String username, String password) {
@@ -62,12 +61,12 @@ public class IdentityManager {
     public String login(String username, String password) {
         Optional<String> encryptedPwd = store.findPassword(username);
         if (!encryptedPwd.isPresent()) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new ForbiddenException("Invalid credentials");
         }
 
         boolean isValid = OpenBSDBCrypt.checkPassword(encryptedPwd.get(), password.toCharArray());
         if (!isValid) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new ForbiddenException("Invalid credentials");
         }
 
         return username;

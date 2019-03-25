@@ -96,6 +96,7 @@ public class GridepoConfig {
     private String domain;
     private ChannelConfig channel = new ChannelConfig();
     private StorageConfig storage = new StorageConfig();
+    private IdentityConfig identity = new IdentityConfig();
 
     public List<Listener> getListeners() {
         return listeners;
@@ -135,6 +136,14 @@ public class GridepoConfig {
 
     public void setStorage(StorageConfig storage) {
         this.storage = storage;
+    }
+
+    public IdentityConfig getIdentity() {
+        return identity;
+    }
+
+    public void setIdentity(IdentityConfig identity) {
+        this.identity = identity;
     }
 
 }
