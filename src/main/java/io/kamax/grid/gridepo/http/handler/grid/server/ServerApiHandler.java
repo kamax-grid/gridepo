@@ -25,7 +25,6 @@ import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.util.KxLog;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
