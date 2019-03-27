@@ -58,7 +58,7 @@ public class GridepoConfig {
     public static class Listener {
 
         private List<ListenerNetwork> network = new ArrayList<>();
-        private String address;
+        private String address = "0.0.0.0";
         private int port;
 
         public List<ListenerNetwork> getNetwork() {
