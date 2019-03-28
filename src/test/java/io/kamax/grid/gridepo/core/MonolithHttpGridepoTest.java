@@ -61,6 +61,9 @@ public class MonolithHttpGridepoTest {
         Gridepo g1 = mg1.start();
         Gridepo g2 = mg2.start();
 
+        g1.getIdentity().register("user1", "gridepo");
+        g2.getIdentity().register("user1", "gridepo");
+
         UserSession u1g1 = g1.login("user1", "gridepo");
         UserSession u1g2 = g2.login("user1", "gridepo");
         String c1u1g1 = u1g1.createChannel().getId().full();
