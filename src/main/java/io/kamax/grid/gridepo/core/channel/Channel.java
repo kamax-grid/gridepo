@@ -456,6 +456,7 @@ public class Channel {
             // This is a remote invite
 
             List<JsonObject> state = getView().getState().getEvents().stream()
+                    .sorted(Comparator.comparingLong(b -> b.getBare().getDepth()))
                     .map(ChannelEvent::getData)
                     .collect(Collectors.toList());
 
