@@ -68,16 +68,16 @@ public class MonolithHttpGridepo {
         log.warn("Tried to add Grid client endpoints but not implemented yet");
 
         handler
-                .add("OPTIONS", "/_grid/data/client", new OptionsHandler())
+                .add("OPTIONS", "/data/client", new OptionsHandler())
         ;
     }
 
     private void buildGridServer(RoutingHandler handler) {
         handler
-                .post("/_grid/data/server/v0/do/approve/invite", new DoApproveInvite(g))
-                .post("/_grid/data/server/v0/do/approve/join", new DoApproveJoin(g))
-                .post("/_grid/data/server/v0/do/lookup/channel/alias", new ChannelDirectoryLookupHandler(g))
-                .post("/_grid/data/server/v0/do/push", new DoPushHandler(g))
+                .post("/data/server/v0/do/approve/invite", new DoApproveInvite(g))
+                .post("/data/server/v0/do/approve/join", new DoApproveJoin(g))
+                .post("/data/server/v0/do/lookup/channel/alias", new ChannelDirectoryLookupHandler(g))
+                .post("/data/server/v0/do/push", new DoPushHandler(g))
         ;
     }
 

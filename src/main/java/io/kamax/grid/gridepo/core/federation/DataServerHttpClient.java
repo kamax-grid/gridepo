@@ -39,7 +39,9 @@ import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.EntityBuilder;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustAllStrategy;
@@ -56,6 +58,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -102,35 +105,65 @@ public class DataServerHttpClient implements DataServerClient {
     private int port = 443;
     private String prefix = "_grid._tcp.";
 
-    private List<Address> lookupSrv(String domain) {
+    private List<URL> lookupSrv(String domain) {
         List<Address> addrs = new ArrayList<>();
 
         int i = domain.lastIndexOf(":");
         if (i > -1) {
             // This is a literal
             addrs.add(new Address(domain.substring(0, i), Integer.parseInt(domain.substring(i + 1))));
-            return addrs;
-        }
-
-        try {
-            Record[] records = new Lookup(prefix + domain, Type.SRV).run();
-            if (records == null) {
-                // No SRV record, we return the default values
-                addrs.add(new Address(domain, port));
-            } else {
-                // We found SRV records, processing
-                Stream.of(records)
-                        .filter(record -> record.getType() == Type.SRV && record instanceof SRVRecord)
-                        .map(record -> (SRVRecord) record)
-                        .sorted(Comparator.comparingInt(SRVRecord::getPriority))
-                        .map(record -> new Address(record.getTarget().toString(true), record.getPort()))
-                        .forEach(addrs::add);
+        } else {
+            try {
+                Record[] records = new Lookup(prefix + domain, Type.SRV).run();
+                if (records == null) {
+                    // No SRV record, we return the default values
+                    addrs.add(new Address(domain, port));
+                } else {
+                    // We found SRV records, processing
+                    Stream.of(records)
+                            .filter(record -> record.getType() == Type.SRV && record instanceof SRVRecord)
+                            .map(record -> (SRVRecord) record)
+                            .sorted(Comparator.comparingInt(SRVRecord::getPriority))
+                            .map(record -> new Address(record.getTarget().toString(true), record.getPort()))
+                            .forEach(addrs::add);
+                }
+            } catch (TextParseException e) {
+                log.warn("Invalid SRV records: {}", e.getMessage());
             }
-        } catch (TextParseException e) {
-            log.warn("Invalid SRV records: {}", e.getMessage());
         }
 
-        return addrs;
+        String protocol = useHttps ? "https://" : "http://";
+        return addrs.stream().flatMap(addr -> {
+            try {
+                URI uri = new URI(protocol + addr.getHost() + ":" + addr.getPort() + "/.well-known/grid");
+                HttpGet req = new HttpGet(uri);
+                try (CloseableHttpResponse res = client.execute(req)) {
+                    int sc = res.getStatusLine().getStatusCode();
+                    if (sc == 404) {
+                        return Stream.of(new URIBuilder(uri).setPath("").build().toURL());
+                    } else if (sc == 200) {
+                        try {
+                            JsonObject obj = GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                            String urlRaw = GsonUtil.findObj(obj, "data")
+                                    .flatMap(srv -> GsonUtil.findString(srv, "server"))
+                                    .orElseGet(() -> protocol + addr.getHost() + ":" + addr.getPort());
+                            return Stream.of(new URL(urlRaw));
+                        } catch (IllegalArgumentException e) {
+                            log.warn("Malformed well-known object, ignoring");
+                            return Stream.empty();
+                        }
+                    } else {
+                        log.warn("Status code {} from well-known discovery", sc);
+                        return Stream.empty();
+                    }
+                } catch (IOException e) {
+                    log.warn("Unable to connect/read to/from {}, ignoring from auto-discovery", e);
+                    return Stream.empty();
+                }
+            } catch (URISyntaxException e) {
+                return Stream.empty();
+            }
+        }).collect(Collectors.toList());
     }
 
     private HttpEntity getJsonEntity(Object o) {
@@ -153,8 +186,8 @@ public class DataServerHttpClient implements DataServerClient {
         req.setHeader("X-Grid-Remote-ID", as);
         req.setEntity(getJsonEntity(GsonUtil.makeObj("events", events)));
 
-        for (Address ad : lookupSrv(target)) {
-            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/push";
+        for (URL url : lookupSrv(target)) {
+            String srvUriRaw = url + "/data/server/v0/do/push";
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -200,8 +233,8 @@ public class DataServerHttpClient implements DataServerClient {
         req.setHeader("X-Grid-Remote-ID", as);
         req.setEntity(getJsonEntity(data));
 
-        for (Address ad : lookupSrv(target)) {
-            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/approve/invite";
+        for (URL url : lookupSrv(target)) {
+            String srvUriRaw = url + "/data/server/v0/do/approve/invite";
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -248,8 +281,8 @@ public class DataServerHttpClient implements DataServerClient {
         req.setHeader("X-Grid-Remote-ID", as);
         req.setEntity(getJsonEntity(ev.getJson()));
 
-        for (Address ad : lookupSrv(target)) {
-            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/approve/join";
+        for (URL url : lookupSrv(target)) {
+            String srvUriRaw = url + "/data/server/v0/do/approve/join";
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -296,8 +329,8 @@ public class DataServerHttpClient implements DataServerClient {
         req.setHeader("X-Grid-Remote-ID", as);
         req.setEntity(getJsonEntity(GsonUtil.makeObj("alias", alias.full())));
 
-        for (Address ad : lookupSrv(target)) {
-            String srvUriRaw = (useHttps ? "https" : "http") + "://" + ad.getHost() + ":" + ad.getPort() + "/_grid/data/server/v0/do/lookup/channel/alias";
+        for (URL url : lookupSrv(target)) {
+            String srvUriRaw = url + "/data/server/v0/do/lookup/channel/alias";
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {

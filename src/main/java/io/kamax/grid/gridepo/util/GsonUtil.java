@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.util;
 
 import com.google.gson.*;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -149,6 +150,10 @@ public class GsonUtil {
     }
 
     public static JsonObject parseObj(String s) {
+        if (StringUtils.isBlank(s)) {
+            throw new IllegalArgumentException("Not an object");
+        }
+
         try {
             return parse(s).getAsJsonObject();
         } catch (IllegalStateException e) {
