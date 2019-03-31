@@ -22,14 +22,20 @@ package io.kamax.test.grid.gridepo.core.federation;
 
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
+import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.event.BareAliasEvent;
+import io.kamax.grid.gridepo.core.channel.event.BareJoiningEvent;
 import io.kamax.grid.gridepo.core.federation.DataServerHttpClient;
 import io.kamax.grid.gridepo.http.MonolithHttpGridepo;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import java.util.Objects;
+
+import static org.junit.Assert.assertEquals;
 
 public class Federation {
 
@@ -102,6 +108,28 @@ public class Federation {
         if (Objects.nonNull(mg2)) {
             mg2.stop();
         }
+    }
+
+    protected String makeSharedChannel() {
+        Channel g1c1 = s1.createChannel();
+        String cId = g1c1.getId().full();
+        ChannelAlias c1Alias = new ChannelAlias("test", g1.getDomain());
+
+        BareAliasEvent aEv = new BareAliasEvent();
+        aEv.addAlias(c1Alias);
+        s1.send(cId, aEv.getJson());
+
+        BareJoiningEvent joinRules = new BareJoiningEvent();
+        joinRules.getContent().setRule("public");
+        s1.send(cId, joinRules.getJson());
+
+        Channel g2c1 = s2.joinChannel(c1Alias);
+
+        assertEquals(g1c1.getId(), g2c1.getId());
+        assertEquals(2, g1c1.getView().getJoinedServers().size());
+        assertEquals(2, g2c1.getView().getJoinedServers().size());
+
+        return cId;
     }
 
 }

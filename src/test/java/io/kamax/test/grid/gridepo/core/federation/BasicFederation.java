@@ -20,14 +20,12 @@
 
 package io.kamax.test.grid.gridepo.core.federation;
 
-import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.EntityAlias;
 import io.kamax.grid.gridepo.core.EntityGUID;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
-import io.kamax.grid.gridepo.core.channel.event.BareAliasEvent;
-import io.kamax.grid.gridepo.core.channel.event.BareJoiningEvent;
+import io.kamax.grid.gridepo.core.channel.event.BareMessageEvent;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -59,23 +57,28 @@ public class BasicFederation extends Federation {
 
     @Test
     public void joinPublicRoom() {
-        Channel g1c1 = s1.createChannel();
-        String c1Id = g1c1.getId().full();
-        ChannelAlias c1Alias = new ChannelAlias("test", g1.getDomain());
-
-        BareAliasEvent aEv = new BareAliasEvent();
-        aEv.addAlias(c1Alias);
-        s1.send(c1Id, aEv.getJson());
-
-        BareJoiningEvent joinRules = new BareJoiningEvent();
-        joinRules.getContent().setRule("public");
-        s1.send(c1Id, joinRules.getJson());
-
-        Channel g2c1 = s2.joinChannel(c1Alias);
+        String cId = makeSharedChannel();
+        Channel g1c1 = g1.getChannelManager().get(cId);
+        Channel g2c1 = g2.getChannelManager().get(cId);
 
         assertEquals(g1c1.getId(), g2c1.getId());
         assertEquals(2, g1c1.getView().getJoinedServers().size());
         assertEquals(2, g2c1.getView().getJoinedServers().size());
+    }
+
+    @Test
+    public void sendMessage() {
+        String cId = makeSharedChannel();
+        Channel g1c1 = g1.getChannelManager().get(cId);
+        Channel g2c1 = g2.getChannelManager().get(cId);
+
+        String g1MsgEvId = s1.send(cId, BareMessageEvent.build(u1, "test from " + n1).getJson());
+        assertEquals(g1MsgEvId, g1c1.getView().getHead().full());
+        assertEquals(g1MsgEvId, g2c1.getView().getHead().full());
+
+        String g2MsgEvId = s2.send(cId, BareMessageEvent.build(u1, "test from " + n2).getJson());
+        assertEquals(g2MsgEvId, g1c1.getView().getHead().full());
+        assertEquals(g2MsgEvId, g2c1.getView().getHead().full());
     }
 
 }
