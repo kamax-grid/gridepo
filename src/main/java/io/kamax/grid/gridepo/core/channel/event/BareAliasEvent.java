@@ -20,6 +20,8 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
+import io.kamax.grid.gridepo.core.ChannelAlias;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,6 +44,10 @@ public class BareAliasEvent extends BareEvent<BareAliasEvent.Content> {
     public BareAliasEvent() {
         setType(ChannelEventType.Alias);
         setContent(new Content());
+    }
+
+    public void addAlias(ChannelAlias alias) {
+        getContent().getAliases().add(alias.full());
     }
 
 }

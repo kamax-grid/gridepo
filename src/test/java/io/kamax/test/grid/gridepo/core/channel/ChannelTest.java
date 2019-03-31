@@ -18,11 +18,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.channel;
+package io.kamax.test.grid.gridepo.core.channel;
 
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.UserID;
+import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.ChannelDao;
+import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
 import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
@@ -37,6 +40,7 @@ import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Optional;
@@ -95,7 +99,7 @@ public class ChannelTest {
         assertNotEquals(sid, state.getSid());
         sid = state.getSid();
         assertEquals(1, c.getView().getJoinedServers().size());
-        assertEquals(ChannelMembership.Join, state.findMembership(janeId.full()).orElse(ChannelMembership.Leave));
+        Assert.assertEquals(ChannelMembership.Join, state.findMembership(janeId.full()).orElse(ChannelMembership.Leave));
 
         BarePowerEvent cPlEv = new BarePowerEvent();
         cPlEv.setSender(janeId);

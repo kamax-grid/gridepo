@@ -18,13 +18,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.store;
+package io.kamax.test.grid.gridepo.matrix;
 
-public class MemoryStoreTest extends StoreTest {
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.http.handler.matrix.ProtocolEventMapper;
+import org.junit.Test;
 
-    @Override
-    protected Store getNewStore() {
-        return new MemoryStore();
+import static org.junit.Assert.assertEquals;
+
+public class ProtocolEventMapperTest {
+
+    @Test
+    public void channelIdMapping() {
+        ChannelID cId = ChannelID.from("a", "example.org");
+        String rId = ProtocolEventMapper.forChannelIdFromGridToMatrix(cId.full());
+        String cIdRawMap = ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId);
+        ChannelID cIdMap = ChannelID.from(cIdRawMap);
+        assertEquals(cId, cIdMap);
     }
 
 }

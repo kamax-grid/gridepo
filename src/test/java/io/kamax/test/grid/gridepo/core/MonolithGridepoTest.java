@@ -18,22 +18,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.matrix;
+package io.kamax.test.grid.gridepo.core;
 
-import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.config.GridepoConfig;
+import io.kamax.grid.gridepo.core.MonolithGridepo;
+import io.kamax.grid.gridepo.core.channel.Channel;
+import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class ProtocolEventMapperTest {
+public class MonolithGridepoTest {
 
     @Test
-    public void channelIdMapping() {
-        ChannelID cId = ChannelID.from("a", "example.org");
-        String rId = ProtocolEventMapper.forChannelIdFromGridToMatrix(cId.full());
-        String cIdRawMap = ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId);
-        ChannelID cIdMap = ChannelID.from(cIdRawMap);
-        assertEquals(cId, cIdMap);
+    public void basicRoomCreate() {
+        GridepoConfig cfg = new GridepoConfig();
+        cfg.setDomain("localhost");
+        Gridepo g = new MonolithGridepo(cfg);
+        Channel ch = g.getChannelManager().createChannel("@john.doe");
+        assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership("@john.doe"));
     }
 
 }

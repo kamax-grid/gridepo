@@ -18,8 +18,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.test.grid.gridepo.core;
 
+import io.kamax.grid.gridepo.core.EntityID;
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 

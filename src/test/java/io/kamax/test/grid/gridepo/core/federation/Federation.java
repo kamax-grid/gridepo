@@ -18,21 +18,39 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.test.grid.gridepo.core.federation;
 
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
-import io.kamax.grid.gridepo.core.channel.ChannelMembership;
+import io.kamax.grid.gridepo.core.UserID;
+import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.core.federation.DataServerHttpClient;
 import io.kamax.grid.gridepo.http.MonolithHttpGridepo;
-import org.junit.Test;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
-import static org.junit.Assert.assertEquals;
+import java.util.Objects;
 
-public class MonolithHttpGridepoTest {
+public class Federation {
 
-    @Test
-    public void inviteAndJoinOverFederation() {
+    protected static String pass = "gridepo";
+
+    protected static MonolithHttpGridepo mg1;
+    protected static Gridepo g1;
+    protected static String n1;
+    protected static UserID u1;
+    protected static UserSession s1;
+
+    protected static MonolithHttpGridepo mg2;
+    protected static Gridepo g2;
+    protected static String n2;
+    protected static UserID u2;
+    protected static UserSession s2;
+
+    @BeforeClass
+    public static void init() {
+        deinit();
+
         DataServerHttpClient.useHttps = false;
 
         GridepoConfig.ListenerNetwork net1 = new GridepoConfig.ListenerNetwork();
@@ -58,22 +76,30 @@ public class MonolithHttpGridepoTest {
         MonolithHttpGridepo mg1 = new MonolithHttpGridepo(cfg1);
         MonolithHttpGridepo mg2 = new MonolithHttpGridepo(cfg2);
 
-        Gridepo g1 = mg1.start();
-        Gridepo g2 = mg2.start();
+        g1 = mg1.start();
+        g2 = mg2.start();
 
-        g1.getIdentity().register("user1", "gridepo");
-        g2.getIdentity().register("user1", "gridepo");
+        n1 = "dark";
+        n2 = "light";
 
-        UserSession u1g1 = g1.login("user1", "gridepo");
-        UserSession u1g2 = g2.login("user1", "gridepo");
-        String c1u1g1 = u1g1.createChannel().getId().full();
-        u1g1.inviteToChannel(c1u1g1, new EntityGUID("grid", "@user1@" + cfg2.getDomain()));
+        g1.getIdentity().register(n1, pass);
+        g2.getIdentity().register(n2, pass);
 
-        ChannelMembership mC1u1g2 = g1.getChannelManager().get(c1u1g1).getView().getState().getMembership(u1g2.getUser().getId().full());
-        assertEquals(ChannelMembership.Invite, mC1u1g2);
+        s1 = g1.login(n1, pass);
+        u1 = s1.getUser().getId();
+        s2 = g2.login(n2, pass);
+        u2 = s2.getUser().getId();
+    }
 
-        mg1.stop();
-        mg2.stop();
+    @AfterClass
+    public static void deinit() {
+        if (Objects.nonNull(mg1)) {
+            mg1.stop();
+        }
+
+        if (Objects.nonNull(mg2)) {
+            mg2.stop();
+        }
     }
 
 }

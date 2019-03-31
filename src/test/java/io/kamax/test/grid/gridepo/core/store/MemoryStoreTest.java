@@ -18,25 +18,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.test.grid.gridepo.core.store;
 
-import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.config.GridepoConfig;
-import io.kamax.grid.gridepo.core.channel.Channel;
-import io.kamax.grid.gridepo.core.channel.ChannelMembership;
-import org.junit.Test;
+import io.kamax.grid.gridepo.core.store.MemoryStore;
+import io.kamax.grid.gridepo.core.store.Store;
 
-import static org.junit.Assert.assertEquals;
+public class MemoryStoreTest extends StoreTest {
 
-public class MonolithGridepoTest {
-
-    @Test
-    public void basicRoomCreate() {
-        GridepoConfig cfg = new GridepoConfig();
-        cfg.setDomain("localhost");
-        Gridepo g = new MonolithGridepo(cfg);
-        Channel ch = g.getChannelManager().createChannel("@john.doe");
-        assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership("@john.doe"));
+    @Override
+    protected Store getNewStore() {
+        return new MemoryStore();
     }
 
 }
