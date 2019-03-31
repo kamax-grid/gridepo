@@ -36,14 +36,25 @@ public class BasicFederation extends Federation {
 
     @Test
     public void inviteAndJoin() {
-        String c1 = s1.createChannel().getId().full();
-        s1.inviteToChannel(c1, new EntityGUID("grid", UserID.Sigill + n2 + EntityAlias.Delimiter + g2.getDomain())); // TODO use UserAlias sigill
+        Channel g1c1 = s1.createChannel();
+        String c1Id = g1c1.getId().full();
+        s1.inviteToChannel(c1Id, new EntityGUID("grid", UserID.Sigill + n2 + EntityAlias.Delimiter + g2.getDomain())); // TODO use UserAlias sigill
 
-        ChannelMembership g1u2c1 = g1.getChannelManager().get(c1).getView().getState().getMembership(u2);
+        ChannelMembership g1u2c1 = g1c1.getView().getState().getMembership(u2);
         assertEquals(ChannelMembership.Invite, g1u2c1);
 
-        ChannelMembership g2u2c1 = g2.getChannelManager().get(c1).getView().getState().getMembership(u2);
+        Channel g2c1 = g2.getChannelManager().get(c1Id);
+        ChannelMembership g2u2c1 = g2c1.getView().getState().getMembership(u2);
         assertEquals(ChannelMembership.Invite, g2u2c1);
+
+        String joinEvId = s2.joinChannel(c1Id);
+        assertEquals(joinEvId, g1c1.getView().getHead().full());
+        assertEquals(joinEvId, g2c1.getView().getHead().full());
+
+        g1u2c1 = g1c1.getView().getState().getMembership(u2);
+        assertEquals(ChannelMembership.Join, g1u2c1);
+        g2u2c1 = g2c1.getView().getState().getMembership(u2);
+        assertEquals(ChannelMembership.Join, g2u2c1);
     }
 
     @Test
@@ -63,6 +74,8 @@ public class BasicFederation extends Federation {
         Channel g2c1 = s2.joinChannel(c1Alias);
 
         assertEquals(g1c1.getId(), g2c1.getId());
+        assertEquals(2, g1c1.getView().getJoinedServers().size());
+        assertEquals(2, g2c1.getView().getJoinedServers().size());
     }
 
 }

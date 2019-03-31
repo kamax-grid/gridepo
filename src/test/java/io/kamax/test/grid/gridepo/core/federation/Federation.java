@@ -77,7 +77,9 @@ public class Federation {
         MonolithHttpGridepo mg2 = new MonolithHttpGridepo(cfg2);
 
         g1 = mg1.start();
+        g1.getFedPusher().setAsync(false);
         g2 = mg2.start();
+        g2.getFedPusher().setAsync(false);
 
         n1 = "dark";
         n2 = "light";

@@ -98,7 +98,7 @@ public class MemoryStore implements Store {
 
     @Override
     public synchronized ChannelEvent getEvent(ChannelID cId, EventID eId) throws ObjectNotFoundException {
-        log.info("Getting Event {}/{}", cId, eId);
+        log.debug("Getting Event {}/{}", cId, eId);
         return findEvent(cId, eId).orElseThrow(() -> new ObjectNotFoundException("Event", cId + "/" + eId));
     }
 

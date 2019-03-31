@@ -192,6 +192,11 @@ public class MonolithGridepo implements Gridepo {
     }
 
     @Override
+    public FederationPusher getFedPusher() {
+        return fedPush;
+    }
+
+    @Override
     public UserSession login(String username, String password) {
         String canonicalUsername = idMgr.login(username, password);
         UserID uId = UserID.from(username, cfg.getDomain());

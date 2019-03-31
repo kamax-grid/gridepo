@@ -32,9 +32,7 @@ import net.engio.mbassy.listener.Handler;
 import org.slf4j.Logger;
 
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RecursiveAction;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class FederationPusher {
@@ -45,17 +43,24 @@ public class FederationPusher {
     private final DataServerManager srvMgr;
     private final ForkJoinPool pool;
 
+    private boolean enabled;
+    private boolean async;
+
     public FederationPusher(Gridepo g, DataServerManager srvMgr) {
         this.g = g;
         this.srvMgr = srvMgr;
 
         this.pool = new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 8);
-
-        g.getBus().forTopic(SignalTopic.Channel).subscribe(this);
+        setEnabled(true);
+        setAsync(true);
     }
 
     @Handler
     private void handle(ChannelMessageProcessed signal) {
+        if (!enabled) {
+            return;
+        }
+
         log.info("Got event {} to process", signal.getEvent().getSid());
         if (!g.isOrigin(signal.getEvent().getOrigin())) {
             log.info("Origin check: {} is not an local origin", signal.getEvent().getOrigin());
@@ -68,7 +73,7 @@ public class FederationPusher {
         }
 
         ChannelEvent ev = signal.getEvent();
-        pool.submit(new RecursiveAction() {
+        ForkJoinTask<Void> task = pool.submit(new RecursiveAction() {
             @Override
             protected void compute() {
                 ChannelState state = g.getChannelManager().get(ev.getChannelId()).getState(ev);
@@ -92,6 +97,14 @@ public class FederationPusher {
                 log.info("Done pushing event {}", ev.getSid());
             }
         });
+
+        if (!async) {
+            try {
+                task.get();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void stop() {
@@ -99,6 +112,20 @@ public class FederationPusher {
         pool.shutdown();
         pool.awaitQuiescence(1, TimeUnit.MINUTES);
         log.info("Stopped");
+    }
+
+    public synchronized void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+
+        if (enabled) {
+            g.getBus().forTopic(SignalTopic.Channel).subscribe(this);
+        } else {
+            g.getBus().forTopic(SignalTopic.Channel).unsubscribe(this);
+        }
+    }
+
+    public void setAsync(boolean async) {
+        this.async = async;
     }
 
 }

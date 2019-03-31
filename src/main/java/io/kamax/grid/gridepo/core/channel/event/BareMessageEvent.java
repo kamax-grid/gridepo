@@ -20,10 +20,19 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
+import io.kamax.grid.gridepo.core.UserID;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class BareMessageEvent extends BareEvent<BareMessageEvent.Content> {
+
+    public static BareMessageEvent build(UserID sender, String text) {
+        BareMessageEvent ev = new BareMessageEvent();
+        ev.setSender(sender);
+        ev.addBody("text/plain", text);
+        return ev;
+    }
 
     public static class Content {
 
