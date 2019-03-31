@@ -51,7 +51,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
-import org.xbill.DNS.*;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -102,34 +101,17 @@ public class DataServerHttpClient implements DataServerClient {
         }
     }
 
-    private int port = 443;
-    private String prefix = "_grid._tcp.";
-
     private List<URL> lookupSrv(String domain) {
         List<Address> addrs = new ArrayList<>();
 
         int i = domain.lastIndexOf(":");
-        if (i > -1) {
-            // This is a literal
+        int j = domain.lastIndexOf("]");
+        if (i > -1 && j <= i) {
+            // This is a domain with a port already declared in it
             addrs.add(new Address(domain.substring(0, i), Integer.parseInt(domain.substring(i + 1))));
         } else {
-            try {
-                Record[] records = new Lookup(prefix + domain, Type.SRV).run();
-                if (records == null) {
-                    // No SRV record, we return the default values
-                    addrs.add(new Address(domain, port));
-                } else {
-                    // We found SRV records, processing
-                    Stream.of(records)
-                            .filter(record -> record.getType() == Type.SRV && record instanceof SRVRecord)
-                            .map(record -> (SRVRecord) record)
-                            .sorted(Comparator.comparingInt(SRVRecord::getPriority))
-                            .map(record -> new Address(record.getTarget().toString(true), record.getPort()))
-                            .forEach(addrs::add);
-                }
-            } catch (TextParseException e) {
-                log.warn("Invalid SRV records: {}", e.getMessage());
-            }
+            // This is a domain without port
+            addrs.add(new Address(domain, useHttps ? 443 : 80));
         }
 
         String protocol = useHttps ? "https://" : "http://";
@@ -157,7 +139,7 @@ public class DataServerHttpClient implements DataServerClient {
                         return Stream.empty();
                     }
                 } catch (IOException e) {
-                    log.warn("Unable to connect/read to/from {}, ignoring from auto-discovery", e);
+                    log.warn("Unable to connect/read to/from {}, ignoring from auto-discovery", uri, e);
                     return Stream.empty();
                 }
             } catch (URISyntaxException e) {
