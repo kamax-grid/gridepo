@@ -46,6 +46,10 @@ public class SignManager {
         }
     }
 
+    public SignManager() {
+        this(KeyManager.fromMemory());
+    }
+
     public String sign(String message) {
         try {
             return Base64.encodeBase64String(signEngine.signOneShot(message.getBytes(StandardCharsets.UTF_8)));

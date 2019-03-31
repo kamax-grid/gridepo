@@ -20,9 +20,26 @@
 
 package io.kamax.grid.gridepo.core.channel.event;
 
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 
 public class BareMemberEvent extends BareEvent<BareMemberEvent.Content> {
+
+    public static BareMemberEvent joinAs(UserID uId) {
+        BareMemberEvent ev = new BareMemberEvent();
+        ev.setSender(uId.full());
+        ev.setScope(uId.full());
+        ev.getContent().setAction(ChannelMembership.Join);
+        return ev;
+    }
+
+    public static BareMemberEvent inviteAs(UserID invitee, UserID inviter) {
+        BareMemberEvent ev = new BareMemberEvent();
+        ev.setSender(inviter.full());
+        ev.setScope(invitee.full());
+        ev.getContent().setAction(ChannelMembership.Invite);
+        return ev;
+    }
 
     public static class Content {
 

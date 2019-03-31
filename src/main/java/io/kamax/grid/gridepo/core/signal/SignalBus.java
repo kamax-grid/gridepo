@@ -26,9 +26,20 @@ import net.engio.mbassy.bus.config.Feature;
 import net.engio.mbassy.bus.error.IPublicationErrorHandler;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SignalBus {
+
+    private static SignalBus instance;
+
+    public static synchronized SignalBus getDefault() {
+        if (Objects.isNull(instance)) {
+            instance = new SignalBus();
+        }
+
+        return instance;
+    }
 
     private final Map<String, SyncMessageBus<Signal>> buses = new ConcurrentHashMap<>();
 

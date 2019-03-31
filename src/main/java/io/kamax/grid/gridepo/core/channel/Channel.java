@@ -395,6 +395,10 @@ public class Channel {
         return offer(Collections.singletonList(cEv), false).get(0);
     }
 
+    public ChannelEventAuthorization offer(BareEvent ev) {
+        return offer(evSvc.finalize(makeEvent(ev)));
+    }
+
     public ChannelEventAuthorization inject(String from, JsonObject event, List<JsonObject> state) {
         state.stream().map(raw -> {
             ChannelEvent ev = ChannelEvent.from(getSid(), raw);

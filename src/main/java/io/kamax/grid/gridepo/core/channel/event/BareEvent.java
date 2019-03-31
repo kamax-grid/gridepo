@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.core.channel.event;
 
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
@@ -115,6 +116,10 @@ public abstract class BareEvent<T> {
 
     public void setSender(String sender) {
         this.sender = sender;
+    }
+
+    public void setSender(UserID uId) {
+        setSender(uId.full());
     }
 
     public String getChannelId() {

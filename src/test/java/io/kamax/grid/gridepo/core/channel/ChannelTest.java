@@ -20,17 +20,36 @@
 
 package io.kamax.grid.gridepo.core.channel;
 
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.UserID;
+import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
+import io.kamax.grid.gridepo.core.channel.algo.v0.ChannelAlgoV0_0;
+import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
+import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
+import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
+import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.crypto.SignManager;
+import io.kamax.grid.gridepo.core.event.EventService;
+import io.kamax.grid.gridepo.core.federation.DataServerManager;
+import io.kamax.grid.gridepo.core.signal.SignalBus;
+import io.kamax.grid.gridepo.core.store.MemoryStore;
+import io.kamax.grid.gridepo.core.store.Store;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
+import java.util.Optional;
+
+import static org.junit.Assert.*;
 
 public class ChannelTest {
 
     private final String domain = "localhost";
-    private final String chanId = "!test";
-    private final String janeId = "@jane";
-    private final String johnId = "@john";
+    private final ServerID sId = ServerID.from(domain);
+    private final ChannelID cId = ChannelID.from("test", "domain");
+    private final UserID janeId = UserID.from("jane", domain);
+    private final UserID johnId = UserID.from("john", domain);
 
     private ChannelEventAuthorization assertAllowed(ChannelEventAuthorization auth) {
         assertTrue(auth.getReason(), auth.isValid());
@@ -40,94 +59,77 @@ public class ChannelTest {
         return auth;
     }
 
-    // FIXME some parsing error due to recent changes
-    /*
-    / @Test
+    @Test
     public void basic() {
-        SignalBus bus = new SignalBus();
-        KeyManager keyMgr = new KeyManager(new MemoryKeyStore());
-        SignManager signMgr = new SignManager(keyMgr);
+        SignalBus bus = SignalBus.getDefault();
+        SignManager signMgr = new SignManager();
         Store store = new MemoryStore();
-        EventService evSvc = new EventService(domain, signMgr);
+        EventService evSvc = new EventService(sId, signMgr);
         ChannelAlgo algo = new ChannelAlgoV0_0();
         DataServerManager srvMgr = new DataServerManager();
-        Channel c = new Channel(0, chanId, ServerID.from(domain), algo, evSvc, store, srvMgr, bus);
+        ChannelDao cDao = store.saveChannel(new ChannelDao(cId));
+        Channel c = new Channel(cDao, sId, algo, evSvc, store, srvMgr, bus);
         assertNull(c.getView().getHead());
         assertNotNull(c.getView().getState());
-        assertEquals(0, c.getView().getState().getServers().size());
+        assertEquals(0, c.getView().getJoinedServers().size());
 
-        BareCreateEvent createEv = new BareCreateEvent();
-        createEv.getContent().setCreator(janeId);
-        createEv.setSender(janeId);
-        JsonObject ev = evSvc.finalize(c.makeEvent(createEv));
-        ChannelEventAuthorization auth = assertAllowed(c.offer(ev));
+        BareCreateEvent createEv = BareCreateEvent.withCreator(janeId);
+        ChannelEventAuthorization auth = assertAllowed(c.offer(createEv));
 
         assertNotNull(c.getView().getHead());
         ChannelState state = c.getView().getState();
         assertNotNull(state);
         Long sid = state.getSid();
-        assertEquals(1, state.getServers().size());
-        assertEquals(auth.getEventId(), state.getCreationId());
+        assertEquals(auth.getEventId().full(), state.getCreationId());
+        assertEquals(1, c.getExtremities().size());
+        assertEquals(auth.getEventId(), c.getExtremityIds().get(0));
 
         BarePowerEvent.Content afterCreatePls = state.getPowers().orElseGet(c::getDefaultPls);
-        assertEquals(Long.MAX_VALUE, (long) afterCreatePls.getUsers().get(janeId));
+        assertEquals(Long.MAX_VALUE, (long) afterCreatePls.getUsers().get(janeId.full()));
+        assertEquals(1, c.getView().getJoinedServers().size());
+        assertEquals(1, store.getExtremities(c.getSid()).size());
 
-        assertEquals(1, c.getView().getState().getServers().size());
-        assertEquals(1, store.getExtremities(c.getId()).size());
-
-        BareMemberEvent cJoinEv = new BareMemberEvent();
-        cJoinEv.setSender(janeId);
-        cJoinEv.setScope(janeId);
-        cJoinEv.getContent().setAction(ChannelMembership.Join.getId());
-        ev = evSvc.finalize(c.makeEvent(cJoinEv));
-
-        auth = assertAllowed(c.offer(ev));
-        assertEquals(GsonUtil.getStringOrThrow(ev, EventKey.Id), auth.getEventId());
+        BareMemberEvent cJoinEv = BareMemberEvent.joinAs(janeId);
+        assertAllowed(c.offer(cJoinEv));
         state = c.getView().getState();
         assertNotEquals(sid, state.getSid());
         sid = state.getSid();
-        assertEquals(1, state.getServers().size());
-        assertEquals(ChannelMembership.Join, state.findMembership(janeId).orElse(ChannelMembership.Leave));
+        assertEquals(1, c.getView().getJoinedServers().size());
+        assertEquals(ChannelMembership.Join, state.findMembership(janeId.full()).orElse(ChannelMembership.Leave));
 
         BarePowerEvent cPlEv = new BarePowerEvent();
         cPlEv.setSender(janeId);
-        cPlEv.getContent().getUsers().put(janeId, 100L);
-        ev = evSvc.finalize(c.makeEvent(cPlEv));
-        assertAllowed(c.offer(ev));
+        cPlEv.getContent().getUsers().put(janeId.full(), 100L);
+        assertAllowed(c.offer(cPlEv));
         state = c.getView().getState();
+        assertNotEquals(sid, state.getSid());
         sid = state.getSid();
-        assertEquals(1, state.getServers().size());
+        assertEquals(1, c.getView().getJoinedServers().size());
         BarePowerEvent.Content afterPlPls = state.getPowers().orElseGet(c::getDefaultPls);
-        assertEquals(100, (long) afterPlPls.getUsers().get(janeId));
+        assertEquals(100, (long) afterPlPls.getUsers().get(janeId.full()));
 
-        BareMemberEvent invEv = new BareMemberEvent();
-        invEv.setSender(janeId);
-        invEv.setScope(johnId);
-        invEv.getContent().setAction(ChannelMembership.Invite);
-        ev = evSvc.finalize(c.makeEvent(invEv));
-        assertAllowed(c.offer(ev));
+        BareMemberEvent invEv = BareMemberEvent.inviteAs(johnId, janeId);
+        assertAllowed(c.offer(invEv));
         state = c.getView().getState();
-        assertEquals(1, state.getServers().size());
-        Optional<ChannelMembership> johnMembership = state.findMembership(johnId);
+        assertNotEquals(sid, state.getSid());
+        sid = state.getSid();
+        assertEquals(1, c.getView().getJoinedServers().size());
+        Optional<ChannelMembership> johnMembership = state.findMembership(johnId.full());
         assertTrue(johnMembership.isPresent());
         assertEquals(ChannelMembership.Invite, johnMembership.get());
 
-        BareMemberEvent joinEv = new BareMemberEvent();
-        joinEv.setSender(johnId);
-        joinEv.setScope(johnId);
-        joinEv.getContent().setAction(ChannelMembership.Join);
-        JsonObject madeEvent = c.makeEvent(joinEv);
-        ev = evSvc.finalize(madeEvent);
-        assertAllowed(c.offer(ev));
+        BareMemberEvent joinEv = BareMemberEvent.joinAs(johnId);
+        assertAllowed(c.offer(joinEv));
         state = c.getView().getState();
-        assertEquals(1, state.getServers().size());
-        Optional<ChannelMembership> janeMembership = state.findMembership(janeId);
-        johnMembership = state.findMembership(johnId);
+        assertNotEquals(sid, state.getSid());
+        assertEquals(1, c.getView().getJoinedServers().size());
+
+        Optional<ChannelMembership> janeMembership = state.findMembership(janeId.full());
+        johnMembership = state.findMembership(johnId.full());
         assertTrue(johnMembership.isPresent());
         assertTrue(janeMembership.isPresent());
         assertEquals(ChannelMembership.Join, janeMembership.get());
         assertEquals(ChannelMembership.Join, johnMembership.get());
     }
-    */
 
 }

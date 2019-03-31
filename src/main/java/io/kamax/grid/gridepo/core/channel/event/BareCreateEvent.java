@@ -24,6 +24,13 @@ import io.kamax.grid.gridepo.core.UserID;
 
 public class BareCreateEvent extends BareEvent<BareCreateEvent.Content> {
 
+    public static BareCreateEvent withCreator(UserID uId) {
+        BareCreateEvent ev = new BareCreateEvent();
+        ev.setSender(uId.full());
+        ev.getContent().setCreator(uId);
+        return ev;
+    }
+
     public static class Content {
 
         private String creator;
