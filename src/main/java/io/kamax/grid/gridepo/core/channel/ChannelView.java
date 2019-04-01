@@ -30,16 +30,18 @@ import java.util.stream.Collectors;
 
 public class ChannelView {
 
+    private ServerID origin;
     private EventID head;
     private ChannelState state;
 
     private transient Set<ServerID> srvJoined;
 
-    public ChannelView() {
-        this(null, ChannelState.empty());
+    public ChannelView(ServerID origin) {
+        this(origin, null, ChannelState.empty());
     }
 
-    public ChannelView(EventID head, ChannelState state) {
+    public ChannelView(ServerID origin, EventID head, ChannelState state) {
+        this.origin = origin;
         this.head = head;
         this.state = state;
     }
@@ -52,10 +54,19 @@ public class ChannelView {
         return state;
     }
 
-    public Set<ServerID> getJoinedServers() {
+    public Set<ServerID> getAllServers() {
+        return getServers(true);
+    }
+
+    public Set<ServerID> getOtherServers() {
+        return getServers(false);
+    }
+
+    public Set<ServerID> getServers(boolean includeSelf) {
         if (Objects.isNull(srvJoined)) {
             srvJoined = getState().getEvents().stream()
                     .map(ev -> ServerID.parse(ev.getOrigin()))
+                    .filter(id -> includeSelf || !origin.equals(id))
                     .collect(Collectors.toSet());
         }
 
@@ -63,7 +74,8 @@ public class ChannelView {
     }
 
     public boolean isJoined(ServerID id) {
-        return getJoinedServers().contains(id);
+        // TODO fix, not restricted to joined servers
+        return getAllServers().contains(id);
     }
 
 }

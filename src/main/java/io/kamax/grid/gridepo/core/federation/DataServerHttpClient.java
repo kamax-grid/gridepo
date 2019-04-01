@@ -24,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
@@ -169,7 +170,7 @@ public class DataServerHttpClient implements DataServerClient {
         req.setEntity(getJsonEntity(GsonUtil.makeObj("events", events)));
 
         for (URL url : lookupSrv(target)) {
-            String srvUriRaw = url + "/data/server/v0/do/push";
+            String srvUriRaw = url + URIPath.dataSrv().add("v0", "do", "push").get();
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -216,7 +217,7 @@ public class DataServerHttpClient implements DataServerClient {
         req.setEntity(getJsonEntity(data));
 
         for (URL url : lookupSrv(target)) {
-            String srvUriRaw = url + "/data/server/v0/do/approve/invite";
+            String srvUriRaw = url + URIPath.dataSrv().add("v0", "do", "approve", "invite").get();
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -264,7 +265,7 @@ public class DataServerHttpClient implements DataServerClient {
         req.setEntity(getJsonEntity(ev.getJson()));
 
         for (URL url : lookupSrv(target)) {
-            String srvUriRaw = url + "/data/server/v0/do/approve/join";
+            String srvUriRaw = url + URIPath.dataSrv().add("v0", "do", "approve", "join").get();
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -312,7 +313,7 @@ public class DataServerHttpClient implements DataServerClient {
         req.setEntity(getJsonEntity(GsonUtil.makeObj("alias", alias.full())));
 
         for (URL url : lookupSrv(target)) {
-            String srvUriRaw = url + "/data/server/v0/do/lookup/channel/alias";
+            String srvUriRaw = url + URIPath.dataSrv().add("v0", "do", "lookup", "channel", "alias").get();
             try {
                 URI srvUri = new URI(srvUriRaw);
                 try {
@@ -366,6 +367,57 @@ public class DataServerHttpClient implements DataServerClient {
         }
 
         throw new RemoteServerException(target, "G_FEDERATION_ERROR", "Could not find a working server for " + target);
+    }
+
+    @Override
+    public Optional<JsonObject> getEvent(String as, String target, ChannelID cId, EventID eId) {
+        HttpGet req = new HttpGet();
+        req.setHeader("X-Grid-Remote-ID", as);
+
+        for (URL url : lookupSrv(target)) {
+            String srvUriRaw = url + URIPath.dataSrv().add("v0", "channels", cId.full(), "events", eId.full()).get();
+            URI srvUri;
+            try {
+                srvUri = new URI(srvUriRaw);
+            } catch (URISyntaxException e) {
+                log.warn("Unable to create URI for server: Invalid URI for {}: {}", srvUriRaw, e.getMessage());
+                continue;
+            }
+
+            req.setURI(srvUri);
+            try (CloseableHttpResponse res = client.execute(req)) {
+                int sc = res.getStatusLine().getStatusCode();
+                if (sc != 200) {
+                    JsonObject b;
+                    try {
+                        b = GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                    } catch (IllegalArgumentException e) {
+                        b = new JsonObject();
+                    }
+
+                    if (sc == 404 && StringUtils.equals("G_NOT_FOUND", GsonUtil.getStringOrNull(b, "errcode"))) {
+                        return Optional.empty();
+                    }
+
+                    if (sc == 403) {
+                        throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
+                    }
+
+                    throw new RemoteServerException(target, b);
+                }
+
+                try {
+                    JsonObject body = parse(res, JsonObject.class);
+                    return GsonUtil.findObj(body, "event");
+                } catch (IllegalArgumentException e) {
+                    throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
+                }
+            } catch (IOException e) {
+                log.warn("", e);
+            }
+        }
+
+        return Optional.empty();
     }
 
 }

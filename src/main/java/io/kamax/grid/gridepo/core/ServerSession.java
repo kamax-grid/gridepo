@@ -169,4 +169,8 @@ public class ServerSession {
         return Optional.of(new ChannelLookup(chAlias, cId, servers));
     }
 
+    public Optional<ChannelEvent> getEvent(ChannelID cId, EventID eId) {
+        return g.getStore().findEvent(cId, eId);
+    }
+
 }

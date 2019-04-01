@@ -22,6 +22,8 @@ package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.ChannelAlias;
+import io.kamax.grid.gridepo.core.ChannelID;
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
@@ -39,5 +41,7 @@ public interface DataServerClient {
     JsonObject approveJoin(String as, String target, BareMemberEvent ev);
 
     Optional<ChannelLookup> lookup(String as, String target, ChannelAlias alias);
+
+    Optional<JsonObject> getEvent(String as, String target, ChannelID cId, EventID eId);
 
 }

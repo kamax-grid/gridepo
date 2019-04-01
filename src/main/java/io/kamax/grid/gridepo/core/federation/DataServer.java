@@ -119,8 +119,8 @@ public class DataServer {
         setAvailable();
     }
 
-    public Optional<JsonObject> getEvent(ChannelID chId, EventID evId) {
-        return Optional.empty();
+    public Optional<JsonObject> getEvent(String as, ChannelID chId, EventID evId) {
+        return withHealthCheck(() -> client.getEvent(as, hostname, chId, evId));
     }
 
     public JsonObject push(String as, ChannelEvent ev) {

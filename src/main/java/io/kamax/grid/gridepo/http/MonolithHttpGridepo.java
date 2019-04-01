@@ -28,6 +28,7 @@ import io.kamax.grid.gridepo.http.handler.grid.server.ChannelDirectoryLookupHand
 import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveInvite;
 import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveJoin;
 import io.kamax.grid.gridepo.http.handler.grid.server.DoPushHandler;
+import io.kamax.grid.gridepo.http.handler.grid.server.channel.GetEventHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
@@ -78,6 +79,8 @@ public class MonolithHttpGridepo {
                 .post("/data/server/v0/do/approve/join", new DoApproveJoin(g))
                 .post("/data/server/v0/do/lookup/channel/alias", new ChannelDirectoryLookupHandler(g))
                 .post("/data/server/v0/do/push", new DoPushHandler(g))
+
+                .get("/data/server/v0/channels/{channelId}/events/{eventId}", new GetEventHandler(g))
         ;
     }
 

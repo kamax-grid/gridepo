@@ -162,7 +162,7 @@ public class ChannelManager {
         Optional<Channel> cOpt = find(data.getId());
         if (cOpt.isPresent()) {
             Channel c = cOpt.get();
-            if (c.getView().getJoinedServers().stream().anyMatch(g::isLocal)) {
+            if (c.getView().getAllServers().stream().anyMatch(g::isLocal)) {
                 // We are joined, so we can make our own event
 
                 ChannelEventAuthorization auth = c.makeAndOffer(bEv.getJson());

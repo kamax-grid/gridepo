@@ -20,15 +20,17 @@
 
 package io.kamax.test.grid.gridepo.core.federation;
 
-import io.kamax.grid.gridepo.core.EntityAlias;
-import io.kamax.grid.gridepo.core.EntityGUID;
-import io.kamax.grid.gridepo.core.UserID;
+import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.BareMessageEvent;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import org.junit.Test;
 
+import java.util.Optional;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class BasicFederation extends Federation {
 
@@ -62,8 +64,8 @@ public class BasicFederation extends Federation {
         Channel g2c1 = g2.getChannelManager().get(cId);
 
         assertEquals(g1c1.getId(), g2c1.getId());
-        assertEquals(2, g1c1.getView().getJoinedServers().size());
-        assertEquals(2, g2c1.getView().getJoinedServers().size());
+        assertEquals(2, g1c1.getView().getAllServers().size());
+        assertEquals(2, g2c1.getView().getAllServers().size());
     }
 
     @Test
@@ -76,9 +78,31 @@ public class BasicFederation extends Federation {
         assertEquals(g1MsgEvId, g1c1.getView().getHead().full());
         assertEquals(g1MsgEvId, g2c1.getView().getHead().full());
 
-        String g2MsgEvId = s2.send(cId, BareMessageEvent.build(u1, "test from " + n2).getJson());
+        String g2MsgEvId = s2.send(cId, BareMessageEvent.build(u2, "test from " + n2).getJson());
         assertEquals(g2MsgEvId, g1c1.getView().getHead().full());
         assertEquals(g2MsgEvId, g2c1.getView().getHead().full());
+    }
+
+    @Test
+    public void backfill() {
+        String cId = makeSharedChannel();
+        Channel g1c1 = g1.getChannelManager().get(cId);
+        Channel g2c1 = g2.getChannelManager().get(cId);
+
+        String g1EvId = g1c1.getView().getHead().full();
+
+        g2.getFedPusher().setEnabled(false);
+        String g2Ev1Id = s2.send(cId, BareMessageEvent.build(u2, "Message 1 from " + n2).getJson());
+        assertEquals(g1EvId, g1c1.getView().getHead().full());
+        assertEquals(g2Ev1Id, g2c1.getView().getHead().full());
+
+        g2.getFedPusher().setEnabled(true);
+        String g2Ev2Id = s2.send(cId, BareMessageEvent.build(u2, "Message 2 from " + n2).getJson());
+        assertEquals(g2Ev2Id, g1c1.getView().getHead().full());
+        assertEquals(g2Ev2Id, g2c1.getView().getHead().full());
+
+        Optional<ChannelEvent> g1Ev1 = g1.getStore().findEvent(ChannelID.from(cId), EventID.from(g2Ev1Id));
+        assertTrue(g1Ev1.isPresent());
     }
 
 }

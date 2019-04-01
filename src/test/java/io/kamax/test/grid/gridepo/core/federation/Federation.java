@@ -126,8 +126,8 @@ public class Federation {
         Channel g2c1 = s2.joinChannel(c1Alias);
 
         assertEquals(g1c1.getId(), g2c1.getId());
-        assertEquals(2, g1c1.getView().getJoinedServers().size());
-        assertEquals(2, g2c1.getView().getJoinedServers().size());
+        assertEquals(2, g1c1.getView().getAllServers().size());
+        assertEquals(2, g2c1.getView().getAllServers().size());
 
         return cId;
     }
