@@ -29,6 +29,7 @@ import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.store.SqlConnectionPool;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.io.IOUtils;
@@ -537,20 +538,38 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public long storeUser(String username, String password) {
-        return withStmtFunction("INSERT INTO users (username,password) VALUES (?,?) RETURNING sid", stmt -> {
+        return withStmtFunction("INSERT INTO users (username,password) VALUES (?,?) RETURNING lid", stmt -> {
             stmt.setString(1, username);
             stmt.setString(2, password);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
-                throw new IllegalStateException("Inserted user " + username + " but got no SID back");
+                throw new IllegalStateException("Inserted user " + username + " but got no LID back");
             }
 
-            return rSet.getLong("sid");
+            return rSet.getLong("lid");
         });
     }
 
     @Override
-    public Optional<String> findPassword(String username) {
+    public Optional<UserDao> findUser(long lid) {
+        return withStmtFunction("SELECT * FROM users WHERE lid = ?", stmt -> {
+            stmt.setLong(1, lid);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                return Optional.empty();
+            }
+
+            UserDao dao = new UserDao();
+            dao.setLid(lid);
+            dao.setUsername(rSet.getString("username"));
+            dao.setPass(rSet.getString("password"));
+
+            return Optional.of(dao);
+        });
+    }
+
+    @Override
+    public Optional<UserDao> findUser(String username) {
         return withStmtFunction("SELECT * FROM users WHERE username = ?", stmt -> {
             stmt.setString(1, username);
             ResultSet rSet = stmt.executeQuery();
@@ -558,7 +577,44 @@ public class PostgreSQLStore implements Store {
                 return Optional.empty();
             }
 
-            return Optional.ofNullable(rSet.getString("password"));
+            UserDao dao = new UserDao();
+            dao.setLid(rSet.getLong("lid"));
+            dao.setUsername(rSet.getString("username"));
+            dao.setPass(rSet.getString("password"));
+
+            return Optional.of(dao);
+        });
+    }
+
+    @Override
+    public boolean hasUserAccessToken(String token) {
+        return withStmtFunction("SELECT * FROM user_access_tokens WHERE token = ?", stmt -> {
+            stmt.setString(1, token);
+            ResultSet rSet = stmt.executeQuery();
+            return rSet.next();
+        });
+    }
+
+    @Override
+    public void insertUserAccessToken(long uLid, String token) {
+        withStmtConsumer("INSERT INTO user_access_tokens (ulid, token) VALUES (?,?)", stmt -> {
+            stmt.setLong(1, uLid);
+            stmt.setString(2, token);
+            int rc = stmt.executeUpdate();
+            if (rc < 1) {
+                throw new IllegalStateException("User Access token insert: DB inserted " + rc + " row(s). 1 expected");
+            }
+        });
+    }
+
+    @Override
+    public void deleteUserAccessToken(String token) {
+        withStmtConsumer("DELETE FROM user_access_tokens WHERE token = ?", stmt -> {
+            stmt.setString(1, token);
+            int rc = stmt.executeUpdate();
+            if (rc < 1) {
+                throw new ObjectNotFoundException("User Access Token", "<REDACTED>");
+            }
         });
     }
 

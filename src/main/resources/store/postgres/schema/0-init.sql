@@ -65,10 +65,19 @@ CREATE TABLE channel_addresses
 
 CREATE TABLE users
 (
-    sid bigserial NOT NULL,
+    lid bigserial NOT NULL,
     username text NOT NULL,
     password text,
     CONSTRAINT u_username UNIQUE (username)
 );
+CREATE INDEX u_lid_idx
+    ON users USING hash(lid);
 CREATE INDEX u_username_idx
     ON users USING hash(username);
+
+CREATE TABLE user_access_tokens
+(
+    uLid bigint NOT NULL,
+    token text NOT NULL,
+    CONSTRAINT u_token UNIQUE (token)
+);

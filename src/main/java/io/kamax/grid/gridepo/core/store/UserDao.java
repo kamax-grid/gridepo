@@ -18,34 +18,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.core.store;
 
-public class User {
+public class UserDao {
 
     private Long lid;
-    private UserID id;
     private String username;
+    private String pass;
 
-    public User(Long lid, UserID id, String username) {
-        this.lid = lid;
-        this.id = id;
-        this.username = username;
-    }
-
-    public User(UserID id, String username) {
-        this(null, id, username);
-    }
-
-    public Long getSid() {
+    public Long getLid() {
         return lid;
     }
 
-    public UserID getId() {
-        return id;
+    public void setLid(Long lid) {
+        this.lid = lid;
     }
 
     public String getUsername() {
         return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPass() {
+        return pass;
+    }
+
+    public void setPass(String pass) {
+        this.pass = pass;
     }
 
 }

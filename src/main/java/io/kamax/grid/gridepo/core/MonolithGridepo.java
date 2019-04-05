@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.core;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.codec.GridHash;
@@ -41,9 +42,9 @@ import io.kamax.grid.gridepo.core.signal.AppStopping;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLStore;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
-import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
@@ -52,9 +53,8 @@ import org.slf4j.Logger;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MonolithGridepo implements Gridepo {
 
@@ -75,7 +75,7 @@ public class MonolithGridepo implements Gridepo {
     private FederationPusher fedPush;
 
     private boolean isStopping;
-    private Map<String, Boolean> tokens = new HashMap<>();
+    private Map<String, Boolean> tokens = new ConcurrentHashMap<>();
 
     public MonolithGridepo(GridepoConfig cfg) {
         this.cfg = cfg;
@@ -198,38 +198,43 @@ public class MonolithGridepo implements Gridepo {
 
     @Override
     public UserSession login(String username, String password) {
-        String canonicalUsername = idMgr.login(username, password);
-        UserID uId = UserID.from(username, cfg.getDomain());
-        User u = new User(uId, canonicalUsername);
+        UserDao dao = idMgr.login(username, password);
+        UserID uId = UserID.from(dao.getUsername(), cfg.getDomain());
+        User u = new User(uId, dao.getUsername());
 
         String token = JWT.create()
                 .withIssuer(cfg.getDomain())
+                .withIssuedAt(new Date())
                 .withExpiresAt(Date.from(Instant.ofEpochMilli(Long.MAX_VALUE)))
                 .withClaim("UserID", uId.full())
-                .withClaim("Username", username)
+                .withClaim("Username", dao.getUsername())
                 .sign(jwtAlgo);
 
+        store.insertUserAccessToken(dao.getLid(), token);
         tokens.put(token, true);
         return new UserSession(this, u, token);
     }
 
     @Override
     public void logout(UserSession session) {
-        if (Objects.isNull(tokens.remove(session.getAccessToken()))) {
-            throw new ObjectNotFoundException("Client access token", "<REDACTED>");
-        }
+        store.deleteUserAccessToken(session.getAccessToken());
+        tokens.remove(session.getAccessToken());
     }
 
     @Override
     public UserSession withToken(String token) {
-        if (!tokens.computeIfAbsent(token, t -> false)) {
+        if (!tokens.computeIfAbsent(token, t -> store.hasUserAccessToken(token))) {
             throw new InvalidTokenException("Unknown token");
         }
 
-        DecodedJWT data = jwtVerifier.verify(JWT.decode(token));
-        UserID uId = UserID.parse(data.getClaim("UserID").asString());
-        String username = data.getClaim("Username").asString();
-        return new UserSession(this, new User(uId, username), token);
+        try {
+            DecodedJWT data = jwtVerifier.verify(JWT.decode(token));
+            UserID uId = UserID.parse(data.getClaim("UserID").asString());
+            String username = data.getClaim("Username").asString();
+            return new UserSession(this, new User(uId, username), token);
+        } catch (JWTVerificationException e) {
+            throw new InvalidTokenException("Invalid token");
+        }
     }
 
     @Override

@@ -28,28 +28,34 @@ import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.KxLog;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MemoryStore implements Store {
 
     private static final Logger log = KxLog.make(MemoryStore.class);
 
+    private AtomicLong uLid = new AtomicLong(0);
     private AtomicLong chSid = new AtomicLong(0);
     private AtomicLong evLid = new AtomicLong(0);
     private AtomicLong evSid = new AtomicLong(0);
     private AtomicLong sSid = new AtomicLong(0);
 
-    private Map<String, String> users = new ConcurrentHashMap<>();
+    private Map<Long, UserDao> users = new ConcurrentHashMap<>();
+    private Map<Long, List<String>> uTokens = new ConcurrentHashMap<>();
     private Map<Long, ChannelDao> channels = new ConcurrentHashMap<>();
     private Map<ChannelID, ChannelDao> chIdToDao = new ConcurrentHashMap<>();
     private Map<Long, ChannelEvent> chEvents = new ConcurrentHashMap<>();
     private Map<Long, ChannelState> chStates = new ConcurrentHashMap<>();
     private Map<Long, List<Long>> chExtremities = new ConcurrentHashMap<>();
     private Map<Long, Long> evStates = new ConcurrentHashMap<>();
+
+    private Map<String, Long> uNameToLid = new ConcurrentHashMap<>();
 
     private Map<String, ChannelID> chAliasToId = new ConcurrentHashMap<>();
     private Map<ChannelID, Map<ServerID, Set<String>>> chIdToAlias = new ConcurrentHashMap<>();
@@ -213,7 +219,7 @@ public class MemoryStore implements Store {
 
     @Override
     public boolean hasUser(String username) {
-        return users.containsKey(username);
+        return uNameToLid.containsKey(username);
     }
 
     @Override
@@ -227,13 +233,56 @@ public class MemoryStore implements Store {
             throw new IllegalStateException(username + " already exists");
         }
 
-        users.put(username, password);
-        return Long.MIN_VALUE; // FIXME this will most likely fail at some point
+        long lid = uLid.incrementAndGet();
+        UserDao dao = new UserDao();
+        dao.setLid(lid);
+        dao.setUsername(username);
+        dao.setPass(password);
+        users.put(lid, dao);
+        uNameToLid.put(username, lid);
+        return lid;
     }
 
     @Override
-    public Optional<String> findPassword(String username) {
-        return Optional.ofNullable(users.get(username));
+    public Optional<UserDao> findUser(long lid) {
+        return Optional.ofNullable(users.get(lid));
+    }
+
+    @Override
+    public Optional<UserDao> findUser(String username) {
+        return Optional.ofNullable(uNameToLid.get(username))
+                .flatMap(lid -> Optional.ofNullable(users.get(lid)));
+    }
+
+    @Override
+    public boolean hasUserAccessToken(String token) {
+        for (List<String> tokens : uTokens.values()) {
+            for (String v : tokens) {
+                if (StringUtils.equals(v, token)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private List<String> getTokens(long uLid) {
+        return uTokens.computeIfAbsent(uLid, k -> new CopyOnWriteArrayList<>());
+    }
+
+    @Override
+    public void insertUserAccessToken(long uLid, String token) {
+        getTokens(uLid).add(token);
+    }
+
+    @Override
+    public void deleteUserAccessToken(String token) {
+        if (!hasUserAccessToken(token)) {
+            throw new ObjectNotFoundException("Access token", "<REDACTED>");
+        }
+
+        uTokens.values().forEach(tokens -> tokens.remove(token));
     }
 
     private Map<ServerID, Set<String>> getChIdToAlias(ChannelID id) {

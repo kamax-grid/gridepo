@@ -81,7 +81,15 @@ public interface Store {
 
     long storeUser(String username, String password);
 
-    Optional<String> findPassword(String username);
+    Optional<UserDao> findUser(long lid);
+
+    Optional<UserDao> findUser(String username);
+
+    boolean hasUserAccessToken(String token);
+
+    void insertUserAccessToken(long uLid, String token);
+
+    void deleteUserAccessToken(String token);
 
     Optional<ChannelID> lookupChannelAlias(String chAlias);
 

@@ -22,8 +22,10 @@ package io.kamax.grid.gridepo.core.identity;
 
 import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import java.nio.charset.StandardCharsets;
@@ -62,18 +64,23 @@ public class IdentityManager {
         store.storeUser(username, encPwd);
     }
 
-    public String login(String username, String password) {
-        Optional<String> encryptedPwd = store.findPassword(username);
-        if (!encryptedPwd.isPresent()) {
+    public UserDao login(String username, String password) {
+        Optional<UserDao> user = store.findUser(username);
+        if (!user.isPresent()) {
             throw new ForbiddenException("Invalid credentials");
         }
 
-        boolean isValid = OpenBSDBCrypt.checkPassword(encryptedPwd.get(), password.toCharArray());
+        String pass = user.get().getPass();
+        if (StringUtils.isEmpty(pass)) {
+            throw new ForbiddenException("Invalid credentials");
+        }
+
+        boolean isValid = OpenBSDBCrypt.checkPassword(pass, password.toCharArray());
         if (!isValid) {
             throw new ForbiddenException("Invalid credentials");
         }
 
-        return username;
+        return user.get();
     }
 
 }
