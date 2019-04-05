@@ -61,12 +61,12 @@ public class FederationPusher {
 
         log.info("Got event {} to process", signal.getEvent().getLid());
         if (!g.isOrigin(signal.getEvent().getOrigin())) {
-            log.info("Origin check: {} is not an local origin", signal.getEvent().getOrigin());
+            log.debug("Origin check: {} is not an local origin", signal.getEvent().getOrigin());
             return;
         }
 
         if (!signal.getAuth().isAuthorized()) {
-            log.info("Auth check: not authorized");
+            log.debug("Auth check: not authorized");
             return;
         }
 
@@ -75,17 +75,17 @@ public class FederationPusher {
             @Override
             protected void compute() {
                 Set<ServerID> servers = g.getChannelManager().get(ev.getChannelId()).getView().getOtherServers();
-                log.info("Will push to {} server(s)", servers.size());
+                log.debug("Will push to {} server(s)", servers.size());
 
                 invokeAll(srvMgr.get(servers).stream().map(srv -> new RecursiveAction() {
                     @Override
                     protected void compute() {
                         srv.push(g.getOrigin().full(), ev);
-                        log.info("Event {}{} was pushed to {}", ev.getChannelId(), ev.getId(), srv.getId().full());
+                        log.info("Event {} was pushed to {}", ev.getLid(), srv.getId().full());
                     }
                 }).collect(Collectors.toList()));
 
-                log.info("Done pushing event {}", ev.getLid());
+                log.debug("Done pushing event {}", ev.getLid());
             }
         });
 
