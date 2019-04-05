@@ -43,6 +43,9 @@ public class SyncResponse {
         public static RoomEvent build(ChannelEvent ev) {
             RoomEvent rEv = GsonUtil.get().fromJson(ProtocolEventMapper.forEventConvertToMatrix(ev), RoomEvent.class);
             rEv.channelId = ev.getChannelId();
+            if (log.isDebugEnabled()) {
+                rEv.grid = ev.getData();
+            }
             return rEv;
         }
 
@@ -54,6 +57,7 @@ public class SyncResponse {
         private String sender;
         private String stateKey;
         private Object content;
+        private JsonObject grid;
 
         public String getEventId() {
             return eventId;
@@ -113,6 +117,14 @@ public class SyncResponse {
 
         public void setContent(Object content) {
             this.content = content;
+        }
+
+        public JsonObject getGrid() {
+            return grid;
+        }
+
+        public void setGrid(JsonObject grid) {
+            this.grid = grid;
         }
 
     }
