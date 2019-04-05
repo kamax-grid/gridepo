@@ -18,28 +18,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.crypto;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-import io.kamax.grid.gridepo.config.StorageConfig;
+public enum KeyType {
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-public class SqlConnectionPool {
-
-    private ComboPooledDataSource ds;
-
-    public SqlConnectionPool(StorageConfig cfg) {
-        ds = new ComboPooledDataSource();
-        ds.setJdbcUrl("jdbc:" + cfg.getDatabase().getType() + ":" + cfg.getDatabase().getConnection());
-        ds.setMinPoolSize(1);
-        ds.setMaxPoolSize(10);
-        ds.setAcquireIncrement(2);
-    }
-
-    public Connection get() throws SQLException {
-        return ds.getConnection();
-    }
+    Ephemeral,
+    Regular
 
 }

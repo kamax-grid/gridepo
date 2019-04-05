@@ -25,6 +25,13 @@ import java.util.List;
 
 public class GridepoConfig {
 
+    public static GridepoConfig inMemory() {
+        GridepoConfig cfg = new GridepoConfig();
+        cfg.getStorage().getDatabase().setType("memory");
+        cfg.getStorage().getKey().setType("memory");
+        return cfg;
+    }
+
     public static class ListenerNetwork {
 
         public static ListenerNetwork build(String protocol, String type) {

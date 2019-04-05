@@ -20,27 +20,25 @@
 
 package io.kamax.grid.gridepo.core.crypto;
 
-import java.util.Optional;
+/**
+ * A signing key
+ */
+public interface Key {
 
-public class MemoryKeyStore implements KeyStore {
+    KeyIdentifier getId();
 
-    private String data;
+    /**
+     * If the key is currently valid
+     *
+     * @return true if the key is valid, false if not
+     */
+    boolean isValid();
 
-    public MemoryKeyStore() {
-    }
-
-    public MemoryKeyStore(String data) {
-        this.data = data;
-    }
-
-    @Override
-    public Optional<String> load() {
-        return Optional.ofNullable(data);
-    }
-
-    @Override
-    public void store(String key) {
-        data = key;
-    }
+    /**
+     * Get the private key
+     *
+     * @return the private key encoded as Base64
+     */
+    String getPrivateKeyBase64();
 
 }

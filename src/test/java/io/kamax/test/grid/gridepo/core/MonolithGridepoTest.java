@@ -33,7 +33,7 @@ public class MonolithGridepoTest {
 
     @Test
     public void basicRoomCreate() {
-        GridepoConfig cfg = new GridepoConfig();
+        GridepoConfig cfg = GridepoConfig.inMemory();
         cfg.setDomain("localhost");
         Gridepo g = new MonolithGridepo(cfg);
         Channel ch = g.getChannelManager().createChannel("@john.doe");

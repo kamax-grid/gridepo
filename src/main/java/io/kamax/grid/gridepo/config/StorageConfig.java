@@ -22,23 +22,69 @@ package io.kamax.grid.gridepo.config;
 
 public class StorageConfig {
 
-    private String type = "memory";
-    private String connection;
+    public static class Database {
 
-    public String getType() {
-        return type;
+        private String type = "memory";
+        private String connection;
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getConnection() {
+            return connection;
+        }
+
+        public void setConnection(String connection) {
+            this.connection = connection;
+        }
+
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public static class Keys {
+
+        private String type = "file";
+        private String location;
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public void setLocation(String location) {
+            this.location = location;
+        }
+
     }
 
-    public String getConnection() {
-        return connection;
+    private Database database = new Database();
+    private Keys key = new Keys();
+
+    public Database getDatabase() {
+        return database;
     }
 
-    public void setConnection(String connection) {
-        this.connection = connection;
+    public void setDatabase(Database database) {
+        this.database = database;
+    }
+
+    public Keys getKey() {
+        return key;
+    }
+
+    public void setKey(Keys key) {
+        this.key = key;
     }
 
 }

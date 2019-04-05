@@ -30,9 +30,8 @@ import io.kamax.grid.gridepo.codec.GridHash;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.channel.ChannelDirectory;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
-import io.kamax.grid.gridepo.core.crypto.KeyManager;
-import io.kamax.grid.gridepo.core.crypto.MemoryKeyStore;
-import io.kamax.grid.gridepo.core.crypto.SignManager;
+import io.kamax.grid.gridepo.core.crypto.Cryptopher;
+import io.kamax.grid.gridepo.core.crypto.ed25519.Ed25519Cryptopher;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.event.EventStreamer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
@@ -43,6 +42,9 @@ import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.core.store.UserDao;
+import io.kamax.grid.gridepo.core.store.crypto.FileKeyStore;
+import io.kamax.grid.gridepo.core.store.crypto.KeyStore;
+import io.kamax.grid.gridepo.core.store.crypto.MemoryKeyStore;
 import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLStore;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.util.KxLog;
@@ -67,6 +69,7 @@ public class MonolithGridepo implements Gridepo {
     private GridepoConfig cfg;
     private SignalBus bus;
     private Store store;
+    private KeyStore kStore;
     private IdentityManager idMgr;
     private EventService evSvc;
     private ChannelManager chMgr;
@@ -87,25 +90,33 @@ public class MonolithGridepo implements Gridepo {
 
         bus = new SignalBus();
 
-
-
         // FIXME use ServiceLoader
-        if (StringUtils.equals("memory", cfg.getStorage().getType())) {
+        String dbStoreType = cfg.getStorage().getDatabase().getType();
+        if (StringUtils.equals("memory", dbStoreType)) {
             store = new MemoryStore();
-        } else if (StringUtils.equals("postgresql", cfg.getStorage().getType())) {
+        } else if (StringUtils.equals("postgresql", dbStoreType)) {
             store = new PostgreSQLStore(cfg.getStorage());
         } else {
-            throw new IllegalArgumentException("Unknown storage: " + cfg.getStorage().getType());
+            throw new IllegalArgumentException("Unknown database type: " + dbStoreType);
+        }
+
+        //FIXME use ServiceLoader
+        String kStoreType = cfg.getStorage().getKey().getType();
+        if (StringUtils.equals("file", kStoreType)) {
+            kStore = new FileKeyStore(cfg.getStorage().getKey().getLocation());
+        } else if (StringUtils.equals("memory", kStoreType)) {
+            kStore = new MemoryKeyStore();
+        } else {
+            throw new IllegalArgumentException("Unknown keys storage: " + kStoreType);
         }
 
         DataServerManager dsMgr = new DataServerManager();
-        KeyManager keyMgr = new KeyManager(new MemoryKeyStore());
-        SignManager signMgr = new SignManager(keyMgr);
+        Cryptopher crypto = new Ed25519Cryptopher(kStore);
 
         String jwtSeed = cfg.getCrypto().getSeed().get("jwt");
         if (StringUtils.isEmpty(jwtSeed)) {
             log.warn("JWT secret is not set, computing one from main signing key. Please set a JWT secret in your config");
-            jwtSeed = GridHash.get().hashFromUtf8(cfg.getDomain() + keyMgr.getPrivateKeyBase64(keyMgr.getCurrentIndex()));
+            jwtSeed = GridHash.get().hashFromUtf8(cfg.getDomain() + crypto.getServerSigningKey().getPrivateKeyBase64());
         }
 
         jwtAlgo = Algorithm.HMAC256(jwtSeed);
@@ -113,7 +124,7 @@ public class MonolithGridepo implements Gridepo {
                 .withIssuer(cfg.getDomain())
                 .build();
 
-        evSvc = new EventService(origin, signMgr);
+        evSvc = new EventService(origin, crypto);
 
         idMgr = new IdentityManager(cfg.getIdentity(), store);
         chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);

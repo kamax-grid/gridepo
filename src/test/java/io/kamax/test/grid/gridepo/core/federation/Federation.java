@@ -65,7 +65,7 @@ public class Federation {
         GridepoConfig.Listener l1 = new GridepoConfig.Listener();
         l1.addNetwork(net1);
         l1.setPort(60001);
-        GridepoConfig cfg1 = new GridepoConfig();
+        GridepoConfig cfg1 = GridepoConfig.inMemory();
         cfg1.setDomain("localhost:" + l1.getPort());
         cfg1.getListeners().add(l1);
 
@@ -75,7 +75,7 @@ public class Federation {
         GridepoConfig.Listener l2 = new GridepoConfig.Listener();
         l2.addNetwork(net2);
         l2.setPort(60002);
-        GridepoConfig cfg2 = new GridepoConfig();
+        GridepoConfig cfg2 = GridepoConfig.inMemory();
         cfg2.setDomain("localhost:" + l2.getPort());
         cfg2.getListeners().add(l2);
 

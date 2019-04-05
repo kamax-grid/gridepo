@@ -18,28 +18,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.crypto;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-import io.kamax.grid.gridepo.config.StorageConfig;
+import com.google.gson.JsonObject;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
-public class SqlConnectionPool {
+public interface Cryptopher {
 
-    private ComboPooledDataSource ds;
+    KeyIdentifier generateKey(KeyType type);
 
-    public SqlConnectionPool(StorageConfig cfg) {
-        ds = new ComboPooledDataSource();
-        ds.setJdbcUrl("jdbc:" + cfg.getDatabase().getType() + ":" + cfg.getDatabase().getConnection());
-        ds.setMinPoolSize(1);
-        ds.setMaxPoolSize(10);
-        ds.setAcquireIncrement(2);
+    List<KeyIdentifier> getKeys(KeyType type);
+
+    Key getServerSigningKey();
+
+    Key getKey(KeyIdentifier id);
+
+    void disableKey(KeyIdentifier id);
+
+    String getPublicKeyBase64(KeyIdentifier id);
+
+    boolean isValid(KeyType type, String publicKeyBase64);
+
+    Signature sign(JsonObject obj, KeyIdentifier keyId);
+
+    default Signature sign(String message, KeyIdentifier keyId) {
+        return sign(message.getBytes(StandardCharsets.UTF_8), keyId);
     }
 
-    public Connection get() throws SQLException {
-        return ds.getConnection();
-    }
+    Signature sign(byte[] data, KeyIdentifier keyId);
 
 }

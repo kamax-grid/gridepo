@@ -18,28 +18,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.crypto;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-import io.kamax.grid.gridepo.config.StorageConfig;
+public class GenericKey implements Key {
 
-import java.sql.Connection;
-import java.sql.SQLException;
+    private final KeyIdentifier id;
+    private final boolean isValid;
+    private final String privKey;
 
-public class SqlConnectionPool {
-
-    private ComboPooledDataSource ds;
-
-    public SqlConnectionPool(StorageConfig cfg) {
-        ds = new ComboPooledDataSource();
-        ds.setJdbcUrl("jdbc:" + cfg.getDatabase().getType() + ":" + cfg.getDatabase().getConnection());
-        ds.setMinPoolSize(1);
-        ds.setMaxPoolSize(10);
-        ds.setAcquireIncrement(2);
+    public GenericKey(KeyIdentifier id, boolean isValid, String privKey) {
+        this.id = new GenericKeyIdentifier(id);
+        this.isValid = isValid;
+        this.privKey = privKey;
     }
 
-    public Connection get() throws SQLException {
-        return ds.getConnection();
+
+    @Override
+    public KeyIdentifier getId() {
+        return id;
+    }
+
+    @Override
+    public boolean isValid() {
+        return isValid;
+    }
+
+    @Override
+    public String getPrivateKeyBase64() {
+        return privKey;
     }
 
 }

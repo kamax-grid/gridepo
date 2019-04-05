@@ -29,6 +29,7 @@ import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
@@ -67,7 +68,7 @@ public abstract class StoreTest {
     public void newUserDoesNotExistInNewStore() {
         String user = RandomStringUtils.random(12);
         assertFalse(store.hasUser(user));
-        assertFalse(store.findPassword(user).isPresent());
+        assertFalse(store.findUser(user).isPresent());
     }
 
     @Test
@@ -77,9 +78,9 @@ public abstract class StoreTest {
         store.storeUser(user, password);
 
         assertTrue(store.hasUser(user));
-        Optional<String> pwdStored = store.findPassword(user);
-        assertTrue(pwdStored.isPresent());
-        assertEquals(password, pwdStored.get());
+        Optional<UserDao> dao = store.findUser(user);
+        assertTrue(dao.isPresent());
+        assertEquals(password, dao.get().getPass());
     }
 
     @Test
@@ -92,17 +93,17 @@ public abstract class StoreTest {
         store.storeUser(user2, user2);
 
         assertTrue(store.hasUser(user1));
-        Optional<String> u1PwdStored = store.findPassword(user1);
-        assertTrue(u1PwdStored.isPresent());
-        assertEquals(user1, u1PwdStored.get());
+        Optional<UserDao> u1Dao = store.findUser(user1);
+        assertTrue(u1Dao.isPresent());
+        assertEquals(user1, u1Dao.get().getPass());
 
         assertTrue(store.hasUser(user2));
-        Optional<String> u2PwdStored = store.findPassword(user2);
-        assertTrue(u2PwdStored.isPresent());
-        assertEquals(user2, u2PwdStored.get());
+        Optional<UserDao> u2Dao = store.findUser(user2);
+        assertTrue(u2Dao.isPresent());
+        assertEquals(user2, u2Dao.get().getPass());
 
         assertFalse(store.hasUser(user3));
-        assertFalse(store.findPassword(user3).isPresent());
+        assertFalse(store.findUser(user3).isPresent());
     }
 
     @Test

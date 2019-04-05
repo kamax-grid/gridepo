@@ -33,12 +33,14 @@ import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.BarePowerEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
-import io.kamax.grid.gridepo.core.crypto.SignManager;
+import io.kamax.grid.gridepo.core.crypto.Cryptopher;
+import io.kamax.grid.gridepo.core.crypto.ed25519.Ed25519Cryptopher;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.crypto.MemoryKeyStore;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -66,9 +68,9 @@ public class ChannelTest {
     @Test
     public void basic() {
         SignalBus bus = SignalBus.getDefault();
-        SignManager signMgr = new SignManager();
+        Cryptopher crypto = new Ed25519Cryptopher(new MemoryKeyStore());
         Store store = new MemoryStore();
-        EventService evSvc = new EventService(sId, signMgr);
+        EventService evSvc = new EventService(sId, crypto);
         ChannelAlgo algo = new ChannelAlgoV0_0();
         DataServerManager srvMgr = new DataServerManager();
         ChannelDao cDao = store.saveChannel(new ChannelDao(cId));

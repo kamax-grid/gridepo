@@ -18,28 +18,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.crypto;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-import io.kamax.grid.gridepo.config.StorageConfig;
+/**
+ * Identifying data for a given Key.
+ */
+public interface KeyIdentifier {
 
-import java.sql.Connection;
-import java.sql.SQLException;
+    /**
+     * Type of key.
+     *
+     * @return The type of the key
+     */
+    KeyType getType();
 
-public class SqlConnectionPool {
+    /**
+     * Algorithm of the key. Typically <code>ed25519</code>.
+     *
+     * @return The algorithm of the key
+     */
+    String getAlgorithm();
 
-    private ComboPooledDataSource ds;
+    /**
+     * Serial of the key, unique for the algorithm.
+     * It is typically made of random alphanumerical characters.
+     *
+     * @return The serial of the key
+     */
+    String getSerial();
 
-    public SqlConnectionPool(StorageConfig cfg) {
-        ds = new ComboPooledDataSource();
-        ds.setJdbcUrl("jdbc:" + cfg.getDatabase().getType() + ":" + cfg.getDatabase().getConnection());
-        ds.setMinPoolSize(1);
-        ds.setMaxPoolSize(10);
-        ds.setAcquireIncrement(2);
-    }
-
-    public Connection get() throws SQLException {
-        return ds.getConnection();
+    default String getId() {
+        return getAlgorithm().toLowerCase() + ":" + getSerial();
     }
 
 }

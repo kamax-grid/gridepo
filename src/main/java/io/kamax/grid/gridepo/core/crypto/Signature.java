@@ -20,12 +20,10 @@
 
 package io.kamax.grid.gridepo.core.crypto;
 
-import java.util.Optional;
+public interface Signature {
 
-public interface KeyStore {
+    KeyIdentifier getKey();
 
-    Optional<String> load();
-
-    void store(String key);
+    String getSignature();
 
 }
