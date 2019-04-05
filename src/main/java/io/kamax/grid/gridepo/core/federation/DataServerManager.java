@@ -62,7 +62,7 @@ public class DataServerManager {
         return domains.stream()
                 .map(d -> cache.getUnchecked(d))
                 .filter(d -> all || d.isAvailable())
-                .sorted(Comparator.comparingLong(DataServer::getLastCall).reversed())
+                .sorted(Comparator.comparingLong(DataServer::getLastOut).reversed())
                 .collect(Collectors.toList());
     }
 

@@ -75,6 +75,7 @@ public class MonolithGridepo implements Gridepo {
     private ChannelManager chMgr;
     private ChannelDirectory chDir;
     private EventStreamer streamer;
+    private DataServerManager dsMgr;
     private FederationPusher fedPush;
 
     private boolean isStopping;
@@ -110,7 +111,7 @@ public class MonolithGridepo implements Gridepo {
             throw new IllegalArgumentException("Unknown keys storage: " + kStoreType);
         }
 
-        DataServerManager dsMgr = new DataServerManager();
+        dsMgr = new DataServerManager();
         Cryptopher crypto = new Ed25519Cryptopher(kStore);
 
         String jwtSeed = cfg.getCrypto().getSeed().get("jwt");
@@ -200,6 +201,11 @@ public class MonolithGridepo implements Gridepo {
     @Override
     public EventStreamer getStreamer() {
         return streamer;
+    }
+
+    @Override
+    public DataServerManager getServers() {
+        return dsMgr;
     }
 
     @Override

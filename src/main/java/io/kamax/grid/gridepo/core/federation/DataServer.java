@@ -34,7 +34,6 @@ import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
@@ -48,14 +47,18 @@ public class DataServer {
     private final ServerID id;
     private final String hostname;
     private DataServerHttpClient client;
-    private volatile Instant lastCall;
-    private volatile Instant lastActivity;
-    private AtomicLong waitTime = new AtomicLong();
+    private volatile Instant lastOut;
+    private volatile Instant lastIn;
+    private AtomicLong waitTime;
 
     public DataServer(ServerID id) {
         this.id = id;
         this.hostname = id.tryDecode().orElseThrow(() -> new IllegalArgumentException("Unable to resolve " + id.full() + " to a hostname"));
         this.client = new DataServerHttpClient();
+        this.lastOut = Instant.MIN;
+        this.lastIn = Instant.MIN;
+        this.waitTime = new AtomicLong();
+
         setAvailable();
     }
 
@@ -64,13 +67,8 @@ public class DataServer {
     }
 
     private <T> T withHealthCheck(boolean force, Supplier<T> r) {
-        if (!force) {
-            Instant nextRetry = lastCall.plusMillis(waitTime.get());
-            if (Instant.now().isBefore(nextRetry)) {
-                throw new RuntimeException("Host is not available at this time. Next window is in " + Duration.between(Instant.now(), nextRetry).getSeconds() + " seconds");
-            }
-
-            waitTime.set(0);
+        if (!force && !isAvailable()) {
+            throw new RuntimeException("Host is not available at this time");
         }
 
         try {
@@ -88,6 +86,8 @@ public class DataServer {
                 }
             }
             throw t;
+        } finally {
+            lastOut = Instant.now();
         }
     }
 
@@ -95,29 +95,20 @@ public class DataServer {
         return id;
     }
 
-    public long getLastCall() {
-        return lastCall.toEpochMilli();
-    }
-
-    public long getLastActivity() {
-        return lastActivity.toEpochMilli();
+    public long getLastOut() {
+        return lastOut.toEpochMilli();
     }
 
     public boolean isAvailable() {
-        return waitTime.get() == 0;
+        return lastOut.plusMillis(waitTime.get()).isBefore(Instant.now());
     }
 
     public void setAvailable() {
-        lastCall = Instant.now();
         waitTime.set(0);
     }
 
-    public void updateActivity() {
-        lastActivity = Instant.now();
-    }
-
     public void setActive() {
-        updateActivity();
+        lastIn = Instant.now();
         setAvailable();
     }
 

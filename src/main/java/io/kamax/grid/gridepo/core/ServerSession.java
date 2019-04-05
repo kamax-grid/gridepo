@@ -56,7 +56,13 @@ public class ServerSession {
         this.id = id;
     }
 
+    private void markActive() {
+        g.getServers().get(id).setActive();
+    }
+
     public JsonObject approveInvite(InviteApprovalRequest request) {
+        markActive();
+
         BareGenericEvent evGen = GsonUtil.fromJson(request.getObject(), BareGenericEvent.class);
         if (!ChannelEventType.Member.match(evGen.getType())) {
             throw new IllegalArgumentException("Illegal event type " + evGen.getType());
@@ -93,6 +99,8 @@ public class ServerSession {
 
     // FIXME we are not atomic when it comes to state - we auth on an unknown state, and then fetch state again to send back
     public ApprovalExchange approveJoin(BareMemberEvent ev) {
+        markActive();
+
         // We make sure we are given a valid Channel ID
         ChannelID cId = ChannelID.from(ev.getChannelId());
 
@@ -125,6 +133,8 @@ public class ServerSession {
     }
 
     public List<ChannelEventAuthorization> push(List<JsonObject> events) {
+        markActive();
+
         log.info("Got pushed {} event(s) from {}", events.size(), id);
 
         List<ChannelEventAuthorization> results = new ArrayList<>();
@@ -147,6 +157,8 @@ public class ServerSession {
     }
 
     public Optional<ChannelLookup> lookup(ChannelAlias chAlias) {
+        markActive();
+
         if (!StringUtils.equalsIgnoreCase(g.getDomain(), chAlias.network())) {
             return Optional.empty();
         }
@@ -170,6 +182,8 @@ public class ServerSession {
     }
 
     public Optional<ChannelEvent> getEvent(ChannelID cId, EventID eId) {
+        markActive();
+
         return g.getStore().findEvent(cId, eId);
     }
 
