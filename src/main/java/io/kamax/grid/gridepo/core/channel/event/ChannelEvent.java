@@ -52,6 +52,7 @@ public class ChannelEvent {
     }
 
     private long cSid;
+    private Long lid;
     private Long sid;
     private EventID id;
     private JsonObject data;
@@ -70,14 +71,14 @@ public class ChannelEvent {
         this.cSid = cSid;
     }
 
-    public ChannelEvent(long cSid, long sid) {
+    public ChannelEvent(long cSid, long lid) {
         this(cSid);
 
-        this.sid = sid;
+        this.lid = lid;
     }
 
-    public ChannelEvent(long cSid, long sid, ChannelEventMeta meta) {
-        this(cSid, sid);
+    public ChannelEvent(long cSid, long lid, ChannelEventMeta meta) {
+        this(cSid, lid);
         this.meta = meta;
     }
 
@@ -85,23 +86,35 @@ public class ChannelEvent {
         return cSid;
     }
 
+    public boolean hasLid() {
+        return Objects.nonNull(lid);
+    }
+
+    public long getLid() {
+        if (!hasLid()) {
+            throw new IllegalStateException();
+        }
+
+        return lid;
+    }
+
+    public void setLid(long lid) {
+        if (hasLid()) {
+            throw new IllegalStateException();
+        }
+
+        this.lid = lid;
+    }
+
     public boolean hasSid() {
         return Objects.nonNull(sid);
     }
 
-    public long getSid() {
-        if (!hasSid()) {
-            throw new IllegalStateException();
-        }
-
+    public Long getSid() {
         return sid;
     }
 
-    public void setSid(long sid) {
-        if (hasSid()) {
-            throw new IllegalStateException();
-        }
-
+    public void setSid(Long sid) {
         this.sid = sid;
     }
 

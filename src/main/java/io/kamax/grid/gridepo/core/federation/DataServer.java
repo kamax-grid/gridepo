@@ -69,6 +69,8 @@ public class DataServer {
             if (Instant.now().isBefore(nextRetry)) {
                 throw new RuntimeException("Host is not available at this time. Next window is in " + Duration.between(Instant.now(), nextRetry).getSeconds() + " seconds");
             }
+
+            waitTime.set(0);
         }
 
         try {
@@ -124,7 +126,7 @@ public class DataServer {
     }
 
     public JsonObject push(String as, ChannelEvent ev) {
-        log.info("Pushing event {} to {} ({}) as {}", ev.getSid(), id, hostname, as);
+        log.info("Pushing event {} to {} ({}) as {}", ev.getLid(), id, hostname, as);
         return withHealthCheck(() -> client.push(as, hostname, Collections.singletonList(ev)));
     }
 

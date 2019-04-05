@@ -38,7 +38,7 @@ public class EventStreamer {
     }
 
     public List<ChannelEvent> next(ChannelEvent ev) {
-        return next(ev.getSid());
+        return next(ev.getLid());
     }
 
 }

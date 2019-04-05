@@ -90,7 +90,7 @@ public class ChannelTest {
 
         BarePowerEvent.Content afterCreatePls = state.getPowers().orElseGet(c::getDefaultPls);
         assertEquals(Long.MAX_VALUE, (long) afterCreatePls.getUsers().get(janeId.full()));
-        assertEquals(1, c.getView().getAllServers().size());
+        assertEquals(0, c.getView().getAllServers().size());
         assertEquals(1, store.getExtremities(c.getSid()).size());
 
         BareMemberEvent cJoinEv = BareMemberEvent.joinAs(janeId);
@@ -99,6 +99,8 @@ public class ChannelTest {
         assertNotEquals(sid, state.getSid());
         sid = state.getSid();
         assertEquals(1, c.getView().getAllServers().size());
+        assertTrue(c.getView().isJoined(sId));
+        assertEquals(0, c.getView().getOtherServers().size());
         Assert.assertEquals(ChannelMembership.Join, state.findMembership(janeId.full()).orElse(ChannelMembership.Leave));
 
         BarePowerEvent cPlEv = new BarePowerEvent();

@@ -232,6 +232,19 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
+    public long addtoStream(long eLid) {
+        String sql = "INSERT INTO channel_event_stream (elid) VALUES (?) RETURNING sid";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setLong(1, eLid);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new IllegalStateException("Inserted event " + eLid + " in stream but got no SID back");
+            }
+            return rSet.getLong(1);
+        });
+    }
+
+    @Override
     public ChannelDao saveChannel(ChannelDao ch) {
         String sql = "INSERT INTO channels (id,network) VALUES (?,'grid') RETURNING sid";
         return withStmtFunction(sql, stmt -> {
@@ -249,7 +262,7 @@ public class PostgreSQLStore implements Store {
     }
 
     private long insertEvent(ChannelEvent ev) {
-        String sql = "INSERT INTO channel_events (id,cSid,meta,data) VALUES (?,?,?::jsonb,?::jsonb) RETURNING sid";
+        String sql = "INSERT INTO channel_events (id,cSid,meta,data) VALUES (?,?,?::jsonb,?::jsonb) RETURNING lid";
         return withStmtFunction(sql, stmt -> {
             stmt.setString(1, ev.getId().base());
             stmt.setLong(2, ev.getChannelSid());
@@ -257,32 +270,32 @@ public class PostgreSQLStore implements Store {
             stmt.setString(4, GsonUtil.toJson(ev.getData()));
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
-                throw new IllegalStateException("Inserted channel event but got no SID back");
+                throw new IllegalStateException("Inserted channel event but got no LID back");
             }
 
-            return rSet.getLong("sid");
+            return rSet.getLong("lid");
         });
     }
 
     private void updateEvent(ChannelEvent ev) {
-        String sql = "UPDATE channel_events SET meta = ?::jsonb WHERE sid = ?";
+        String sql = "UPDATE channel_events SET meta = ?::jsonb WHERE lid = ?";
         withStmtConsumer(sql, stmt -> {
             stmt.setString(1, GsonUtil.toJson(ev.getMeta()));
-            stmt.setLong(2, ev.getSid());
+            stmt.setLong(2, ev.getLid());
             int rc = stmt.executeUpdate();
             if (rc != 1) {
-                throw new IllegalStateException("Channel Event # " + ev.getSid() + ": DB updated " + rc + " rows. 1 expected");
+                throw new IllegalStateException("Channel Event # " + ev.getLid() + ": DB updated " + rc + " rows. 1 expected");
             }
         });
     }
 
     @Override
     public ChannelEvent saveEvent(ChannelEvent ev) {
-        if (ev.hasSid()) {
+        if (ev.hasLid()) {
             updateEvent(ev);
         } else {
             long sid = insertEvent(ev);
-            ev.setSid(sid);
+            ev.setLid(sid);
         }
 
         return ev;
@@ -299,12 +312,12 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public EventID getEventId(long eSid) {
-        return withStmtFunction("SELECT id FROM channel_events WHERE sid = ?", stmt -> {
-            stmt.setLong(1, eSid);
+    public EventID getEventId(long eLid) {
+        return withStmtFunction("SELECT id FROM channel_events WHERE lid = ?", stmt -> {
+            stmt.setLong(1, eLid);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
-                throw new ObjectNotFoundException("Event", Long.toString(eSid));
+                throw new ObjectNotFoundException("Event", Long.toString(eLid));
             }
 
             return new EventID(rSet.getString("id"));
@@ -312,8 +325,8 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public Optional<Long> findEventSid(ChannelID cId, EventID eId) throws ObjectNotFoundException {
-        String sql = "SELECT e.sid FROM channels c JOIN channel_events e ON e.cSid = c.sid WHERE c.id = ? AND e.id = ?";
+    public Optional<Long> findEventLid(ChannelID cId, EventID eId) throws ObjectNotFoundException {
+        String sql = "SELECT e.lid FROM channels c JOIN channel_events e ON e.cSid = c.sid WHERE c.id = ? AND e.id = ?";
         return withStmtFunction(sql, stmt -> {
             stmt.setString(1, cId.base());
             stmt.setString(2, eId.base());
@@ -322,13 +335,13 @@ public class PostgreSQLStore implements Store {
                 return Optional.empty();
             }
 
-            return Optional.of(rSet.getLong("sid"));
+            return Optional.of(rSet.getLong("lid"));
         });
     }
 
     @Override
     public List<ChannelEvent> getNext(long lastSid, long amount) {
-        String sql = "SELECT * FROM channel_events WHERE sid > ? ORDER BY sid ASC LIMIT ?";
+        String sql = "SELECT * FROM channel_event_stream s JOIN channel_events e ON s.eLid = e.lid WHERE s.sid > ? ORDER BY s.sid ASC LIMIT ?";
         return withStmtFunction(sql, stmt -> {
             stmt.setLong(1, lastSid);
             stmt.setLong(2, amount);
@@ -344,11 +357,18 @@ public class PostgreSQLStore implements Store {
 
     private ChannelEvent make(ResultSet rSet) throws SQLException {
         long cSid = rSet.getLong("cSid");
-        long sid = rSet.getLong("sid");
+        long sid = rSet.getLong("lid");
         ChannelEventMeta meta = GsonUtil.parse(rSet.getString("meta"), ChannelEventMeta.class);
         ChannelEvent ev = new ChannelEvent(cSid, sid, meta);
         if (ev.getMeta().isPresent()) {
             ev.setData(GsonUtil.parseObj(rSet.getString("data")));
+        }
+        try {
+            ev.setSid(rSet.getLong(rSet.findColumn("sid")));
+        } catch (SQLException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("No column sid", e);
+            }
         }
         return ev;
     }
@@ -370,9 +390,9 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public Optional<ChannelEvent> findEvent(long eSid) {
-        return withStmtFunction("SELECT * FROM channel_events WHERE sid = ?", stmt -> {
-            stmt.setLong(1, eSid);
+    public Optional<ChannelEvent> findEvent(long eLid) {
+        return withStmtFunction("SELECT * FROM channel_events WHERE lid = ?", stmt -> {
+            stmt.setLong(1, eLid);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
                 return Optional.empty();
@@ -385,18 +405,18 @@ public class PostgreSQLStore implements Store {
     @Override
     public void updateExtremities(long cSid, List<Long> toRemove, List<Long> toAdd) {
         withTransaction(conn -> {
-            withStmtConsumer("DELETE FROM channel_extremities WHERE eSid = ?", conn, stmt -> {
-                for (long eSid : toRemove) {
-                    stmt.setLong(1, eSid);
+            withStmtConsumer("DELETE FROM channel_extremities WHERE eLid = ?", conn, stmt -> {
+                for (long eLid : toRemove) {
+                    stmt.setLong(1, eLid);
                     stmt.addBatch();
                 }
                 stmt.executeBatch();
             });
 
-            withStmtConsumer("INSERT INTO channel_extremities (cSid,eSid) VALUES (?,?)", conn, stmt -> {
-                for (long eSid : toAdd) {
+            withStmtConsumer("INSERT INTO channel_extremities (cSid,eLid) VALUES (?,?)", conn, stmt -> {
+                for (long eLid : toAdd) {
                     stmt.setLong(1, cSid);
-                    stmt.setLong(2, eSid);
+                    stmt.setLong(2, eLid);
                     stmt.addBatch();
                 }
                 stmt.executeBatch();
@@ -406,13 +426,13 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public List<Long> getExtremities(long cSid) {
-        return withStmtFunction("SELECT eSid FROM channel_extremities WHERE cSid = ?", stmt -> {
+        return withStmtFunction("SELECT eLid FROM channel_extremities WHERE cSid = ?", stmt -> {
             stmt.setLong(1, cSid);
             ResultSet rSet = stmt.executeQuery();
 
             List<Long> extremities = new ArrayList<>();
             while (rSet.next()) {
-                extremities.add(rSet.getLong("eSid"));
+                extremities.add(rSet.getLong("eLid"));
             }
             return extremities;
         });
@@ -425,7 +445,7 @@ public class PostgreSQLStore implements Store {
         }
 
         String sql = "INSERT INTO channel_states (cSid) VALUES (?) RETURNING sid";
-        String evSql = "INSERT INTO channel_state_data (sSid,eSid) VALUES (?,?)";
+        String evSql = "INSERT INTO channel_state_data (sSid,eLid) VALUES (?,?)";
 
         return withTransactionFunction(conn -> {
             long sSid = withStmtFunction(sql, conn, stmt -> {
@@ -439,7 +459,7 @@ public class PostgreSQLStore implements Store {
             });
 
             withStmtConsumer(evSql, conn, stmt -> {
-                for (long eSid : state.getEvents().stream().map(ChannelEvent::getSid).collect(Collectors.toList())) {
+                for (long eSid : state.getEvents().stream().map(ChannelEvent::getLid).collect(Collectors.toList())) {
                     stmt.setLong(1, sSid);
                     stmt.setLong(2, eSid);
                     stmt.addBatch();
@@ -454,7 +474,7 @@ public class PostgreSQLStore implements Store {
     @Override
     public ChannelState getState(long sid) {
         return withConnFunction(conn -> {
-            String evSql = "SELECT e.* from channel_state_data s LEFT JOIN channel_events e ON e.sid = s.eSid WHERE s.sSid = ?";
+            String evSql = "SELECT e.* from channel_state_data s LEFT JOIN channel_events e ON e.lid = s.eLid WHERE s.sSid = ?";
             List<ChannelEvent> events = withStmtFunction(evSql, conn, stmt -> {
                 List<ChannelEvent> list = new ArrayList<>();
                 stmt.setLong(1, sid);
@@ -470,25 +490,25 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public void map(long evSid, long stateSid) {
-        withStmtConsumer("INSERT INTO channel_event_states (eSid,sSid) VALUES (?,?)", stmt -> {
-            stmt.setLong(1, evSid);
+    public void map(long evLid, long stateSid) {
+        withStmtConsumer("INSERT INTO channel_event_states (eLid,sSid) VALUES (?,?)", stmt -> {
+            stmt.setLong(1, evLid);
             stmt.setLong(2, stateSid);
             int rc = stmt.executeUpdate();
             if (rc != 1) {
-                throw new IllegalStateException("Channel Event " + evSid + " state: DB inserted " + rc + " rows. 1 expected");
+                throw new IllegalStateException("Channel Event " + evLid + " state: DB inserted " + rc + " rows. 1 expected");
             }
         });
     }
 
     @Override
-    public ChannelState getStateForEvent(long evSid) {
-        String sql = "SELECT sSid FROM channel_event_states WHERE eSid = ?";
+    public ChannelState getStateForEvent(long eLid) {
+        String sql = "SELECT sSid FROM channel_event_states WHERE eLid = ?";
         return getState(withStmtFunction(sql, stmt -> {
-            stmt.setLong(1, evSid);
+            stmt.setLong(1, eLid);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
-                throw new IllegalArgumentException("No state for Channel event " + evSid);
+                throw new IllegalArgumentException("No state for Channel event " + eLid);
             }
 
             return rSet.getLong("sSid");

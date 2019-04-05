@@ -12,7 +12,7 @@ CREATE INDEX c_net_idx
 
 CREATE TABLE channel_events
 (
-    sid bigserial NOT NULL,
+    lid bigserial NOT NULL,
     cSid bigint NOT NULL,
     id text NOT NULL,
     meta jsonb NOT NULL,
@@ -33,19 +33,25 @@ CREATE TABLE channel_states
 CREATE TABLE channel_state_data
 (
     sSid bigint NOT NULL,
-    eSid bigint NOT NULL
+    eLid bigint NOT NULL
 );
 
 CREATE TABLE channel_event_states
 (
-    eSid bigint NOT NULL,
+    eLid bigint NOT NULL,
     sSid bigint NOT NULL
+);
+
+CREATE TABLE channel_event_stream
+(
+    sid bigserial NOT NULL,
+    eLid bigint NOT NULL
 );
 
 CREATE TABLE channel_extremities
 (
     cSid bigint NOT NULL,
-    eSid bigint NOT NULL
+    eLid bigint NOT NULL
 );
 
 CREATE TABLE channel_addresses

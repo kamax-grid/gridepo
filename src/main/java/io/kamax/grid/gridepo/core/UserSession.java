@@ -148,7 +148,7 @@ public class UserSession {
                             // FIXME move this into channel/state algo to check if a user can see an event in the stream
 
                             // If we are the author
-                            if (StringUtils.equals(user.getId().full(), ev.getBare().getSender())) {
+                            if (StringUtils.equalsAny(user.getId().full(), ev.getBare().getSender(), ev.getBare().getScope())) {
                                 return true;
                             }
 
@@ -156,7 +156,7 @@ public class UserSession {
                             Channel c = g.getChannelManager().get(ev.getChannelId());
                             ChannelState state = c.getState(ev);
                             ChannelMembership m = state.getMembership(user.getId());
-                            return m.isAny(ChannelMembership.Invite, ChannelMembership.Join);
+                            return m.isAny(ChannelMembership.Join);
                         })
                         .collect(Collectors.toList());
 

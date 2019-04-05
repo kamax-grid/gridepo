@@ -39,6 +39,7 @@ public class MemoryStore implements Store {
     private static final Logger log = KxLog.make(MemoryStore.class);
 
     private AtomicLong chSid = new AtomicLong(0);
+    private AtomicLong evLid = new AtomicLong(0);
     private AtomicLong evSid = new AtomicLong(0);
     private AtomicLong sSid = new AtomicLong(0);
 
@@ -53,7 +54,8 @@ public class MemoryStore implements Store {
     private Map<String, ChannelID> chAliasToId = new ConcurrentHashMap<>();
     private Map<ChannelID, Map<ServerID, Set<String>>> chIdToAlias = new ConcurrentHashMap<>();
 
-    private Map<String, Long> evRefToSid = new ConcurrentHashMap<>();
+    private Map<String, Long> evRefToLid = new ConcurrentHashMap<>();
+    private Map<Long, Long> evSidToLid = new ConcurrentHashMap<>();
 
     private String makeRef(ChannelEvent ev) {
         return makeRef(channels.get(ev.getChannelSid()).getId(), ev.getId());
@@ -74,6 +76,13 @@ public class MemoryStore implements Store {
     }
 
     @Override
+    public long addtoStream(long eLid) {
+        long sid = evSid.incrementAndGet();
+        evSidToLid.put(sid, eLid);
+        return sid;
+    }
+
+    @Override
     public ChannelDao saveChannel(ChannelDao ch) {
         long sid = chSid.incrementAndGet();
         ch = new ChannelDao(sid, ch.getId());
@@ -84,14 +93,14 @@ public class MemoryStore implements Store {
 
     @Override
     public synchronized ChannelEvent saveEvent(ChannelEvent ev) {
-        if (!ev.hasSid()) {
-            ev.setSid(evSid.incrementAndGet());
+        if (!ev.hasLid()) {
+            ev.setLid(evLid.incrementAndGet());
         }
 
-        chEvents.put(ev.getSid(), ev);
-        evRefToSid.put(makeRef(ev), ev.getSid());
+        chEvents.put(ev.getLid(), ev);
+        evRefToLid.put(makeRef(ev), ev.getLid());
 
-        log.info("Added new channel event with SID {}", ev.getSid());
+        log.info("Added new channel event with SID {}", ev.getLid());
 
         return ev;
     }
@@ -113,8 +122,8 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public Optional<Long> findEventSid(ChannelID cId, EventID eId) {
-        return Optional.ofNullable(evRefToSid.get(makeRef(cId, eId)));
+    public Optional<Long> findEventLid(ChannelID cId, EventID eId) {
+        return Optional.ofNullable(evRefToLid.get(makeRef(cId, eId)));
     }
 
     @Override
@@ -124,13 +133,13 @@ public class MemoryStore implements Store {
             lastSid++;
 
             log.info("Checking for next event SID {}", lastSid);
-            if (!chEvents.containsKey(lastSid)) {
+            if (!evSidToLid.containsKey(lastSid)) {
                 log.info("No such event, end of stream");
                 return events;
             }
 
             log.info("Found next event SID {}, adding", lastSid);
-            events.add(chEvents.get(lastSid));
+            events.add(chEvents.get(evSidToLid.get(lastSid)));
             log.info("Incrementing SID");
         }
 
@@ -140,7 +149,7 @@ public class MemoryStore implements Store {
 
     @Override
     public synchronized Optional<ChannelEvent> findEvent(ChannelID cId, EventID eId) {
-        return Optional.ofNullable(evRefToSid.get(makeRef(cId, eId)))
+        return Optional.ofNullable(evRefToLid.get(makeRef(cId, eId)))
                 .flatMap(this::findEvent);
     }
 

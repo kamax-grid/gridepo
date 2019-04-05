@@ -22,9 +22,11 @@ package io.kamax.grid.gridepo.core.channel;
 
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
+import io.kamax.grid.gridepo.core.channel.event.ChannelEventType;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,8 +35,6 @@ public class ChannelView {
     private ServerID origin;
     private EventID head;
     private ChannelState state;
-
-    private transient Set<ServerID> srvJoined;
 
     public ChannelView(ServerID origin) {
         this(origin, null, ChannelState.empty());
@@ -63,14 +63,15 @@ public class ChannelView {
     }
 
     public Set<ServerID> getServers(boolean includeSelf) {
-        if (Objects.isNull(srvJoined)) {
-            srvJoined = getState().getEvents().stream()
-                    .map(ev -> ServerID.parse(ev.getOrigin()))
-                    .filter(id -> includeSelf || !origin.equals(id))
-                    .collect(Collectors.toSet());
-        }
-
-        return srvJoined;
+        return getState().getEvents().stream()
+                .filter(ev -> ChannelEventType.Member.match(ev.getBare().getType()))
+                .filter(bEv -> {
+                    BareMemberEvent ev = GsonUtil.fromJson(bEv.getData(), BareMemberEvent.class);
+                    return ChannelMembership.Join.match(ev.getContent().getAction());
+                })
+                .map(ev -> ServerID.parse(ev.getOrigin()))
+                .filter(id -> !origin.equals(id) || includeSelf)
+                .collect(Collectors.toSet());
     }
 
     public boolean isJoined(ServerID id) {

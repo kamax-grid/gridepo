@@ -115,8 +115,8 @@ public abstract class StoreTest {
         long cSid = makeChannel();
         ChannelEvent ev1 = ChannelEvent.forNotFound(cSid, EventID.from("sarce1", "example.org"));
         ChannelEvent evStored = store.saveEvent(ev1);
-        ChannelEvent evRead = store.getEvent(evStored.getSid());
-        assertEquals(evStored.getSid(), evRead.getSid());
+        ChannelEvent evRead = store.getEvent(evStored.getLid());
+        assertEquals(evStored.getLid(), evRead.getLid());
 
         BareCreateEvent bEv2 = new BareCreateEvent();
         bEv2.getContent().setCreator(UserID.from("john", "example.org"));
@@ -156,8 +156,8 @@ public abstract class StoreTest {
         ev = store.saveEvent(ev);
 
         ChannelState state = store.getState(store.insertIfNew(cSid, ChannelState.empty().apply(ev)));
-        store.map(ev.getSid(), state.getSid());
-        ChannelState stateRead = store.getStateForEvent(ev.getSid());
+        store.map(ev.getLid(), state.getSid());
+        ChannelState stateRead = store.getStateForEvent(ev.getLid());
         assertEquals(state.getSid(), stateRead.getSid());
     }
 

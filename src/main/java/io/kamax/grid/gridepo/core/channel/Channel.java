@@ -84,7 +84,7 @@ public class Channel {
         view = new ChannelView(origin, null, store.getExtremities(getSid()).stream()
                 .map(store::getEvent)
                 .max(Comparator.comparingLong(ev -> ev.getBare().getDepth()))
-                .map(ChannelEvent::getSid)
+                .map(ChannelEvent::getLid)
                 .map(store::getStateForEvent)
                 .orElseGet(ChannelState::empty));
         log.info("Channel {}: Loaded saved state SID {}", getSid(), view.getState().getSid());
@@ -251,15 +251,16 @@ public class Channel {
 
         ev = store.saveEvent(ev);
         state = store.getState(store.insertIfNew(getSid(), state));
-        store.map(ev.getSid(), state.getSid());
+        store.map(ev.getLid(), state.getSid());
+        store.addtoStream(ev.getLid());
 
         if (ev.getMeta().isAllowed()) {
             List<Long> toRemove = ev.getBare().getPreviousEvents().stream()
-                    .map(id -> store.findEventSid(getId(), EventID.from(id)))
+                    .map(id -> store.findEventLid(getId(), EventID.from(id)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());
-            List<Long> toAdd = Collections.singletonList(ev.getSid());
+            List<Long> toAdd = Collections.singletonList(ev.getLid());
             store.updateExtremities(getSid(), toRemove, toAdd);
             view = new ChannelView(origin, ev.getId(), state);
         }
@@ -431,7 +432,7 @@ public class Channel {
     }
 
     public ChannelState getState(ChannelEvent ev) {
-        return store.getStateForEvent(ev.getSid());
+        return store.getStateForEvent(ev.getLid());
     }
 
     public ChannelEvent invite(String inviter, EntityGUID invitee) {

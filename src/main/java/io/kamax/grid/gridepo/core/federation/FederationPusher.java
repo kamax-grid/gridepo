@@ -22,9 +22,7 @@ package io.kamax.grid.gridepo.core.federation;
 
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.ServerID;
-import io.kamax.grid.gridepo.core.channel.event.BareEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
-import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
 import io.kamax.grid.gridepo.util.KxLog;
@@ -61,7 +59,7 @@ public class FederationPusher {
             return;
         }
 
-        log.info("Got event {} to process", signal.getEvent().getSid());
+        log.info("Got event {} to process", signal.getEvent().getLid());
         if (!g.isOrigin(signal.getEvent().getOrigin())) {
             log.info("Origin check: {} is not an local origin", signal.getEvent().getOrigin());
             return;
@@ -76,14 +74,7 @@ public class FederationPusher {
         ForkJoinTask<Void> task = pool.submit(new RecursiveAction() {
             @Override
             protected void compute() {
-                ChannelState state = g.getChannelManager().get(ev.getChannelId()).getState(ev);
-                Set<ServerID> servers = state.getEvents().stream()
-                        .map(ChannelEvent::getBare)
-                        .map(BareEvent::getOrigin)
-                        .filter(v -> !g.isOrigin(v))
-                        .map(ServerID::parse)
-                        .collect(Collectors.toSet());
-
+                Set<ServerID> servers = g.getChannelManager().get(ev.getChannelId()).getView().getOtherServers();
                 log.info("Will push to {} server(s)", servers.size());
 
                 invokeAll(srvMgr.get(servers).stream().map(srv -> new RecursiveAction() {
@@ -94,7 +85,7 @@ public class FederationPusher {
                     }
                 }).collect(Collectors.toList()));
 
-                log.info("Done pushing event {}", ev.getSid());
+                log.info("Done pushing event {}", ev.getLid());
             }
         });
 

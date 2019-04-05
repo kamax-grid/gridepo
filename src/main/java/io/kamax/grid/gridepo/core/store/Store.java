@@ -42,6 +42,8 @@ public interface Store {
         return findChannel(cSid).orElseThrow(() -> new ObjectNotFoundException("Channel", Long.toString(cSid)));
     }
 
+    long addtoStream(long eLid);
+
     ChannelDao saveChannel(ChannelDao ch);
 
     ChannelEvent saveEvent(ChannelEvent ev);
@@ -52,7 +54,7 @@ public interface Store {
 
     EventID getEventId(long eSid);
 
-    Optional<Long> findEventSid(ChannelID cId, EventID eId);
+    Optional<Long> findEventLid(ChannelID cId, EventID eId);
 
     // Get the N next events. next = Higher SID
     List<ChannelEvent> getNext(long lastSid, long amount);

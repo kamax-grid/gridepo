@@ -23,6 +23,7 @@ package io.kamax.grid.gridepo.http.handler.matrix;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.SyncData;
+import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
@@ -204,7 +205,7 @@ public class SyncResponse {
         Map<String, Room> roomCache = new HashMap<>();
         SyncResponse r = new SyncResponse();
         r.setNextBatch(data.getPosition());
-        data.getEvents().forEach(ev -> {
+        for (ChannelEvent ev : data.getEvents()) {
             try {
                 RoomEvent rEv = RoomEvent.build(ev);
                 Room room = roomCache.computeIfAbsent(rEv.getRoomId(), id -> new Room());
@@ -214,27 +215,40 @@ public class SyncResponse {
                     JsonObject c = GsonUtil.parseObj(GsonUtil.toJson(rEv.getContent()));
                     GsonUtil.findString(c, "membership").ifPresent(m -> {
                         if ("invite".equals(m)) {
+                            r.rooms.join.remove(rEv.getRoomId());
                             r.rooms.invite.put(rEv.getRoomId(), room);
-                            room.timeline.events = null;
-                            room.state.events = null;
+                            r.rooms.leave.remove(rEv.getRoomId());
 
-                            room.inviteState.events = new ArrayList<>();
+                            room.timeline.events.clear();
+                            room.state.events.clear();
+                            room.inviteState.events.clear();
+
                             g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
-                                if (sEv.getSid() != ev.getSid()) {
+                                if (sEv.getLid() != ev.getLid()) {
                                     room.inviteState.events.add(RoomEvent.build(sEv));
                                 }
                             });
                             room.inviteState.events.add(rEv);
                         } else if ("leave".equals(m) || "ban".equals(m)) {
+                            r.rooms.invite.remove(rEv.getRoomId());
+                            r.rooms.join.remove(rEv.getRoomId());
                             r.rooms.leave.put(rEv.getRoomId(), room);
-                        } else if ("join".equals(m)) {
+
+                            room.timeline.events.add(rEv);
+                        } else if (ChannelMembership.Join.match(m)) {
+                            r.rooms.invite.remove(rEv.getRoomId());
+                            r.rooms.join.put(rEv.getRoomId(), room);
+                            r.rooms.leave.remove(rEv.getRoomId());
+
+                            room.inviteState.events.clear();
+
                             room.state.events = new ArrayList<>();
                             g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
-                                if (sEv.getSid() != ev.getSid()) {
+                                if (sEv.getLid() != ev.getLid()) {
                                     room.state.events.add(RoomEvent.build(sEv));
                                 }
                             });
-                            r.rooms.join.put(rEv.getRoomId(), room);
+                            room.timeline.events.add(rEv);
                         } else {
                             // unknown, not supported
                         }
@@ -243,18 +257,15 @@ public class SyncResponse {
                     r.rooms.join.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
                 }
             } catch (RuntimeException e) {
-                log.warn("Unable to map Grid event {} to Matrix event", ev.getId(), e);
+                log.warn("Unable to map Grid event {} to Matrix event, ignoring", ev.getId(), e);
             }
-        });
+        }
 
         return r;
     }
 
     private String nextBatch = "";
     private Rooms rooms = new Rooms();
-
-    private SyncResponse() {
-    }
 
     public String getNextBatch() {
         return nextBatch;
