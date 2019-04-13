@@ -27,7 +27,14 @@ import io.kamax.grid.gridepo.core.channel.event.BareMessageEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -103,6 +110,49 @@ public class BasicFederation extends Federation {
 
         Optional<ChannelEvent> g1Ev1 = g1.getStore().findEvent(ChannelID.from(cId), EventID.from(g2Ev1Id));
         assertTrue(g1Ev1.isPresent());
+    }
+
+    @Test
+    public void backfillComplex() throws InterruptedException {
+        String cId = makeSharedChannel();
+
+        g1.getFedPusher().setEnabled(false);
+        g2.getStore();
+
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        List<Callable<EventID>> tasks = new ArrayList<>();
+        for (int i = 0; i < 16; i++) {
+            int j = i;
+            tasks.add(() -> EventID.from(s1.send(cId, BareMessageEvent.build(u1, "Message " + j).getJson())));
+        }
+
+        List<EventID> events = executor.invokeAll(tasks).stream().map(f -> {
+            try {
+                return f.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
+
+        g1.getFedPusher().setEnabled(true);
+        events.add(EventID.from(s1.send(cId, BareMessageEvent.build(u1, "Final message").getJson())));
+
+        for (EventID evId : events) {
+            System.out.println(evId);
+            Optional<ChannelEvent> g1c1evOpt = g1.getStore().findEvent(ChannelID.from(cId), evId);
+            assertTrue(g1c1evOpt.isPresent());
+            ChannelEvent g1c1ev = g1c1evOpt.get();
+            assertTrue(g1c1ev.getMeta().isPresent());
+            assertTrue(g1c1ev.getMeta().isProcessed());
+            assertTrue(g1c1ev.getMeta().isAllowed());
+
+            Optional<ChannelEvent> g2c1evOpt = g2.getStore().findEvent(ChannelID.from(cId), evId);
+            assertTrue(g2c1evOpt.isPresent());
+            ChannelEvent g2c1ev = g2c1evOpt.get();
+            assertTrue(g2c1ev.getMeta().isPresent());
+            assertTrue(g2c1ev.getMeta().isProcessed());
+            assertTrue(g2c1ev.getMeta().isAllowed());
+        }
     }
 
 }

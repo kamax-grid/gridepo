@@ -100,7 +100,7 @@ public class DataServer {
     }
 
     public boolean isAvailable() {
-        return lastOut.plusMillis(waitTime.get()).isBefore(Instant.now());
+        return !Instant.now().isBefore(lastOut.plusMillis(waitTime.get()));
     }
 
     public void setAvailable() {

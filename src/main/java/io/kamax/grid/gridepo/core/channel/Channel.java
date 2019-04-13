@@ -168,15 +168,7 @@ public class Channel {
     }
 
     public boolean isUsable(ChannelEvent ev) {
-        if (!ev.getMeta().isPresent()) {
-            return false;
-        }
-
-        if (!ev.getMeta().isProcessed()) {
-            throw new IllegalStateException("Event " + getId() + "/" + ev.getId() + " has not been processed");
-        }
-
-        return ev.getMeta().isValid() && ev.getMeta().isAllowed();
+        return ev.getMeta().isPresent() && ev.getMeta().isProcessed();
     }
 
     public ChannelEventAuthorization authorize(JsonObject ev) {
@@ -203,6 +195,7 @@ public class Channel {
     }
 
     public synchronized ChannelEventAuthorization process(ChannelEvent ev, boolean recursive, boolean isSeed) {
+        log.info("Processing event {} in channel {}", ev.getId(), ev.getChannelId());
         ChannelEventAuthorization.Builder b = new ChannelEventAuthorization.Builder(ev.getId());
         BareGenericEvent bEv = ev.getBare();
         ev.getMeta().setPresent(true);
@@ -228,12 +221,12 @@ public class Channel {
             }
         }
 
-        if (maxParentDepth == Long.MIN_VALUE + 1) {
+        if (maxParentDepth == Long.MIN_VALUE) {
             b.deny("No parent event is found or valid, marking event as unauthorized");
         } else {
             long expectedDepth = maxParentDepth + 1;
-            if (expectedDepth != bEv.getDepth()) {
-                b.invalid("Depth is " + bEv.getDepth() + " but was expected to be " + expectedDepth);
+            if (expectedDepth > bEv.getDepth()) {
+                b.invalid("Depth is " + bEv.getDepth() + " but was expected to be at least " + expectedDepth);
             } else {
                 ChannelEventAuthorization auth = algo.authorize(state, ev.getId(), ev.getData()); // FIXME do it on the parents
                 b.authorize(auth.isAuthorized(), auth.getReason());
@@ -248,6 +241,11 @@ public class Channel {
         ev.getMeta().setValid(auth.isValid());
         ev.getMeta().setAllowed(isSeed || auth.isAuthorized());
         ev.getMeta().setProcessed(true);
+
+        log.info("Event {} is allowed? {}", ev.getId(), ev.getMeta().isAllowed());
+        if (!ev.getMeta().isAllowed()) {
+            log.info("Because: {}", auth.getReason());
+        }
 
         ev = store.saveEvent(ev);
         state = store.getState(store.insertIfNew(getSid(), state));
@@ -292,14 +290,24 @@ public class Channel {
             if (storeEv.isPresent()) {
                 chEv = storeEv.get();
                 if (chEv.getMeta().isPresent()) {
-                    log.info("Channel Event {} is already present, not backfilling", chEv.getId());
+                    log.info("Channel Event {} is already present, no backfill", chEv.getId());
                     continue;
                 }
             }
 
             log.info("Trying to backfill on {}", evId);
-            Set<ServerID> servers = getView().getOtherServers();
-            for (DataServer srv : srvMgr.get(servers)) {
+            Set<ServerID> srvIds = getView().getOtherServers();
+            if (srvIds.isEmpty()) {
+                log.warn("Backfill needed but no other server in state, something will break");
+            }
+
+            List<DataServer> servers = srvMgr.get(srvIds, true);
+            if (servers.isEmpty()) {
+                log.warn("Backfill needed but no available server, something will break");
+            }
+
+            log.info("Found {} available servers to ask for the event", servers.size());
+            for (DataServer srv : servers) {
                 log.info("Asking {} for event {} in channel {}", srv.getId(), evId, getId());
                 Optional<JsonObject> data = srv.getEvent(getDomain().full(), getId(), evId);
                 if (data.isPresent()) {
