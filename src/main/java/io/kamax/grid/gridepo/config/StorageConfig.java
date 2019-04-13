@@ -20,6 +20,8 @@
 
 package io.kamax.grid.gridepo.config;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class StorageConfig {
 
     public static class Database {
@@ -70,6 +72,7 @@ public class StorageConfig {
 
     private Database database = new Database();
     private Keys key = new Keys();
+    private String data;
 
     public Database getDatabase() {
         return database;
@@ -85,6 +88,18 @@ public class StorageConfig {
 
     public void setKey(Keys key) {
         this.key = key;
+    }
+
+    public String getData() {
+        if (StringUtils.isBlank(data)) {
+            throw new RuntimeException("Data storage location is not set");
+        }
+
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
     }
 
 }

@@ -53,6 +53,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
@@ -91,6 +92,21 @@ public class MonolithGridepo implements Gridepo {
 
         bus = new SignalBus();
 
+        String kStoreType = cfg.getStorage().getKey().getType();
+        String kStoreLoc = cfg.getStorage().getKey().getLocation();
+        if (StringUtils.isBlank(kStoreLoc)) {
+            kStoreLoc = Paths.get(cfg.getStorage().getData(), "keys").toString();
+        }
+
+        //FIXME use ServiceLoader
+        if (StringUtils.equals("file", kStoreType)) {
+            kStore = new FileKeyStore(kStoreLoc);
+        } else if (StringUtils.equals("memory", kStoreType)) {
+            kStore = new MemoryKeyStore();
+        } else {
+            throw new IllegalArgumentException("Unknown keys storage: " + kStoreType);
+        }
+
         // FIXME use ServiceLoader
         String dbStoreType = cfg.getStorage().getDatabase().getType();
         if (StringUtils.equals("memory", dbStoreType)) {
@@ -99,16 +115,6 @@ public class MonolithGridepo implements Gridepo {
             store = new PostgreSQLStore(cfg.getStorage());
         } else {
             throw new IllegalArgumentException("Unknown database type: " + dbStoreType);
-        }
-
-        //FIXME use ServiceLoader
-        String kStoreType = cfg.getStorage().getKey().getType();
-        if (StringUtils.equals("file", kStoreType)) {
-            kStore = new FileKeyStore(cfg.getStorage().getKey().getLocation());
-        } else if (StringUtils.equals("memory", kStoreType)) {
-            kStore = new MemoryKeyStore();
-        } else {
-            throw new IllegalArgumentException("Unknown keys storage: " + kStoreType);
         }
 
         dsMgr = new DataServerManager();

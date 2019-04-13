@@ -29,6 +29,7 @@ public class GridepoConfig {
         GridepoConfig cfg = new GridepoConfig();
         cfg.getStorage().getDatabase().setType("memory");
         cfg.getStorage().getKey().setType("memory");
+        cfg.getStorage().setData(".");
         return cfg;
     }
 
