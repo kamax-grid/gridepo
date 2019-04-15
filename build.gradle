@@ -49,11 +49,31 @@ String appVersion() {
 
 apply plugin: 'java'
 apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'idea'
 
 group = 'io.kamax.grid'
 version = appVersion()
 mainClassName = 'io.kamax.grid.gridepo.MonolithHttpGridepoApplication'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+def appName = 'gridepo'
+def appPublisher = 'kamax'
+def dockerBuildPath = "${project.buildDir}/tmp/docker"
+def dockerImageName = "${appPublisher}/${appName}"
+def dockerImageTag = "${dockerImageName}:${version}"
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.0.0'
+    }
+}
+
 
 repositories {
     jcenter()
@@ -104,4 +124,34 @@ dependencies {
 
     testCompile 'junit:junit:4.12'
 
+}
+
+jar {
+    manifest {
+        attributes(
+                'Implementation-Version': appVersion()
+        )
+    }
+}
+
+shadowJar {
+    baseName = project.name
+    classifier = null
+    version = null
+}
+
+task dockerBuild(type: Exec, dependsOn: shadowJar) {
+    commandLine 'docker', 'build', '-t', dockerImageTag, dockerBuildPath
+
+    doFirst {
+        copy {
+            from "${projectDir}/src/main/docker/Dockerfile",
+                    "${projectDir}/src/main/docker/start.sh",
+                    "${projectDir}/src/main/script/gridepo",
+                    "${project.buildDir}/libs/gridepo.jar"
+            into dockerBuildPath
+        }
+
+
+    }
 }
