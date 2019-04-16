@@ -2,30 +2,20 @@
 Implementation of a [Grid](https://gitlab.com/thegridprotocol/home) Data Server with basic support for [Matrix C2S API](https://matrix.org/docs/spec/client_server/r0.4.0.html).
 
 ## Status
-Work in Progress towards the first usable version as `v0.1`
+Alpha, Bleeding edge testing only. Full DB wipe **will** be needed before v0.1 release.
 
-## Build
-```bash
-./gradlew build
-```
+## Setup
+Steps are specific to your install method but boil down to:
+- Install the binaries/images of Gridepo and its database
+- Configure
+- Integrate with the reverse proxy
+- Connect from a Matrix client (Grid client coming up next)
 
-### Tests
-#### PostgreSQL integration
-Via env variable, adapt as needed:
-```bash
-export GRIDEPO_TEST_STORE_POSTGRESQL_CONFIG='{"type":"postgresql","connection":"//localhost/grid?user=grid&password=grid"}'
-./gradlew test
-```
+See the [Getting Started Guide](docs/getting-started.md) to quickly and easily join the network!
 
 ## Community
 ### On Grid
-```bash
-$ cd grid
-$ ./bootstrap
-Building The Grid, this shouldn't take long...
-```
-
-We are currently bootstrapping. Check again later!
+Join us in our test channel at #test:gridify.org
 
 ### Matrix
 Use any of the following room aliases to join the project room:

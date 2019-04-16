@@ -74,7 +74,6 @@ buildscript {
     }
 }
 
-
 repositories {
     jcenter()
 }
@@ -151,7 +150,5 @@ task dockerBuild(type: Exec, dependsOn: shadowJar) {
                     "${project.buildDir}/libs/gridepo.jar"
             into dockerBuildPath
         }
-
-
     }
 }

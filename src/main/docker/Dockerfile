@@ -10,7 +10,7 @@ ENV JAVA_OPTS=""
 ENV CONF_FILE_PATH="/etc/gridepo/gridepo.yaml"
 ENV DATA_DIR_PATH="/var/gridepo"
 ENV DATABASE_TYPE="postgresql"
-ENV DATABASE_CONNECTION="//db/gridepo?user=gridepo&password=gridepo"
+ENV DATABASE_CONNECTION="//db/grid?user=grid&password=grid"
 
 CMD [ "/app/start.sh" ]
 
