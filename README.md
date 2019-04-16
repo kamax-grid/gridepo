@@ -2,10 +2,10 @@
 Implementation of a [Grid](https://gitlab.com/thegridprotocol/home) Data Server with basic support for [Matrix C2S API](https://matrix.org/docs/spec/client_server/r0.4.0.html).
 
 ## Status
-Alpha, Bleeding edge testing only. Full DB wipe **will** be needed before v0.1 release.
+Alpha, Bleeding edge testing only. Full DB wipe(s) **will** be needed before v0.1 release.
 
 ## Setup
-Steps are specific to your install method but boil down to:
+Steps are specific to your install method but high-level steps are:
 - Install the binaries/images of Gridepo and its database
 - Configure
 - Integrate with the reverse proxy
