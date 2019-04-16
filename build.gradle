@@ -20,31 +20,40 @@
 
 import java.util.regex.Pattern
 
-String appVersion() {
-    String v = System.getenv('GRIDEPO_BUILD_VERSION')
+String buildVersion() {
+    def versionPattern = Pattern.compile("v(\\d+\\.)?(\\d+\\.)?(\\d+)(-.*)?")
 
-    if (v == null || v.size() == 0) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream()
+    String version = System.getenv('GRIDEPO_BUILD_VERSION')
+    if (version == null || version.size() == 0) {
+        version = sourceVersion()
+    }
+    return versionPattern.matcher(version).matches() ? version.substring(1) : version
+}
 
-        def o = exec {
-            commandLine = ['git', 'describe', '--tags', '--always', '--dirty']
-            standardOutput = out
-            errorOutput = out
-            ignoreExitValue = true
-        }
-
-        if (o.exitValue != 0) {
-            if (o.exitValue != 128) {
-                printf("Unable to determine git version: %s", out.toString())
-            }
-
-            return "UNKNOWN"
-        }
-
-        v = out.toString().replace(System.lineSeparator(), '')
+String sourceVersion() {
+    String version = System.getenv('GRIDEPO_SOURCE_VERSION')
+    if (version != null && version.size() > 0) {
+        return version
     }
 
-    return Pattern.compile("v(\\d+\\.)?(\\d+\\.)?(\\d+)(-.*)?").matcher(v).matches() ? v.substring(1) : v
+    ByteArrayOutputStream out = new ByteArrayOutputStream()
+
+    def o = exec {
+        commandLine = ['git', 'describe', '--tags', '--always', '--dirty']
+        standardOutput = out
+        errorOutput = out
+        ignoreExitValue = true
+    }
+
+    if (o.exitValue != 0) {
+        if (o.exitValue != 128) {
+            printf("Unable to determine git version: %s", out.toString())
+        }
+
+        return "UNKNOWN"
+    }
+
+    return out.toString().replace(System.lineSeparator(), '')
 }
 
 apply plugin: 'java'
@@ -53,13 +62,30 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'idea'
 
 group = 'io.kamax.grid'
-version = appVersion()
+version = buildVersion()
 mainClassName = 'io.kamax.grid.gridepo.MonolithHttpGridepoApplication'
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
 def appName = 'gridepo'
 def appPublisher = 'kamax'
+
+def confFileName = "${appName}.sample.yaml"
+def distDir = "${project.buildDir}/dist"
+
+def debBinPath = "/usr/lib/${appName}"
+def debConfPath = "/etc/${appName}"
+def debDataPath = "/var/lib/${appName}"
+def debSystemdPath = "/etc/systemd/system"
+def debConfFileName = confFileName
+def debStartScriptFilename = appName
+def debBuildBasePath = "${project.buildDir}/tmp/debian"
+def debBuildDebianPath = "${debBuildBasePath}/DEBIAN"
+def debBuildBinPath = "${debBuildBasePath}${debBinPath}"
+def debBuildConfPath = "${debBuildBasePath}${debConfPath}"
+def debBuildDataPath = "${debBuildBasePath}${debDataPath}"
+def debBuildSystemdPath = "${debBuildBasePath}${debSystemdPath}"
+
 def dockerBuildPath = "${project.buildDir}/tmp/docker"
 def dockerImageName = "${appPublisher}/${appName}"
 def dockerImageTag = "${dockerImageName}:${version}"
@@ -128,7 +154,7 @@ dependencies {
 jar {
     manifest {
         attributes(
-                'Implementation-Version': appVersion()
+                'Implementation-Version': buildVersion()
         )
     }
 }
@@ -139,15 +165,94 @@ shadowJar {
     version = null
 }
 
-task dockerBuild(type: Exec, dependsOn: shadowJar) {
+task debBuild(dependsOn: build) {
+    doLast {
+        String debVersion = buildVersion()
+        println "Version for package: ${debVersion}"
+        mkdir distDir
+        mkdir debBuildBasePath
+        mkdir debBuildDebianPath
+        mkdir debBuildBinPath
+        mkdir debBuildConfPath
+        mkdir debBuildDataPath
+        mkdir debBuildSystemdPath
+
+        copy {
+            from "${project.buildDir}/libs/${appName}.jar"
+            into debBuildBinPath
+        }
+
+        copy {
+            from "${project.file("src/script/" + debStartScriptFilename)}"
+            into debBuildBinPath
+        }
+
+        copy {
+            from(project.file(confFileName)) {
+                rename confFileName, debConfFileName
+            }
+            into debBuildConfPath
+        }
+
+        ant.replaceregexp(
+                file: "${debBuildConfPath}/${debConfFileName}",
+                match: "  data:(.*)",
+                replace: "  data: '${debDataPath}'"
+        )
+        
+        copy {
+            from project.file('src/main/debian')
+            into debBuildDebianPath
+        }
+
+        ant.replace(
+                file: "${debBuildDebianPath}/control",
+                token: 'Version: 0',
+                value: "Version: ${debVersion}"
+        )
+
+        ant.replace(
+                file: "${debBuildDebianPath}/postinst",
+                token: '%DEB_DATA_DIR%',
+                value: debDataPath
+        )
+
+        ant.chmod(
+                file: "${debBuildDebianPath}/postinst",
+                perm: 'a+x'
+        )
+
+        ant.chmod(
+                file: "${debBuildDebianPath}/prerm",
+                perm: 'a+x'
+        )
+
+        copy {
+            from "${project.file("src/systemd/${appName}.service")}"
+            into debBuildSystemdPath
+        }
+
+        exec {
+            commandLine(
+                    'fakeroot',
+                    'dpkg-deb',
+                    '-b',
+                    debBuildBasePath,
+                    "${project.buildDir}/dist"
+            )
+        }
+    }
+}
+
+task dockerBuild(type: Exec, dependsOn: build) {
     commandLine 'docker', 'build', '-t', dockerImageTag, dockerBuildPath
 
     doFirst {
         copy {
             from "${projectDir}/src/main/docker/Dockerfile",
                     "${projectDir}/src/main/docker/start.sh",
-                    "${projectDir}/src/main/script/gridepo",
-                    "${project.buildDir}/libs/gridepo.jar"
+                    "${projectDir}/src/main/script/${appName}",
+                    "${project.buildDir}/libs/${appName}.jar"
             into dockerBuildPath
         }
     }

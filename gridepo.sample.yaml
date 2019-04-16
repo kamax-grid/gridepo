@@ -1,0 +1,41 @@
+# Sample configuration file explaining the minimum required keys to be set to run Gridepo
+#
+# For more info, see https://gitlab.com/kamax-io/grid/gridepo#gridepo
+#
+# Please follow the Getting Started guide if this is your first time using/configuring Gridepo
+#
+#  -- https://gitlab.com/kamax-io/grid/gridepo/blob/master/docs/getting-started.md#getting-started
+#
+
+#
+# The domain (DNS or IP) to use to build IDs - We recommend setting your base domain (example.org) and use
+# Well-known discovery to specify whatever URL you want to host Gridepo at.
+#
+# Later releases will support Virtual hosting and multi-domain hosting on a single server, including across
+# networks (Public Internet via DNS, Tor, cjdns, etc.) all in a seamless way.
+#
+# A single domain is currently supported to offer a migration path from Matrix while the spec concerning ID to Alias
+# mapping is finished.
+#
+domain: ''
+
+storage:
+
+  #
+  # This is where various critical/confidential files will be stored, like signing keys.
+  # While configuration keys exist to individually set storage location for each kind, this key
+  # is used to provide a simple mechanism to auto-populate each specific data type location.
+  #
+  # Typical value for this would be /var/lib/gridepo
+  #
+  data: ''
+
+  #
+  # This is where the events, channels and overall protocol messages are stored.
+  # Database can only be PostgreSQL at this time.
+  #
+  # The connection value is a partial JDBC URI that starts after jdbc:postgresql:
+  # Typical format is: //host/db?user=userForDb&pass=passForDb
+  #
+  database:
+    connection: ''

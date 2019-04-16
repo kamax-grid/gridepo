@@ -1,0 +1,13 @@
+#!/bin/bash -e
+
+# Add service account
+useradd -r gridepo || true
+
+# Set permissions for data directory
+chown -R gridepo:gridepo %DEB_DATA_DIR%
+
+# Create symlink to gridepo run script
+ln -sfT /usr/lib/gridepo/gridepo /usr/bin/gridepo
+
+# Enable systemd service
+systemctl enable gridepo.service
