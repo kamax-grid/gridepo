@@ -1,10 +1,11 @@
 # Getting started
 1. [Preparation](#preparation)
 2. [Install](#install)
-3. [Configure](#configure)
-4. [Integrate](#integrate)
-5. [Validate](#validate)
-6. [Next steps](#next-steps)
+3. [Database](#database)
+4. [Configure](#configure)
+5. [Integrate](#integrate)
+6. [Validate](#validate)
+7. [Next steps](#next-steps)
 
 Following these quick start instructions, you will have a basic working setup to federate with The Grid network.
 
@@ -30,6 +31,9 @@ Install via:
 - [Sources](install/build.md)
 
 See the [Latest release](https://github.com/kamax-matrix/mxisd/releases/latest) for links to each.
+
+## Database
+Follow [these steps](database.md).
 
 ## Configure
 > **NOTE**: Please view the install instruction for your platform, as this step might be optional or already handled for you.
