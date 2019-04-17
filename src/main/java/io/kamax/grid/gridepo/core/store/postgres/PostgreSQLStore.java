@@ -82,7 +82,7 @@ public class PostgreSQLStore implements Store {
         withConnConsumer(conn -> conn.isValid(1000));
         log.info("Connected");
 
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("store/postgres/schema/")) {
+        try (InputStream is = PostgreSQLStore.class.getResourceAsStream("/store/postgres/schema/")) {
             List<String> schemaUpdates = IOUtils.readLines(Objects.requireNonNull(is), StandardCharsets.UTF_8);
             withConnConsumer(conn -> {
                 Statement stmt = conn.createStatement();
@@ -91,8 +91,9 @@ public class PostgreSQLStore implements Store {
 
                 long version = getSchemaVersion();
                 log.info("Schema version: {}", version);
+                log.info("Schemas to check: {}", schemaUpdates.size());
                 for (String sql : schemaUpdates) {
-                    log.debug("Found schema update: {}", sql);
+                    log.info("Processing schema update: {}", sql);
                     String[] els = sql.split("-", 2);
                     if (els.length < 2) {
                         log.warn("Skipping invalid schema update name format: {}", sql);
@@ -100,20 +101,23 @@ public class PostgreSQLStore implements Store {
 
                     try {
                         long elV = Long.parseLong(els[0]);
-                        if (elV > version) {
-                            try (InputStream elIs = getClass().getClassLoader().getResourceAsStream("store/postgres/schema/" + sql)) {
-                                String update = IOUtils.toString(Objects.requireNonNull(elIs), StandardCharsets.UTF_8);
-                                stmt.execute(update);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-
-                            if (stmt.executeUpdate("INSERT INTO schema (version) VALUES (" + elV + ")") != 1) {
-                                throw new RuntimeException("Could not update schema version");
-                            }
-
-                            log.info("Updated schema to version {}", elV);
+                        if (elV <= version) {
+                            log.info("Skipping {}", sql);
+                            continue;
                         }
+
+                        try (InputStream elIs = PostgreSQLStore.class.getResourceAsStream("/store/postgres/schema/" + sql)) {
+                            String update = IOUtils.toString(Objects.requireNonNull(elIs), StandardCharsets.UTF_8);
+                            stmt.execute(update);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                        if (stmt.executeUpdate("INSERT INTO schema (version) VALUES (" + elV + ")") != 1) {
+                            throw new RuntimeException("Could not update schema version");
+                        }
+
+                        log.info("Updated schema to version {}", elV);
                     } catch (NumberFormatException e) {
                         log.warn("Invalid schema update version: {}", els[0]);
                     }

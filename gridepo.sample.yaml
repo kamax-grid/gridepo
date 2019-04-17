@@ -32,10 +32,11 @@ storage:
 
   #
   # This is where the events, channels and overall protocol messages are stored.
-  # Database can only be PostgreSQL at this time.
+  # Database can only be PostgreSQL at this time for persistent storage.
   #
   # The connection value is a partial JDBC URI that starts after jdbc:postgresql:
   # Typical format is: //host/db?user=userForDb&pass=passForDb
   #
   database:
+    type: 'postgresql'
     connection: ''
