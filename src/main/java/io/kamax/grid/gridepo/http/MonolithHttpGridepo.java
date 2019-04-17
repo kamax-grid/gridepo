@@ -99,7 +99,7 @@ public class MonolithHttpGridepo {
 
         handler
                 // CORS support
-                .add("OPTIONS", ClientAPI.Base, new OptionsHandler())
+                .add("OPTIONS", ClientAPI.Base + "/**", new OptionsHandler())
 
                 // Fundamental endpoints
                 .get(ClientAPI.Base + "/versions", new VersionsHandler())

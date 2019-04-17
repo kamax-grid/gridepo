@@ -1,0 +1,10 @@
+[Unit]
+Description=gridepo
+After=syslog.target
+
+[Service]
+User=gridepo
+ExecStart=/usr/bin/gridepo -c /etc/gridepo/gridepo.yaml
+
+[Install]
+WantedBy=multi-user.target

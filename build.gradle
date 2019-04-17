@@ -183,7 +183,7 @@ task debBuild(dependsOn: build) {
         }
 
         copy {
-            from "${project.file("src/script/" + debStartScriptFilename)}"
+            from "${project.file("src/main/script/" + debStartScriptFilename)}"
             into debBuildBinPath
         }
 
@@ -228,7 +228,7 @@ task debBuild(dependsOn: build) {
         )
 
         copy {
-            from "${project.file("src/systemd/${appName}.service")}"
+            from "${project.file("src/main/systemd/${appName}.service")}"
             into debBuildSystemdPath
         }
 
