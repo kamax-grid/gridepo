@@ -22,5 +22,40 @@ docker run --rm -e GRID_DOMAIN=example.org -v /data/gridepo/etc:/etc/gridepo -v 
 
 For more info, including the list of possible tags, see [the public repository](https://hub.docker.com/r/kamax/gridepo/)
 
-## Docker-compose with requirements
-> TBC
+## Docker-compose
+Use the following definition:
+```yaml
+version: '2'
+
+volumes:
+  gridepo-etc:
+  gridepo-var:
+  db:
+services:
+  db:
+    image: 'kamax/grid-postgres:latest'
+    restart: always
+    volumes:
+      - db:/var/lib/postgresql/data
+  gridepo:
+    image: 'kamax/gridepo:latest'
+    restart: always
+    depends_on:
+      - 'db'
+    volumes:
+      - gridepo-etc:/etc/gridepo
+      - gridepo-var:/var/gridepo
+    ports:
+      - 9009:9009
+    environment:
+      - GRID_DOMAIN=
+```
+Set the `GRID_DOMAIN` environment variable in the Gridepo container.
+
+You can then start the stack with the usual command:
+```bash
+docker-compose up
+```
+
+## Next steps
+If you were, go back to the [Getting Started](../getting-started.md#reverse-proxy) and continue with Reverse proxy integration.
