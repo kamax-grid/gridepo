@@ -20,11 +20,14 @@
 
 package io.kamax.test.grid.gridepo.core.federation;
 
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.BareMessageEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.http.MonolithHttpGridepo;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -153,6 +156,35 @@ public class BasicFederation extends Federation {
             assertTrue(g2c1ev.getMeta().isProcessed());
             assertTrue(g2c1ev.getMeta().isAllowed());
         }
+    }
+
+    @Test
+    public void joinAsThird() {
+        GridepoConfig.ListenerNetwork net3 = new GridepoConfig.ListenerNetwork();
+        net3.setProtocol("grid");
+        net3.setType("server");
+        GridepoConfig.Listener l3 = new GridepoConfig.Listener();
+        l3.addNetwork(net3);
+        l3.setPort(60003);
+        GridepoConfig cfg3 = GridepoConfig.inMemory();
+        cfg3.setDomain("localhost:60003");
+        cfg3.getListeners().add(l3);
+
+        MonolithHttpGridepo mg3 = new MonolithHttpGridepo(cfg3);
+
+        Gridepo g3 = mg3.start();
+        g3.getFedPusher().setAsync(false);
+
+        g3.getIdentity().register("shadow", pass);
+
+        UserSession s3 = g3.login("shadow", pass);
+        UserID u3 = s3.getUser().getId();
+
+        String cId = makeSharedChannel();
+        Channel g3c1 = s3.joinChannel(new ChannelAlias("test", g1.getDomain()));
+
+        assertEquals(g3c1.getId(), ChannelID.from(cId));
+        assertEquals(3, g3c1.getView().getAllServers().size());
     }
 
 }

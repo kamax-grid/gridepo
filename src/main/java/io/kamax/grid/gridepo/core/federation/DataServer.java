@@ -55,8 +55,8 @@ public class DataServer {
         this.id = id;
         this.hostname = id.tryDecode().orElseThrow(() -> new IllegalArgumentException("Unable to resolve " + id.full() + " to a hostname"));
         this.client = new DataServerHttpClient();
-        this.lastOut = Instant.MIN;
-        this.lastIn = Instant.MIN;
+        this.lastOut = Instant.EPOCH;
+        this.lastIn = Instant.EPOCH;
         this.waitTime = new AtomicLong();
 
         setAvailable();
