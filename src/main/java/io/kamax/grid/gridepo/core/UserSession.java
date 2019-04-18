@@ -42,10 +42,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UserSession {
@@ -137,6 +134,7 @@ public class UserSession {
 
                 long position = events.stream()
                         .filter(ev -> ev.getMeta().isProcessed())
+                        .filter(ev -> Objects.nonNull(ev.getSid())) // TODO check why we need this
                         .max(Comparator.comparingLong(ChannelEvent::getSid))
                         .map(ChannelEvent::getSid)
                         .orElse(0L);
