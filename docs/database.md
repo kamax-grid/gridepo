@@ -117,6 +117,7 @@ In your `gridepo.yaml` config file (if needed, so your install instruction), ass
 ```yaml
 storage:
   database:
+    type: 'postgresql'
     connection: '//localhost/gridepo?user=gridepo&password=gridepo'
 ```
 Adapt the password with what was provided to the `createuser` command
