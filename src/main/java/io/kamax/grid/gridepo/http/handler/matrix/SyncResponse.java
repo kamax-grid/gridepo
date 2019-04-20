@@ -25,6 +25,7 @@ import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.SyncData;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.http.handler.matrix.json.RoomEvent;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
@@ -38,96 +39,14 @@ public class SyncResponse {
 
     private static final Logger log = KxLog.make(SyncResponse.class);
 
-    public static class RoomEvent {
-
         public static RoomEvent build(ChannelEvent ev) {
-            RoomEvent rEv = GsonUtil.get().fromJson(ProtocolEventMapper.forEventConvertToMatrix(ev), RoomEvent.class);
-            rEv.channelId = ev.getChannelId();
+            RoomEvent rEv = ProtocolEventMapper.forEventConvertToMatrix(ev);
+            rEv.setChannelId(ev.getChannelId());
             if (log.isDebugEnabled()) {
-                rEv.grid = ev.getData();
+                rEv.setGrid(ev.getData());
             }
             return rEv;
         }
-
-        private String eventId;
-        private String type;
-        private long originServerTs;
-        private transient String channelId;
-        private String roomId;
-        private String sender;
-        private String stateKey;
-        private Object content;
-        private JsonObject grid;
-
-        public String getEventId() {
-            return eventId;
-        }
-
-        public void setEventId(String eventId) {
-            this.eventId = eventId;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public long getOriginServerTs() {
-            return originServerTs;
-        }
-
-        public void setOriginServerTs(long originServerTs) {
-            this.originServerTs = originServerTs;
-        }
-
-        public String getRoomId() {
-            return roomId;
-        }
-
-        public void setRoomId(String roomId) {
-            this.roomId = roomId;
-        }
-
-        public String getChannelId() {
-            return channelId;
-        }
-
-        public String getSender() {
-            return sender;
-        }
-
-        public void setSender(String sender) {
-            this.sender = sender;
-        }
-
-        public String getStateKey() {
-            return stateKey;
-        }
-
-        public void setStateKey(String stateKey) {
-            this.stateKey = stateKey;
-        }
-
-        public Object getContent() {
-            return content;
-        }
-
-        public void setContent(Object content) {
-            this.content = content;
-        }
-
-        public JsonObject getGrid() {
-            return grid;
-        }
-
-        public void setGrid(JsonObject grid) {
-            this.grid = grid;
-        }
-
-    }
 
     public static class RoomState {
 
@@ -219,11 +138,11 @@ public class SyncResponse {
         r.setNextBatch(data.getPosition());
         for (ChannelEvent ev : data.getEvents()) {
             try {
-                RoomEvent rEv = RoomEvent.build(ev);
+                RoomEvent rEv = build(ev);
                 Room room = roomCache.computeIfAbsent(rEv.getRoomId(), id -> new Room());
                 room.getTimeline().getEvents().add(rEv);
 
-                if ("m.room.member".equals(rEv.getType()) && uId.equals(rEv.getStateKey())) {
+                if ("m.room.member".equals(rEv.getType()) && uId.equals(rEv.getStakeKey())) {
                     JsonObject c = GsonUtil.parseObj(GsonUtil.toJson(rEv.getContent()));
                     GsonUtil.findString(c, "membership").ifPresent(m -> {
                         if ("invite".equals(m)) {
@@ -237,7 +156,7 @@ public class SyncResponse {
 
                             g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
                                 if (sEv.getLid() != ev.getLid()) {
-                                    room.inviteState.events.add(RoomEvent.build(sEv));
+                                    room.inviteState.events.add(build(sEv));
                                 }
                             });
                             room.inviteState.events.add(rEv);
@@ -257,7 +176,7 @@ public class SyncResponse {
                             room.state.events = new ArrayList<>();
                             g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
                                 if (sEv.getLid() != ev.getLid()) {
-                                    room.state.events.add(RoomEvent.build(sEv));
+                                    room.state.events.add(build(sEv));
                                 }
                             });
                             room.timeline.events.add(rEv);
@@ -265,8 +184,6 @@ public class SyncResponse {
                             // unknown, not supported
                         }
                     });
-                } else {
-                    r.rooms.join.put(rEv.getRoomId(), roomCache.get(rEv.getRoomId()));
                 }
             } catch (RuntimeException e) {
                 log.warn("Unable to map Grid event {} to Matrix event, ignoring", ev.getId(), e);

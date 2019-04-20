@@ -20,11 +20,11 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.event.*;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
+import io.kamax.grid.gridepo.http.handler.matrix.json.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.codec.binary.Base64;
@@ -42,7 +42,7 @@ public class ProtocolEventMapper {
     private static final String WildcardType = "*";
     private static final Logger log = KxLog.make(ProtocolEventMapper.class);
 
-    private static Map<String, Function<ChannelEvent, JsonObject>> g2mMappers = new HashMap<>();
+    private static Map<String, Function<ChannelEvent, RoomEvent>> g2mMappers = new HashMap<>();
     private static Map<String, Function<JsonObject, JsonObject>> m2gMappers = new HashMap<>();
 
     static {
@@ -54,19 +54,23 @@ public class ProtocolEventMapper {
         // Known types mapper
         g2mMappers.put(ChannelEventType.Create.getId(), ev -> {
             BareCreateEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareCreateEvent.class);
-            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
-            mEv.addProperty("type", "m.room.create");
-            mEv.addProperty("state_key", "");
-            String creator = forUserIdFromGridToMatrix(gEv.getContent().getCreator());
-            GsonUtil.getObj(mEv, "content").addProperty("creator", creator);
+
+            RoomCreationContent mEvC = new RoomCreationContent();
+            mEvC.setCreator(forUserIdFromGridToMatrix(gEv.getContent().getCreator()));
+            RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
+            mEv.setType("m.room.create");
+            mEv.setStakeKey("");
+            mEv.setContent(mEvC);
             return mEv;
         });
 
         g2mMappers.put(ChannelEventType.Member.getId(), ev -> {
             BareMemberEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareMemberEvent.class);
-            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
-            mEv.addProperty("type", "m.room.member");
-            GsonUtil.getObj(mEv, "content").addProperty("membership", gEv.getContent().getAction());
+            RoomMemberContent mEvC = new RoomMemberContent();
+            mEvC.setMembership(gEv.getContent().getAction());
+            RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
+            mEv.setType("m.room.member");
+            mEv.setContent(mEvC);
             return mEv;
         });
 
@@ -74,22 +78,19 @@ public class ProtocolEventMapper {
             BarePowerEvent gEv = GsonUtil.get().fromJson(ev.getData(), BarePowerEvent.class);
             BarePowerEvent.Content c = gEv.getContent();
 
-            JsonObject mEvCu = new JsonObject();
-            c.getUsers().forEach((id, pl) -> mEvCu.addProperty(forUserIdFromGridToMatrix(id), pl));
+            RoomPowerLevelContent mEvC = new RoomPowerLevelContent();
+            mEvC.setBan(c.getMembership().getBan());
+            mEvC.setInvite(c.getMembership().getInvite());
+            mEvC.setKick(c.getMembership().getKick());
+            mEvC.setStateDefault(c.getDef().getState());
+            mEvC.setEventsDefault(c.getDef().getEvent());
+            mEvC.setUsersDefault(c.getDef().getUser());
+            c.getUsers().forEach((id, pl) -> mEvC.getUsers().put(forUserIdFromGridToMatrix(id), pl));
 
-            JsonObject mEvC = new JsonObject();
-            mEvC.addProperty("ban", c.getMembership().getBan());
-            mEvC.addProperty("invite", c.getMembership().getInvite());
-            mEvC.addProperty("kick", c.getMembership().getKick());
-            mEvC.addProperty("state_default", c.getDef().getState());
-            mEvC.addProperty("events_default", c.getDef().getEvent());
-            mEvC.addProperty("users_default", c.getDef().getUser());
-            mEvC.add("users", mEvCu);
-
-            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
-            mEv.addProperty("type", "m.room.power_levels");
-            mEv.addProperty("state_key", "");
-            mEv.add("content", mEvC);
+            RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
+            mEv.setType("m.room.power_levels");
+            mEv.setStakeKey("");
+            mEv.setContent(mEvC);
 
             return mEv;
         });
@@ -98,12 +99,14 @@ public class ProtocolEventMapper {
             BareAddressEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareAddressEvent.class);
             BareAddressEvent.Content c = gEv.getContent();
 
-            JsonObject mEvC = new JsonObject();
-            mEvC.addProperty("alias", c.getAlias().replaceFirst("@", ":"));
+            RoomAddressEvent mEvC = new RoomAddressEvent();
+            if (StringUtils.isNotBlank(c.getAlias())) {
+                mEvC.setAlias(c.getAlias().replaceFirst("@", ":"));
+            }
 
-            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
-            mEv.addProperty("type", "m.room.canonical_alias");
-            mEv.add("content", mEvC);
+            RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
+            mEv.setType("m.room.canonical_alias");
+            mEv.setContent(mEvC);
 
             return mEv;
         });
@@ -112,16 +115,13 @@ public class ProtocolEventMapper {
             BareAliasEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareAliasEvent.class);
             BareAliasEvent.Content c = gEv.getContent();
 
-            JsonArray mEvCV = new JsonArray();
-            c.getAliases().forEach(alias -> mEvCV.add(alias.replaceFirst("@", ":")));
+            RoomAliasContent mEvC = new RoomAliasContent();
+            c.getAliases().forEach(alias -> mEvC.getAliases().add(alias.replaceFirst("@", ":")));
 
-            JsonObject mEvC = new JsonObject();
-            mEvC.add("aliases", mEvCV);
-
-            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
-            mEv.addProperty("type", "m.room.aliases");
-            mEv.addProperty("state_key", ServerID.parse(gEv.getScope()).tryDecode().orElseGet(() -> gEv.getScope().substring(1)));
-            mEv.add("content", mEvC);
+            RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
+            mEv.setType("m.room.aliases");
+            mEv.setStakeKey(ServerID.parse(gEv.getScope()).tryDecode().orElseGet(() -> gEv.getScope().substring(1)));
+            mEv.setContent(mEvC);
 
             return mEv;
         });
@@ -130,20 +130,20 @@ public class ProtocolEventMapper {
             BareMessageEvent gEv = GsonUtil.get().fromJson(ev.getData(), BareMessageEvent.class);
             BareMessageEvent.Content c = gEv.getContent();
 
-            JsonObject mEvC = new JsonObject();
+            RoomMessageEvent mEvC = new RoomMessageEvent();
             if (StringUtils.equals("g.text", c.getType())) {
-                mEvC.addProperty("msgtype", "m.text");
-                mEvC.addProperty("body", c.getBody().get("text/plain"));
+                mEvC.setMsgtype("m.text");
+                mEvC.setBody(c.getBody().get("text/plain"));
                 String html = c.getBody().get("text/vnd.grid.foreign.matrix.org.matrix.custom.html");
                 if (Objects.nonNull(html)) {
-                    mEvC.addProperty("format", "org.matrix.custom.html");
-                    mEvC.addProperty("formatted_body", html);
+                    mEvC.setFormat("org.matrix.custom.html");
+                    mEvC.setFormattedBody(html);
                 }
             }
 
-            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
-            mEv.addProperty("type", "m.room.message");
-            mEv.add("content", mEvC);
+            RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
+            mEv.setType("m.room.message");
+            mEv.setContent(mEvC);
 
             return mEv;
         });
@@ -151,25 +151,21 @@ public class ProtocolEventMapper {
         g2mMappers.put(ChannelEventType.JoinRules.getId(), ev -> {
             BareJoiningEvent gEv = GsonUtil.fromJson(ev.getData(), BareJoiningEvent.class);
 
-            JsonObject mEvC = new JsonObject();
-            mEvC.addProperty("join_rule", gEv.getContent().getRule());
+            RoomJoinRuleContent mEvC = new RoomJoinRuleContent();
+            mEvC.setJoinRule(gEv.getContent().getRule());
 
-            JsonObject mEv = mapCommon(ev.getId().full(), gEv, new JsonObject());
-            mEv.addProperty("type", "m.room.join_rules");
-            mEv.add("content", mEvC);
+            RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
+            mEv.setType("m.room.join_rules");
+            mEv.setContent(mEvC);
 
             return mEv;
         });
 
         // Default mapper
         g2mMappers.put(WildcardType, gEv -> {
-            JsonObject mEv = mapCommon(gEv.getId().full(), gEv.getBare(), new JsonObject());
+            RoomEvent mEv = mapCommon(gEv.getId().full(), gEv.getBare());
 
             String type = gEv.getBare().getType();
-
-            if (ChannelEventType.Alias.match(type)) {
-                type = "m.room.aliases";
-            }
 
             if (type.startsWith("g.c.s.")) {
                 type = type.replace("g.c.s.", "m.room.");
@@ -187,7 +183,7 @@ public class ProtocolEventMapper {
                 type = type.substring("g.foreign.matrix.".length());
             }
 
-            mEv.addProperty("type", type);
+            mEv.setType(type);
             return mEv;
         });
     }
@@ -271,12 +267,12 @@ public class ProtocolEventMapper {
         });
     }
 
-    private static JsonObject mapCommon(String id, BareEvent gEv, JsonObject mEv) {
-        mEv.addProperty("room_id", forChannelIdFromGridToMatrix(gEv.getChannelId()));
-        mEv.addProperty("event_id", forEventIdFromGridToMatrix(id));
-        mEv.addProperty("origin_server_ts", gEv.getTimestamp());
-        mEv.addProperty("sender", forUserIdFromGridToMatrix(gEv.getSender()));
-        mEv.add("content", GsonUtil.makeObj(gEv.getContent()));
+    private static RoomEvent mapCommon(String id, BareEvent gEv) {
+        RoomEvent mEv = new RoomEvent();
+        mEv.setRoomId(forChannelIdFromGridToMatrix(gEv.getChannelId()));
+        mEv.setEventId(forEventIdFromGridToMatrix(id));
+        mEv.setOriginServerTs(gEv.getTimestamp());
+        mEv.setSender(forUserIdFromGridToMatrix(gEv.getSender()));
 
         String scope = gEv.getScope();
         if (Objects.nonNull(scope)) {
@@ -284,13 +280,13 @@ public class ProtocolEventMapper {
                 scope = forUserIdFromGridToMatrix(scope);
             }
 
-            mEv.addProperty("state_key", scope);
+            mEv.setStakeKey(scope);
         }
 
         return mEv;
     }
 
-    public static JsonObject forEventConvertToMatrix(ChannelEvent gEv) {
+    public static RoomEvent forEventConvertToMatrix(ChannelEvent gEv) {
         String type = gEv.getBare().getType();
 
         // We check if we have a mapper for this type
