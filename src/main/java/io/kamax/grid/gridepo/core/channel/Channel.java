@@ -250,7 +250,7 @@ public class Channel {
         ev = store.saveEvent(ev);
         state = store.getState(store.insertIfNew(getSid(), state));
         store.map(ev.getLid(), state.getSid());
-        store.addtoStream(ev.getLid());
+        store.addToStream(ev.getLid());
 
         if (ev.getMeta().isAllowed()) {
             List<Long> toRemove = ev.getBare().getPreviousEvents().stream()
@@ -263,7 +263,7 @@ public class Channel {
             view = new ChannelView(origin, ev.getId(), state);
         }
 
-        bus.forTopic(SignalTopic.Channel).publish(new ChannelMessageProcessed(ev, auth));
+        bus.forTopic(SignalTopic.Channel).publish(new ChannelMessageProcessed(store.getEvent(ev.getLid()), auth));
 
         return auth;
     }

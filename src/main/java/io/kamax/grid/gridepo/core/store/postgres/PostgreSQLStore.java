@@ -237,7 +237,7 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public long addtoStream(long eLid) {
+    public long addToStream(long eLid) {
         String sql = "INSERT INTO channel_event_stream (elid) VALUES (?) RETURNING sid";
         return withStmtFunction(sql, stmt -> {
             stmt.setLong(1, eLid);

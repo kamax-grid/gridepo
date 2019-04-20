@@ -62,6 +62,7 @@ public class MemoryStore implements Store {
 
     private Map<String, Long> evRefToLid = new ConcurrentHashMap<>();
     private Map<Long, Long> evSidToLid = new ConcurrentHashMap<>();
+    private Map<Long, Long> evLidToSid = new ConcurrentHashMap<>();
 
     private String makeRef(ChannelEvent ev) {
         return makeRef(channels.get(ev.getChannelSid()).getId(), ev.getId());
@@ -82,9 +83,11 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public long addtoStream(long eLid) {
+    public long addToStream(long eLid) {
         long sid = evSid.incrementAndGet();
         evSidToLid.put(sid, eLid);
+        evLidToSid.put(eLid, sid);
+        log.debug("Added Event LID {} to stream with SID {}", eLid, sid);
         return sid;
     }
 
@@ -145,7 +148,7 @@ public class MemoryStore implements Store {
             }
 
             log.info("Found next event SID {}, adding", lastSid);
-            events.add(chEvents.get(evSidToLid.get(lastSid)));
+            events.add(getEvent(evSidToLid.get(lastSid)));
             log.info("Incrementing SID");
         }
 
@@ -161,7 +164,10 @@ public class MemoryStore implements Store {
 
     @Override
     public Optional<ChannelEvent> findEvent(long eSid) {
-        return Optional.ofNullable(chEvents.get(eSid));
+        return Optional.ofNullable(chEvents.get(eSid)).map(ev -> {
+            ev.setSid(evLidToSid.get(ev.getLid()));
+            return ev;
+        });
     }
 
     private List<Long> getOrComputeExts(long cSid) {

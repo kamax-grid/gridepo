@@ -116,7 +116,7 @@ public class UserSession {
             }
 
             long sid = Long.parseLong(options.getToken());
-            while (Instant.now().isBefore(end)) {
+            do {
                 if (g.isStopping()) {
                     break;
                 }
@@ -125,11 +125,11 @@ public class UserSession {
                 if (events.isEmpty()) {
                     try {
                         synchronized (this) {
-                            wait(5000L);
+                            wait(1000L); // FIXME make sure this is not bigger than the timeout
                         }
                     } catch (InterruptedException e) {
-                        // We loop back to check if we still need to sync
-                        continue;
+                        // We don't care. We log it in case of, but we'll just loop again
+                        log.debug("Got interrupted while waiting on sync");
                     }
 
                     continue;
@@ -140,6 +140,7 @@ public class UserSession {
                         .max(Comparator.comparingLong(ChannelEvent::getSid))
                         .map(ChannelEvent::getSid)
                         .orElse(0L);
+                log.debug("Position after sync loop: {}", position);
                 data.setPosition(Long.toString(position));
 
                 events = events.stream()
@@ -156,13 +157,14 @@ public class UserSession {
                             Channel c = g.getChannelManager().get(ev.getChannelId());
                             ChannelState state = c.getState(ev);
                             ChannelMembership m = state.getMembership(user.getId());
+                            log.info("Membership for Event LID {}: {}", ev.getLid(), m);
                             return m.isAny(ChannelMembership.Join);
                         })
                         .collect(Collectors.toList());
 
-                data.setEvents(events);
+                data.getEvents().addAll(events);
                 break;
-            }
+            } while (Instant.now().isBefore(end));
 
             return data;
         } finally {

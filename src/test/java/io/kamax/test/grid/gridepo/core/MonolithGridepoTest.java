@@ -23,11 +23,16 @@ package io.kamax.test.grid.gridepo.core;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
+import io.kamax.grid.gridepo.core.SyncData;
+import io.kamax.grid.gridepo.core.SyncOptions;
+import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.*;
 
 public class MonolithGridepoTest {
 
@@ -36,8 +41,17 @@ public class MonolithGridepoTest {
         GridepoConfig cfg = GridepoConfig.inMemory();
         cfg.setDomain("localhost");
         Gridepo g = new MonolithGridepo(cfg);
-        Channel ch = g.getChannelManager().createChannel("@john.doe");
-        assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership("@john.doe"));
+        g.getIdentity().register("gridepo", "gridepo");
+        UserSession u = g.login("gridepo", "gridepo");
+        String uId = u.getUser().getId().full();
+
+        Channel ch = g.getChannelManager().createChannel(uId);
+        assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership(uId));
+
+        SyncData data = u.sync(new SyncOptions().setToken("0").setTimeout(0));
+        assertFalse(data.getEvents().isEmpty());
+        assertTrue(StringUtils.isNotBlank(data.getPosition()));
+        assertNotEquals("0", data.getPosition());
     }
 
 }

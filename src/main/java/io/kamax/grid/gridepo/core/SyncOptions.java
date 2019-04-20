@@ -29,16 +29,20 @@ public class SyncOptions {
         return timeout;
     }
 
-    public void setTimeout(long timeout) {
+    public SyncOptions setTimeout(long timeout) {
         this.timeout = timeout;
+
+        return this;
     }
 
     public String getToken() {
         return token;
     }
 
-    public void setToken(String token) {
+    public SyncOptions setToken(String token) {
         this.token = token;
+
+        return this;
     }
 
 }

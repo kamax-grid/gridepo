@@ -42,7 +42,7 @@ public interface Store {
         return findChannel(cSid).orElseThrow(() -> new ObjectNotFoundException("Channel", Long.toString(cSid)));
     }
 
-    long addtoStream(long eLid);
+    long addToStream(long eLid);
 
     ChannelDao saveChannel(ChannelDao ch);
 
