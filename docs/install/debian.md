@@ -3,7 +3,7 @@
 - Any distribution that supports Java 8
 
 ## Install
-1. Download the [latest release](https://gitlab.com/kamax-io/grid/gridepo/releases)
+1. Download the [latest release](https://kamax.io/grid/gridepo/?C=M;O=D) at the top
 2. Run:
 ```bash
 dpkg -i /path/to/downloaded/gridepo.deb

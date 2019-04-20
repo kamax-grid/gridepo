@@ -19,7 +19,7 @@ if [[ -n "$CONF_FILE_PATH" ]] && [ ! -f "$CONF_FILE_PATH" ]; then
     if [[ -n "$DATABASE_CONNECTION" ]]; then
         echo "Setting Database configuration"
         echo "  database:" >> "$CONF_FILE_PATH"
-        echo "    type:" >> "$CONF_FILE_PATH"
+        echo "    type: 'postgresql'" >> "$CONF_FILE_PATH"
         echo "    connection: '$SQLITE_DATABASE_PATH'" >> "$CONF_FILE_PATH"
         echo >> "$CONF_FILE_PATH"
     fi

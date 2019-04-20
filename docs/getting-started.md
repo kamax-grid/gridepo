@@ -30,8 +30,6 @@ Install via:
 - [Debian package](install/debian.md)
 - [Sources](install/build.md)
 
-See the [Latest release](https://github.com/kamax-matrix/mxisd/releases/latest) for links to each.
-
 ## Database
 Follow [these steps](database.md).
 
@@ -50,7 +48,7 @@ The following items must be at least configured:
 will use the provided domain (either DNS or IP, with or without port) to auto-discover and connect.
 
 You can either set the direct, final destination or use [Well-known discovery](federation.md#discovery) if you want to
-keep familiar IDs and Aliases or use an arbitrary path for gridepo, like `/gridepo/` to keep it all contained.
+keep familiar IDs and Aliases or use an arbitrary path for gridepo, like `/_grid/` to keep it all contained.
 
 ## Integrate
 Gridepo provides two set of APIs:
@@ -89,8 +87,14 @@ server {
 
     # ...
 
-    location /gridepo/ {
-        proxy_pass http://localhost:9009;
+    location /_grid/ {
+        proxy_pass http://localhost:9009/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+
+    location /_matrix/ {
+        proxy_pass http://localhost:9009/_matrix/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $remote_addr;
     }
@@ -100,15 +104,14 @@ with the following well-known located at `https://example.org/.well-known/grid`:
 ```json
 {
     "data": {
-        "server": "https://example.org/gridepo"
+        "server": "https://example.org/_grid"
     }
 }
 ```
 
 ## Validate
-Point your matrix client at `https://grid.example.org/` and register the first account which will be considered as an
-admin account. If you would like to register more than one account, you will need to specifically enable registration
-in the configuration.
+Point your matrix client at `https://grid.example.org/` and register the first account.
+If you would like to register more than one account, you will need to specifically enable registration in the configuration.
 
 ## Next steps
 Come say Hi and join #test:gridify.org, our current landing test channel.
