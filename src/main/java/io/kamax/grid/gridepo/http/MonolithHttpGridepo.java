@@ -133,6 +133,7 @@ public class MonolithHttpGridepo {
                 .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendRoomEventHandler(g))
                 .put(ClientAPIr0.Room + "/state/{type}", srsHandler)
                 .put(ClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
+                .get(ClientAPIr0.Room + "/messages", new RoomMessagesHandler(g))
 
                 // Room Directory endpoints
                 .get(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomAliasLookupHandler(g))

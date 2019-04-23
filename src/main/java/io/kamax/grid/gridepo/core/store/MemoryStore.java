@@ -73,6 +73,11 @@ public class MemoryStore implements Store {
     }
 
     @Override
+    public List<ChannelDao> listChannels() {
+        return new ArrayList<>(channels.values());
+    }
+
+    @Override
     public Optional<ChannelDao> findChannel(long cSid) {
         return Optional.ofNullable(channels.get(cSid));
     }
@@ -89,6 +94,11 @@ public class MemoryStore implements Store {
         evLidToSid.put(eLid, sid);
         log.debug("Added Event LID {} to stream with SID {}", eLid, sid);
         return sid;
+    }
+
+    @Override
+    public long getStreamPosition() {
+        return evSid.get();
     }
 
     @Override
@@ -131,6 +141,11 @@ public class MemoryStore implements Store {
     }
 
     @Override
+    public long getEventTid(long cLid, EventID eId) {
+        return getEvent(getChannel(cLid).getId(), eId).getSid();
+    }
+
+    @Override
     public Optional<Long> findEventLid(ChannelID cId, EventID eId) {
         return Optional.ofNullable(evRefToLid.get(makeRef(cId, eId)));
     }
@@ -153,6 +168,58 @@ public class MemoryStore implements Store {
         }
 
         log.info("Reached max amount of stream events, returning data");
+        return events;
+    }
+
+    @Override
+    public List<ChannelEvent> getTimelineNext(long cLid, long lastTid, long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than 0");
+        }
+
+        List<ChannelEvent> events = new ArrayList<>();
+        while (events.size() < amount) {
+            lastTid++;
+
+            log.info("Checking for next event TID {}", lastTid);
+            if (!evSidToLid.containsKey(lastTid)) {
+                log.info("No such event, end of timeline");
+                return events;
+            }
+
+            log.info("Found next event TID {}, adding", lastTid);
+            events.add(getEvent(evSidToLid.get(lastTid)));
+            log.info("Incrementing SID");
+        }
+
+        log.info("Reached max amount of stream events, returning data");
+
+        return events;
+    }
+
+    @Override
+    public List<ChannelEvent> getTimelinePrevious(long cLid, long lastTid, long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than 0");
+        }
+
+        List<ChannelEvent> events = new ArrayList<>();
+        while (events.size() < amount) {
+            lastTid--;
+
+            log.info("Checking for next event TID {}", lastTid);
+            if (lastTid == 0 || !evSidToLid.containsKey(lastTid)) {
+                log.info("No such event, end of timeline");
+                return events;
+            }
+
+            log.info("Found next event TID {}, adding", lastTid);
+            events.add(getEvent(evSidToLid.get(lastTid)));
+            log.info("Incrementing SID");
+        }
+
+        log.info("Reached max amount of stream events, returning data");
+
         return events;
     }
 

@@ -46,6 +46,8 @@ public class ChannelView {
         this.state = state;
     }
 
+    // FIXME this does not make sense and HEAD should be moved to timeline
+    // Only used as a fast hack until v0.1
     public EventID getHead() {
         return head;
     }

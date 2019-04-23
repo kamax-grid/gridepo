@@ -134,6 +134,10 @@ public class Exchange {
     }
 
     public void respond(int statusCode, JsonElement bodyJson) {
+        if (log.isDebugEnabled()) {
+            log.debug("Body:{}", GsonUtil.getPrettyForLog(bodyJson));
+        }
+
         respondJson(statusCode, GsonUtil.get().toJson(bodyJson));
     }
 

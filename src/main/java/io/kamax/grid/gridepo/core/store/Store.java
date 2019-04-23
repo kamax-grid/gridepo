@@ -34,6 +34,8 @@ import java.util.Set;
 
 public interface Store {
 
+    List<ChannelDao> listChannels();
+
     Optional<ChannelDao> findChannel(long cSid);
 
     Optional<ChannelDao> findChannel(ChannelID cId);
@@ -44,20 +46,28 @@ public interface Store {
 
     long addToStream(long eLid);
 
+    long getStreamPosition();
+
     ChannelDao saveChannel(ChannelDao ch);
 
     ChannelEvent saveEvent(ChannelEvent ev);
 
     ChannelEvent getEvent(ChannelID cId, EventID eId) throws ObjectNotFoundException;
 
-    ChannelEvent getEvent(long eSid);
+    ChannelEvent getEvent(long eLid);
 
-    EventID getEventId(long eSid);
+    EventID getEventId(long eLid);
+
+    long getEventTid(long cLid, EventID eId);
 
     Optional<Long> findEventLid(ChannelID cId, EventID eId);
 
-    // Get the N next events. next = Higher SID
+    // Get the N next events. next = Higher SID. last SID is not included.
     List<ChannelEvent> getNext(long lastSid, long amount);
+
+    List<ChannelEvent> getTimelineNext(long cLid, long lastTid, long amount);
+
+    List<ChannelEvent> getTimelinePrevious(long cLid, long lastTid, long amount);
 
     Optional<ChannelEvent> findEvent(ChannelID cId, EventID eId);
 

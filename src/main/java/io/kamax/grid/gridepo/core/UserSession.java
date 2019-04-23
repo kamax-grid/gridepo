@@ -22,9 +22,7 @@ package io.kamax.grid.gridepo.core;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.channel.Channel;
-import io.kamax.grid.gridepo.core.channel.ChannelLookup;
-import io.kamax.grid.gridepo.core.channel.ChannelMembership;
+import io.kamax.grid.gridepo.core.channel.*;
 import io.kamax.grid.gridepo.core.channel.event.BareAliasEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
@@ -99,6 +97,25 @@ public class UserSession {
         return g.getChannelManager().createChannel(user.getId().full());
     }
 
+    // FIXME evaluate if we should compute the exact state at the stream position in an atomic way
+    public SyncData syncInitial() {
+        SyncData data = new SyncData();
+        data.setInitial(true);
+        data.setPosition(Long.toString(g.getStreamer().getPosition()));
+
+        // FIXME this doesn't scale - we only care about channels where the user has ever been into
+        // so we shouldn't even deal with those. Need to make storage smarter in this case
+        // or use a caching mechanism to know what's the membership status of a given user
+        g.getChannelManager().list().forEach(cId -> {
+            // FIXME we need to get the HEAD event of the timeline instead
+            Channel c = g.getChannelManager().get(cId);
+            EventID evID = c.getView().getHead();
+            data.getEvents().add(g.getStore().getEvent(cId, evID));
+        });
+
+        return data;
+    }
+
     public SyncData sync(SyncOptions options) {
         try {
             g.getBus().getMain().subscribe(this);
@@ -110,9 +127,7 @@ public class UserSession {
             data.setPosition(options.getToken());
 
             if (StringUtils.isEmpty(options.getToken())) {
-                // Initial sync
-                data.setPosition(Long.toString(0));
-                return data;
+                return syncInitial();
             }
 
             long sid = Long.parseLong(options.getToken());
@@ -253,6 +268,15 @@ public class UserSession {
 
     public Optional<ChannelLookup> lookup(ChannelAlias alias) {
         return g.getChannelDirectory().lookup(alias, true);
+    }
+
+    public TimelineChunk paginateTimeline(ChannelID cId, EventID anchor, TimelineDirection direction, long amount) {
+        Channel c = g.getChannelManager().get(cId);
+        if (TimelineDirection.Forward.equals(direction)) {
+            return c.getTimeline().getNext(anchor, amount);
+        } else {
+            return c.getTimeline().getPrevious(anchor, amount);
+        }
     }
 
 }

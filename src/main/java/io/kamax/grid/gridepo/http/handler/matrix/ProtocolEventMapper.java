@@ -59,7 +59,7 @@ public class ProtocolEventMapper {
             mEvC.setCreator(forUserIdFromGridToMatrix(gEv.getContent().getCreator()));
             RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
             mEv.setType("m.room.create");
-            mEv.setStakeKey("");
+            mEv.setStateKey("");
             mEv.setContent(mEvC);
             return mEv;
         });
@@ -89,7 +89,7 @@ public class ProtocolEventMapper {
 
             RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
             mEv.setType("m.room.power_levels");
-            mEv.setStakeKey("");
+            mEv.setStateKey("");
             mEv.setContent(mEvC);
 
             return mEv;
@@ -120,7 +120,7 @@ public class ProtocolEventMapper {
 
             RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
             mEv.setType("m.room.aliases");
-            mEv.setStakeKey(ServerID.parse(gEv.getScope()).tryDecode().orElseGet(() -> gEv.getScope().substring(1)));
+            mEv.setStateKey(ServerID.parse(gEv.getScope()).tryDecode().orElseGet(() -> gEv.getScope().substring(1)));
             mEv.setContent(mEvC);
 
             return mEv;
@@ -280,7 +280,7 @@ public class ProtocolEventMapper {
                 scope = forUserIdFromGridToMatrix(scope);
             }
 
-            mEv.setStakeKey(scope);
+            mEv.setStateKey(scope);
         }
 
         return mEv;

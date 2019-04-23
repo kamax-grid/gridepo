@@ -81,12 +81,14 @@ public class Channel {
 
     private void init() {
         // FIXME we need to resolve the extremities as a timeline, get the HEAD and its state
-        view = new ChannelView(origin, null, store.getExtremities(getSid()).stream()
-                .map(store::getEvent)
+        List<ChannelEvent> extremities = store.getExtremities(getSid()).stream().map(store::getEvent).collect(Collectors.toList());
+        EventID head = extremities.stream().max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getId).orElse(null);
+        ChannelState state = extremities.stream()
                 .max(Comparator.comparingLong(ev -> ev.getBare().getDepth()))
                 .map(ChannelEvent::getLid)
                 .map(store::getStateForEvent)
-                .orElseGet(ChannelState::empty));
+                .orElseGet(ChannelState::empty);
+        view = new ChannelView(origin, head, state);
         log.info("Channel {}: Loaded saved state SID {}", getSid(), view.getState().getSid());
     }
 
@@ -118,6 +120,10 @@ public class Channel {
 
     public ChannelView getView() {
         return view;
+    }
+
+    public ChannelTimeline getTimeline() {
+        return new ChannelTimeline(dao.getSid(), store);
     }
 
     public List<Long> getExtremitySids() {

@@ -18,33 +18,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.core.channel;
 
+import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SyncData {
+public class TimelineChunk {
 
-    private boolean isInitial;
-    private String position = "";
+    private EventID start;
     private List<ChannelEvent> events = new ArrayList<>();
+    private EventID end;
 
-    public boolean isInitial() {
-        return isInitial;
+    public EventID getStart() {
+        return start;
     }
 
-    public void setInitial(boolean initial) {
-        isInitial = initial;
-    }
-
-    public String getPosition() {
-        return position;
-    }
-
-    public void setPosition(String position) {
-        this.position = position;
+    public void setStart(EventID start) {
+        this.start = start;
     }
 
     public List<ChannelEvent> getEvents() {
@@ -52,7 +45,15 @@ public class SyncData {
     }
 
     public void setEvents(List<ChannelEvent> events) {
-        this.events = new ArrayList<>(events);
+        this.events = events;
+    }
+
+    public EventID getEnd() {
+        return end;
+    }
+
+    public void setEnd(EventID end) {
+        this.end = end;
     }
 
 }

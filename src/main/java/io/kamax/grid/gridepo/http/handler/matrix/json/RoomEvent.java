@@ -31,7 +31,7 @@ public class RoomEvent {
     private String roomId;
     private Long originServerTs;
     private String sender;
-    private String stakeKey;
+    private String stateKey;
     private Object content;
     private JsonObject grid;
 
@@ -83,12 +83,12 @@ public class RoomEvent {
         this.sender = sender;
     }
 
-    public String getStakeKey() {
-        return stakeKey;
+    public String getStateKey() {
+        return stateKey;
     }
 
-    public void setStakeKey(String stakeKey) {
-        this.stakeKey = stakeKey;
+    public void setStateKey(String stateKey) {
+        this.stateKey = stateKey;
     }
 
     public Object getContent() {

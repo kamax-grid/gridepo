@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class ChannelManager {
 
@@ -131,6 +132,11 @@ public class ChannelManager {
 
         channels.put(ch.getId(), ch);
         return ch;
+    }
+
+    public List<ChannelID> list() {
+        List<ChannelDao> daos = store.listChannels();
+        return daos.stream().map(ChannelDao::getId).collect(Collectors.toList());
     }
 
     public synchronized Optional<Channel> find(ChannelID cId) {

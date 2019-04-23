@@ -219,6 +219,21 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
+    public List<ChannelDao> listChannels() {
+        String sql = "SELECT * FROM channels WHERE network = 'grid'";
+        return withStmtFunction(sql, stmt -> {
+            List<ChannelDao> channels = new ArrayList<>();
+
+            ResultSet rSet = stmt.executeQuery();
+            while (rSet.next()) {
+                channels.add(new ChannelDao(rSet.getLong("sid"), ChannelID.fromRaw(rSet.getString("id"))));
+            }
+
+            return channels;
+        });
+    }
+
+    @Override
     public Optional<ChannelDao> findChannel(long cSid) {
         String sql = "SELECT * FROM channels WHERE network = 'grid' AND sid = ?";
         return withStmtFunction(sql, stmt -> {
@@ -245,6 +260,19 @@ public class PostgreSQLStore implements Store {
             if (!rSet.next()) {
                 throw new IllegalStateException("Inserted event " + eLid + " in stream but got no SID back");
             }
+            return rSet.getLong(1);
+        });
+    }
+
+    @Override
+    public long getStreamPosition() {
+        String sql = "SELECT MAX(sid) FROM channel_event_stream";
+        return withStmtFunction(sql, stmt -> {
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                return 0L;
+            }
+
             return rSet.getLong(1);
         });
     }
@@ -330,6 +358,21 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
+    public long getEventTid(long cLid, EventID eId) {
+        String sql = "SELECT * FROM channel_events e LEFT JOIN channel_event_stream s ON s.eLid = e.lid WHERE e.cSid = ? AND e.id = ?";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setLong(1, cLid);
+            stmt.setString(2, eId.base());
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new ObjectNotFoundException("Event", eId.full());
+            }
+
+            return make(rSet).getSid();
+        });
+    }
+
+    @Override
     public Optional<Long> findEventLid(ChannelID cId, EventID eId) throws ObjectNotFoundException {
         String sql = "SELECT e.lid FROM channels c JOIN channel_events e ON e.cSid = c.sid WHERE c.id = ? AND e.id = ?";
         return withStmtFunction(sql, stmt -> {
@@ -360,6 +403,40 @@ public class PostgreSQLStore implements Store {
         });
     }
 
+    @Override
+    public List<ChannelEvent> getTimelineNext(long cLid, long lastTid, long amount) {
+        String sql = "SELECT * FROM channel_event_stream s JOIN channel_events e ON s.eLid = e.lid WHERE e.cSid = ? AND s.sid > ? ORDER BY s.sid ASC LIMIT ?";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setLong(1, cLid);
+            stmt.setLong(2, lastTid);
+            stmt.setLong(3, amount);
+            ResultSet rSet = stmt.executeQuery();
+
+            List<ChannelEvent> events = new ArrayList<>();
+            while (rSet.next()) {
+                events.add(make(rSet));
+            }
+            return events;
+        });
+    }
+
+    @Override
+    public List<ChannelEvent> getTimelinePrevious(long cLid, long lastTid, long amount) {
+        String sql = "SELECT * FROM channel_event_stream s JOIN channel_events e ON s.eLid = e.lid WHERE e.cSid = ? AND s.sid < ? ORDER BY s.sid DESC LIMIT ?";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setLong(1, cLid);
+            stmt.setLong(2, lastTid);
+            stmt.setLong(3, amount);
+            ResultSet rSet = stmt.executeQuery();
+
+            List<ChannelEvent> events = new ArrayList<>();
+            while (rSet.next()) {
+                events.add(make(rSet));
+            }
+            return events;
+        });
+    }
+
     private ChannelEvent make(ResultSet rSet) throws SQLException {
         long cSid = rSet.getLong("cSid");
         long sid = rSet.getLong("lid");
@@ -371,8 +448,9 @@ public class PostgreSQLStore implements Store {
         try {
             ev.setSid(rSet.getLong(rSet.findColumn("sid")));
         } catch (SQLException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("No column sid", e);
+            if (log.isTraceEnabled()) {
+                log.debug("No column sid");
+                log.trace("SID request", e);
             }
         }
         return ev;

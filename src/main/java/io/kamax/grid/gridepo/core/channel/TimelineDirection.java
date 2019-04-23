@@ -18,31 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.event;
+package io.kamax.grid.gridepo.core.channel;
 
-import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
-import io.kamax.grid.gridepo.core.store.Store;
+public enum TimelineDirection {
 
-import java.util.List;
-
-public class EventStreamer {
-
-    private final Store store;
-
-    public EventStreamer(Store store) {
-        this.store = store;
-    }
-
-    public List<ChannelEvent> next(long sid) {
-        return store.getNext(sid, 20);
-    }
-
-    public List<ChannelEvent> next(ChannelEvent ev) {
-        return next(ev.getSid());
-    }
-
-    public long getPosition() {
-        return store.getStreamPosition();
-    }
-
+    Forward,
+    Backward
 }

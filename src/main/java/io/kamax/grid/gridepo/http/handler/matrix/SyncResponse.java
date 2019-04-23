@@ -25,15 +25,13 @@ import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.SyncData;
 import io.kamax.grid.gridepo.core.channel.ChannelMembership;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
+import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.http.handler.matrix.json.RoomEvent;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SyncResponse {
 
@@ -65,6 +63,8 @@ public class SyncResponse {
     public static class RoomTimeline {
 
         private List<RoomEvent> events = new ArrayList<>();
+        private String prevBatch;
+        private boolean limited = false;
 
         public List<RoomEvent> getEvents() {
             return events;
@@ -72,6 +72,22 @@ public class SyncResponse {
 
         public void setEvents(List<RoomEvent> events) {
             this.events = events;
+        }
+
+        public String getPrevBatch() {
+            return prevBatch;
+        }
+
+        public void setPrevBatch(String prevBatch) {
+            this.prevBatch = prevBatch;
+        }
+
+        public boolean isLimited() {
+            return limited;
+        }
+
+        public void setLimited(boolean limited) {
+            this.limited = limited;
         }
 
     }
@@ -141,8 +157,17 @@ public class SyncResponse {
                 RoomEvent rEv = build(ev);
                 Room room = roomCache.computeIfAbsent(rEv.getRoomId(), id -> new Room());
                 room.getTimeline().getEvents().add(rEv);
+                if (data.isInitial()) {
+                    // This is the first event, so we set the previous batch info
+                    room.getTimeline().setPrevBatch(ev.getId().full());
+                    ChannelState state = g.getChannelManager().get(ev.getChannelId()).getState(ev);
+                    state.getEvents().stream()
+                            .sorted(Comparator.comparingLong(o -> o.getBare().getDepth())) // FIXME use Timeline ordering
+                            .forEach(stateEv -> room.getState().getEvents().add(build(stateEv)));
+                }
+                r.rooms.join.put(rEv.getRoomId(), room);
 
-                if ("m.room.member".equals(rEv.getType()) && uId.equals(rEv.getStakeKey())) {
+                if ("m.room.member".equals(rEv.getType()) && uId.equals(rEv.getStateKey())) {
                     JsonObject c = GsonUtil.parseObj(GsonUtil.toJson(rEv.getContent()));
                     GsonUtil.findString(c, "membership").ifPresent(m -> {
                         if ("invite".equals(m)) {
@@ -150,22 +175,13 @@ public class SyncResponse {
                             r.rooms.invite.put(rEv.getRoomId(), room);
                             r.rooms.leave.remove(rEv.getRoomId());
 
+                            room.inviteState.events.addAll(room.timeline.events);
                             room.timeline.events.clear();
                             room.state.events.clear();
-                            room.inviteState.events.clear();
-
-                            g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
-                                if (sEv.getLid() != ev.getLid()) {
-                                    room.inviteState.events.add(build(sEv));
-                                }
-                            });
-                            room.inviteState.events.add(rEv);
                         } else if ("leave".equals(m) || "ban".equals(m)) {
                             r.rooms.invite.remove(rEv.getRoomId());
                             r.rooms.join.remove(rEv.getRoomId());
                             r.rooms.leave.put(rEv.getRoomId(), room);
-
-                            room.timeline.events.add(rEv);
                         } else if (ChannelMembership.Join.match(m)) {
                             r.rooms.invite.remove(rEv.getRoomId());
                             r.rooms.join.put(rEv.getRoomId(), room);
@@ -173,13 +189,12 @@ public class SyncResponse {
 
                             room.inviteState.events.clear();
 
-                            room.state.events = new ArrayList<>();
+                            room.state.events.clear();
                             g.getChannelManager().get(rEv.getChannelId()).getState(ev).getEvents().forEach(sEv -> {
                                 if (sEv.getLid() != ev.getLid()) {
                                     room.state.events.add(build(sEv));
                                 }
                             });
-                            room.timeline.events.add(rEv);
                         } else {
                             // unknown, not supported
                         }
