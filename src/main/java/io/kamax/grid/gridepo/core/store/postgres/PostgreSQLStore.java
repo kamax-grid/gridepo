@@ -82,52 +82,50 @@ public class PostgreSQLStore implements Store {
         withConnConsumer(conn -> conn.isValid(1000));
         log.info("Connected");
 
-        try (InputStream is = PostgreSQLStore.class.getResourceAsStream("/store/postgres/schema/")) {
-            List<String> schemaUpdates = IOUtils.readLines(Objects.requireNonNull(is), StandardCharsets.UTF_8);
-            withConnConsumer(conn -> {
-                Statement stmt = conn.createStatement();
-                stmt.execute("CREATE TABLE IF NOT EXISTS schema (version bigint NOT NULL)");
-                conn.setAutoCommit(false);
+        // FIXME Temporary solution until we can directly list from the jar
+        List<String> schemaUpdates = new ArrayList<>();
+        schemaUpdates.add("0-init.sql");
+        withConnConsumer(conn -> {
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE TABLE IF NOT EXISTS schema (version bigint NOT NULL)");
+            conn.setAutoCommit(false);
 
-                long version = getSchemaVersion();
-                log.info("Schema version: {}", version);
-                log.info("Schemas to check: {}", schemaUpdates.size());
-                for (String sql : schemaUpdates) {
-                    log.info("Processing schema update: {}", sql);
-                    String[] els = sql.split("-", 2);
-                    if (els.length < 2) {
-                        log.warn("Skipping invalid schema update name format: {}", sql);
-                    }
-
-                    try {
-                        long elV = Long.parseLong(els[0]);
-                        if (elV <= version) {
-                            log.info("Skipping {}", sql);
-                            continue;
-                        }
-
-                        try (InputStream elIs = PostgreSQLStore.class.getResourceAsStream("/store/postgres/schema/" + sql)) {
-                            String update = IOUtils.toString(Objects.requireNonNull(elIs), StandardCharsets.UTF_8);
-                            stmt.execute(update);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        if (stmt.executeUpdate("INSERT INTO schema (version) VALUES (" + elV + ")") != 1) {
-                            throw new RuntimeException("Could not update schema version");
-                        }
-
-                        log.info("Updated schema to version {}", elV);
-                    } catch (NumberFormatException e) {
-                        log.warn("Invalid schema update version: {}", els[0]);
-                    }
+            long version = getSchemaVersion();
+            log.info("Schema version: {}", version);
+            log.info("Schemas to check: {}", schemaUpdates.size());
+            for (String sql : schemaUpdates) {
+                log.info("Processing schema update: {}", sql);
+                String[] els = sql.split("-", 2);
+                if (els.length < 2) {
+                    log.warn("Skipping invalid schema update name format: {}", sql);
                 }
 
-                conn.commit();
-            });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+                try {
+                    long elV = Long.parseLong(els[0]);
+                    if (elV <= version) {
+                        log.info("Skipping {}", sql);
+                        continue;
+                    }
+
+                    try (InputStream elIs = PostgreSQLStore.class.getResourceAsStream("/store/postgres/schema/" + sql)) {
+                        String update = IOUtils.toString(Objects.requireNonNull(elIs), StandardCharsets.UTF_8);
+                        stmt.execute(update);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    if (stmt.executeUpdate("INSERT INTO schema (version) VALUES (" + elV + ")") != 1) {
+                        throw new RuntimeException("Could not update schema version");
+                    }
+
+                    log.info("Updated schema to version {}", elV);
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid schema update version: {}", els[0]);
+                }
+            }
+
+            conn.commit();
+        });
     }
 
     private <R> R withConnFunction(ConnFunction<Connection, R> function) {

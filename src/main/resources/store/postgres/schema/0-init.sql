@@ -1,16 +1,16 @@
-CREATE TABLE channels
+CREATE TABLE IF NOT EXISTS channels
 (
     sid bigserial NOT NULL,
     id text NOT NULL,
     network text NOT NULL,
     CONSTRAINT c_ids UNIQUE (id, network)
 );
-CREATE INDEX c_id_idx
+CREATE INDEX IF NOT EXISTS c_id_idx
     ON channels USING hash(id);
-CREATE INDEX c_net_idx
+CREATE INDEX IF NOT EXISTS c_net_idx
     ON channels USING hash(network);
 
-CREATE TABLE channel_events
+CREATE TABLE IF NOT EXISTS channel_events
 (
     lid bigserial NOT NULL,
     cSid bigint NOT NULL,
@@ -19,42 +19,42 @@ CREATE TABLE channel_events
     data jsonb,
     CONSTRAINT c_ev_gid UNIQUE(id,cSid)
 );
-CREATE INDEX c_ev_id_idx
+CREATE INDEX IF NOT EXISTS c_ev_id_idx
     ON channel_events USING hash(id);
-CREATE INDEX c_ev_cid_idx
+CREATE INDEX IF NOT EXISTS c_ev_cid_idx
     ON channel_events USING hash(cSid);
 
-CREATE TABLE channel_states
+CREATE TABLE IF NOT EXISTS channel_states
 (
     sid bigserial NOT NULL,
     cSid bigint NOT NULL
 );
 
-CREATE TABLE channel_state_data
+CREATE TABLE IF NOT EXISTS channel_state_data
 (
     sSid bigint NOT NULL,
     eLid bigint NOT NULL
 );
 
-CREATE TABLE channel_event_states
+CREATE TABLE IF NOT EXISTS channel_event_states
 (
     eLid bigint NOT NULL,
     sSid bigint NOT NULL
 );
 
-CREATE TABLE channel_event_stream
+CREATE TABLE IF NOT EXISTS channel_event_stream
 (
     sid bigserial NOT NULL,
     eLid bigint NOT NULL
 );
 
-CREATE TABLE channel_extremities
+CREATE TABLE IF NOT EXISTS channel_extremities
 (
     cSid bigint NOT NULL,
     eLid bigint NOT NULL
 );
 
-CREATE TABLE channel_addresses
+CREATE TABLE IF NOT EXISTS channel_addresses
 (
     cAlias text NOT NULL,
     cId text NOT NULL,
@@ -63,19 +63,19 @@ CREATE TABLE channel_addresses
     CONSTRAINT c_adr_alias UNIQUE(cAlias)
 );
 
-CREATE TABLE users
+CREATE TABLE IF NOT EXISTS users
 (
     lid bigserial NOT NULL,
     username text NOT NULL,
     password text,
     CONSTRAINT u_username UNIQUE (username)
 );
-CREATE INDEX u_lid_idx
+CREATE INDEX IF NOT EXISTS u_lid_idx
     ON users USING hash(lid);
-CREATE INDEX u_username_idx
+CREATE INDEX IF NOT EXISTS u_username_idx
     ON users USING hash(username);
 
-CREATE TABLE user_access_tokens
+CREATE TABLE IF NOT EXISTS user_access_tokens
 (
     uLid bigint NOT NULL,
     token text NOT NULL,
