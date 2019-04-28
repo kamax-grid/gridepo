@@ -141,7 +141,6 @@ public class BasicFederation extends Federation {
         events.add(EventID.from(s1.send(cId, BareMessageEvent.build(u1, "Final message").getJson())));
 
         for (EventID evId : events) {
-            System.out.println(evId);
             Optional<ChannelEvent> g1c1evOpt = g1.getStore().findEvent(ChannelID.from(cId), evId);
             assertTrue(g1c1evOpt.isPresent());
             ChannelEvent g1c1ev = g1c1evOpt.get();
