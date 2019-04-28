@@ -22,6 +22,7 @@ package io.kamax.grid.gridepo.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class GridepoConfig {
 
@@ -81,6 +82,10 @@ public class GridepoConfig {
         }
 
         public void addNetwork(ListenerNetwork network) {
+            if (Objects.isNull(this.network)) {
+                this.network = new ArrayList<>();
+            }
+
             this.network.add(network);
         }
 
