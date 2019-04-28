@@ -151,6 +151,13 @@ dependencies {
 
 }
 
+// For reproducible builds
+// https://docs.gradle.org/5.2/userguide/working_with_files.html#sec:reproducible_archives
+tasks.withType(AbstractArchiveTask) {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
 jar {
     manifest {
         attributes(
@@ -160,8 +167,7 @@ jar {
 }
 
 shadowJar {
-    baseName = project.name
-    classifier = null
+    getArchiveClassifier().set(null)
     version = null
 }
 
