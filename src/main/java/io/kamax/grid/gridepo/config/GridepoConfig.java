@@ -65,9 +65,12 @@ public class GridepoConfig {
 
     public static class Listener {
 
-        private List<ListenerNetwork> network = new ArrayList<>();
+        private List<ListenerNetwork> network;
         private String address = "0.0.0.0";
         private int port;
+        private boolean tls;
+        private String key;
+        private String cert;
 
         public List<ListenerNetwork> getNetwork() {
             return network;
@@ -95,6 +98,30 @@ public class GridepoConfig {
 
         public void setPort(int port) {
             this.port = port;
+        }
+
+        public boolean isTls() {
+            return tls;
+        }
+
+        public void setTls(boolean tls) {
+            this.tls = tls;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        public String getCert() {
+            return cert;
+        }
+
+        public void setCert(String cert) {
+            this.cert = cert;
         }
 
     }

@@ -59,6 +59,9 @@ Both will need to be passed to Gridepo. If you are already using Matrix, we reco
 not interfere with your current installation.
 
 ### Reverse proxy
+If you do not want to use a reverse proxy and instead make Gridepo serve HTTPS directly, skip this section and read the
+[Network section of the Configuration document](configure.md#listeners).
+
 #### nginx
 Typical configuration would look like:
 ```nginx
@@ -103,9 +106,9 @@ server {
 with the following well-known located at `https://example.org/.well-known/grid`:
 ```json
 {
-    "data": {
-        "server": "https://example.org/_grid"
-    }
+  "data": {
+    "server": "https://example.org/_grid"
+  }
 }
 ```
 
@@ -114,4 +117,4 @@ Point your matrix client at `https://grid.example.org/` and register the first a
 If you would like to register more than one account, you will need to specifically enable registration in the configuration.
 
 ## Next steps
-Come say Hi and join #test:gridify.org, our current landing test channel.
+Join #test:gridify.org, our current landing test channel, and say hi!

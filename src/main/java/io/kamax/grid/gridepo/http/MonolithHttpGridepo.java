@@ -32,12 +32,14 @@ import io.kamax.grid.gridepo.http.handler.grid.server.channel.GetEventHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
+import io.kamax.grid.gridepo.util.TlsUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.RoutingHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -66,7 +68,7 @@ public class MonolithHttpGridepo {
     }
 
     private void buildGridClient(RoutingHandler handler) {
-        log.warn("Tried to add Grid client endpoints but not implemented yet");
+        log.warn("Tried to add Grid Data client endpoints but not implemented yet");
 
         handler
                 .add("OPTIONS", "/data/client", new OptionsHandler())
@@ -82,6 +84,8 @@ public class MonolithHttpGridepo {
 
                 .get("/data/server/v0/channels/{channelId}/events/{eventId}", new GetEventHandler(g))
         ;
+
+        log.info("Added Grid Data server endpoints");
     }
 
     private void buildGrid(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
@@ -157,12 +161,14 @@ public class MonolithHttpGridepo {
                 .setFallbackHandler(new NotFoundHandler())
                 .setInvalidMethodHandler(new NotFoundHandler());
 
-        log.info("Added Matrix client listener");
+        log.info("Added Matrix client endpoints");
     }
 
     private void buildMatrix(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
         if (StringUtils.equals("client", network.getType())) {
             buildMatrixClient(handler);
+        } else if (StringUtils.equals("server", network.getType())) {
+            log.warn("Tried to add Matrix server endpoints but not implemented yet");
         } else {
             throw new RuntimeException(network.getType() + " is not a supported Matrix listener type");
         }
@@ -170,13 +176,22 @@ public class MonolithHttpGridepo {
 
     private void build() {
         if (cfg.getListeners().isEmpty()) {
+            log.info("No listener configured, adding default");
             GridepoConfig.Listener l = new GridepoConfig.Listener();
             l.setAddress("0.0.0.0");
             l.setPort(9009);
-            l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "client"));
-            l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "server"));
-            l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "client"));
             cfg.getListeners().add(l);
+        }
+
+        for (GridepoConfig.Listener l : cfg.getListeners()) {
+            if (Objects.isNull(l.getNetwork())) {
+                log.info("Absent network configuration on listener {}:{}, adding default", l.getAddress(), l.getPort());
+                l.setNetwork(new ArrayList<>());
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "client"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "server"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "client"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "server"));
+            }
         }
 
         g = new MonolithGridepo(cfg);
@@ -196,7 +211,15 @@ public class MonolithHttpGridepo {
                 }
             }
 
-            b.addHttpListener(cfg.getPort(), cfg.getAddress()).setHandler(handler);
+            if (cfg.isTls()) {
+                log.info("Setting listener {}:{} as HTTPS", cfg.getAddress(), cfg.getPort());
+                b.addHttpsListener(cfg.getPort(), cfg.getAddress(), TlsUtils.buildContext(cfg.getKey(), cfg.getCert()))
+                        .setHandler(handler);
+            } else {
+                log.info("Setting listener {}:{} as HTTP", cfg.getAddress(), cfg.getPort());
+                b.addHttpListener(cfg.getPort(), cfg.getAddress())
+                        .setHandler(handler);
+            }
         }
 
         u = b.build();

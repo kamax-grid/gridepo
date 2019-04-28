@@ -20,15 +20,56 @@
 
 package io.kamax.grid.gridepo.util;
 
+import org.apache.http.ssl.SSLContextBuilder;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.io.pem.PemReader;
+
+import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.security.KeyFactory;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TlsUtils {
 
-    public static X509Certificate load(String path) {
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
+    public static List<X509Certificate> load(String path) {
         try (FileInputStream is = new FileInputStream(path)) {
-            return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(is);
+            return CertificateFactory.getInstance("X.509")
+                    .generateCertificates(is).stream()
+                    .map(c -> (X509Certificate) c)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static SSLContext buildContext(String keyFilePath, String certFilePath) {
+        try {
+            KeyFactory factory = KeyFactory.getInstance("RSA", "BC");
+            PemReader key = new PemReader(new FileReader(keyFilePath));
+
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(key.readPemObject().getContent());
+            PrivateKey privKey = factory.generatePrivate(keySpec);
+
+            List<X509Certificate> certC = load(certFilePath);
+            Certificate[] certs = new Certificate[certC.size()];
+            certC.toArray(certs);
+            KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
+            store.load(null, "".toCharArray());
+            store.setKeyEntry("cert", privKey, "".toCharArray(), certs);
+            return SSLContextBuilder.create().loadKeyMaterial(store, "".toCharArray()).build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
