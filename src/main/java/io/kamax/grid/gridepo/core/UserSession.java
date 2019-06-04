@@ -137,49 +137,49 @@ public class UserSession {
                 }
 
                 List<ChannelEvent> events = g.getStreamer().next(sid);
-                if (events.isEmpty()) {
+                if (!events.isEmpty()) {
+                    long position = events.stream()
+                            .filter(ev -> ev.getMeta().isProcessed())
+                            .max(Comparator.comparingLong(ChannelEvent::getSid))
+                            .map(ChannelEvent::getSid)
+                            .orElse(0L);
+                    log.debug("Position after sync loop: {}", position);
+                    data.setPosition(Long.toString(position));
+
+                    events = events.stream()
+                            .filter(ev -> ev.getMeta().isValid() && ev.getMeta().isAllowed())
+                            .filter(ev -> {
+                                // FIXME move this into channel/state algo to check if a user can see an event in the stream
+
+                                // If we are the author
+                                if (StringUtils.equalsAny(user.getId().full(), ev.getBare().getSender(), ev.getBare().getScope())) {
+                                    return true;
+                                }
+
+                                // if we are subscribed to the channel at that point in time
+                                Channel c = g.getChannelManager().get(ev.getChannelId());
+                                ChannelState state = c.getState(ev);
+                                ChannelMembership m = state.getMembership(user.getId());
+                                log.info("Membership for Event LID {}: {}", ev.getLid(), m);
+                                return m.isAny(ChannelMembership.Join);
+                            })
+                            .collect(Collectors.toList());
+
+                    data.getEvents().addAll(events);
+                }
+
+                long waitTime = Math.min(options.getTimeout(), 1000L);
+                if (waitTime > 0) {
                     try {
                         synchronized (this) {
-                            wait(1000L); // FIXME make sure this is not bigger than the timeout
+                            wait(waitTime);
                         }
                     } catch (InterruptedException e) {
                         // We don't care. We log it in case of, but we'll just loop again
                         log.debug("Got interrupted while waiting on sync");
                     }
-
-                    continue;
                 }
-
-                long position = events.stream()
-                        .filter(ev -> ev.getMeta().isProcessed())
-                        .max(Comparator.comparingLong(ChannelEvent::getSid))
-                        .map(ChannelEvent::getSid)
-                        .orElse(0L);
-                log.debug("Position after sync loop: {}", position);
-                data.setPosition(Long.toString(position));
-
-                events = events.stream()
-                        .filter(ev -> ev.getMeta().isValid() && ev.getMeta().isAllowed())
-                        .filter(ev -> {
-                            // FIXME move this into channel/state algo to check if a user can see an event in the stream
-
-                            // If we are the author
-                            if (StringUtils.equalsAny(user.getId().full(), ev.getBare().getSender(), ev.getBare().getScope())) {
-                                return true;
-                            }
-
-                            // if we are subscribed to the channel at that point in time
-                            Channel c = g.getChannelManager().get(ev.getChannelId());
-                            ChannelState state = c.getState(ev);
-                            ChannelMembership m = state.getMembership(user.getId());
-                            log.info("Membership for Event LID {}: {}", ev.getLid(), m);
-                            return m.isAny(ChannelMembership.Join);
-                        })
-                        .collect(Collectors.toList());
-
-                data.getEvents().addAll(events);
-                break;
-            } while (Instant.now().isBefore(end));
+            } while (end.isAfter(Instant.now()));
 
             return data;
         } finally {

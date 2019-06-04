@@ -43,6 +43,19 @@ public class SyncHandler extends ClientApiHandler {
         SyncOptions options = new SyncOptions();
         options.setToken(since);
 
+        String timeout = exchange.getQueryParameter("timeout");
+        if (StringUtils.isNotEmpty(timeout)) {
+            try {
+                long value = Long.parseLong(timeout);
+                if (value < 0) {
+                    throw new IllegalArgumentException("Timeout must be greater or equal to 0");
+                }
+                options.setTimeout(value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Timeout is not a valid integer: " + timeout);
+            }
+        }
+
         SyncData data = session.sync(options);
         String mxId = ProtocolEventMapper.forUserIdFromGridToMatrix(session.getUser().getId().full());
         exchange.respondJson(SyncResponse.build(g, mxId, data));
