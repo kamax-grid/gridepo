@@ -161,6 +161,29 @@ public class DataServerHttpClient implements DataServerClient {
     }
 
     @Override
+    public boolean ping(String as, String target) {
+        HttpGet req = new HttpGet();
+        req.setHeader("X-Grid-Remote-ID", as);
+
+        for (URL url : lookupSrv(target)) {
+            String srvUriRaw = url + URIPath.dataSrv().add("version").get();
+            try {
+                URI srvUri = new URI(srvUriRaw);
+                req.setURI(srvUri);
+                try (CloseableHttpResponse res = client.execute(req)) {
+                    return res.getStatusLine().getStatusCode() == 200;
+                } catch (IOException e) {
+                    log.warn("", e);
+                }
+            } catch (URISyntaxException e) {
+                log.warn("Unable to create URI for server: Invalid URI for {}: {}", srvUriRaw, e.getMessage());
+            }
+        }
+
+        throw new RemoteServerException(target, "G_FEDERATION_ERROR", "Could not find a working server for " + target);
+    }
+
+    @Override
     public JsonObject push(String as, String target, List<ChannelEvent> chEvents) {
         JsonArray events = new JsonArray();
         chEvents.forEach(chEv -> events.add(chEv.getData()));

@@ -112,6 +112,10 @@ public class DataServer {
         setAvailable();
     }
 
+    public boolean ping(String as) {
+        return withHealthCheck(true, () -> client.ping(as, hostname));
+    }
+
     public Optional<JsonObject> getEvent(String as, ChannelID chId, EventID evId) {
         return withHealthCheck(() -> client.getEvent(as, hostname, chId, evId));
     }

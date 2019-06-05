@@ -120,6 +120,11 @@ public class ServerSession {
             throw new ForbiddenException("Approval to join channel " + cId + ": " + auth.getReason());
         }
 
+        // We actively check that the server can be reached before approving a join
+        if (!g.getServers().get(id).ping(g.getOrigin().full())) {
+            throw new ForbiddenException("Your origin " + id + " is not reachable");
+        }
+
         List<JsonObject> state = c.getView().getState().getEvents().stream()
                 .sorted(Comparator.comparingLong(v -> v.getBare().getDepth()))
                 .map(ChannelEvent::getData)

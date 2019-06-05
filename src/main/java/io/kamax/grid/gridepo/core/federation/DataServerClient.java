@@ -34,6 +34,8 @@ import java.util.Optional;
 
 public interface DataServerClient {
 
+    boolean ping(String as, String target);
+
     JsonObject push(String as, String target, List<ChannelEvent> events);
 
     JsonObject approveInvite(String as, String target, InviteApprovalRequest data);

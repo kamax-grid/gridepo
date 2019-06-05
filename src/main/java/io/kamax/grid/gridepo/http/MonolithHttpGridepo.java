@@ -24,10 +24,7 @@ import com.google.gson.JsonArray;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
-import io.kamax.grid.gridepo.http.handler.grid.server.ChannelDirectoryLookupHandler;
-import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveInvite;
-import io.kamax.grid.gridepo.http.handler.grid.server.DoApproveJoin;
-import io.kamax.grid.gridepo.http.handler.grid.server.DoPushHandler;
+import io.kamax.grid.gridepo.http.handler.grid.server.*;
 import io.kamax.grid.gridepo.http.handler.grid.server.channel.GetEventHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -77,6 +74,7 @@ public class MonolithHttpGridepo {
 
     private void buildGridServer(RoutingHandler handler) {
         handler
+                .get("/data/server/version", new VersionHandler())
                 .post("/data/server/v0/do/approve/invite", new DoApproveInvite(g))
                 .post("/data/server/v0/do/approve/join", new DoApproveJoin(g))
                 .post("/data/server/v0/do/lookup/channel/alias", new ChannelDirectoryLookupHandler(g))
