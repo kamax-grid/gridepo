@@ -22,6 +22,8 @@ package io.kamax.grid.gridepo.core.store;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import io.kamax.grid.gridepo.config.StorageConfig;
+import io.kamax.grid.gridepo.exception.ConfigurationException;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -31,8 +33,13 @@ public class SqlConnectionPool {
     private ComboPooledDataSource ds;
 
     public SqlConnectionPool(StorageConfig cfg) {
+        if (StringUtils.isBlank(cfg.getDatabase().getType())) {
+            throw new ConfigurationException("Database type cannot be blank");
+        }
+
         ds = new ComboPooledDataSource();
         ds.setJdbcUrl("jdbc:" + cfg.getDatabase().getType() + ":" + cfg.getDatabase().getConnection());
+        ds.setAcquireRetryAttempts(cfg.getDatabase().getPool().getRetryAttempts());
         ds.setMinPoolSize(1);
         ds.setMaxPoolSize(10);
         ds.setAcquireIncrement(2);

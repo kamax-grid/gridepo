@@ -58,7 +58,5 @@ You can then start the stack with the usual command:
 docker-compose up
 ```
 
-**IMPORTANT**: DB setup is currently broken. Please manually create the DB schema as [per DB doc](../database.md).
-
 ## Next steps
 If you were, go back to the [Getting Started](../getting-started.md#reverse-proxy) and continue with Reverse proxy integration.

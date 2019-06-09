@@ -33,14 +33,16 @@ import static org.junit.Assume.assumeTrue;
 
 public class PostgresSQLStoreTest extends StoreTest {
 
-    private static StorageConfig cfg;
+    private static StorageConfig cfg = new StorageConfig();
     private static PostgreSQLStore pStore;
 
     @BeforeClass
     public static void beforeClass() {
         String cfgJson = System.getenv("GRIDEPO_TEST_STORE_POSTGRESQL_CONFIG");
         assumeTrue(StringUtils.isNotBlank(cfgJson));
-        cfg = GsonUtil.parse(cfgJson, StorageConfig.class);
+        StorageConfig.Database dbCfg = GsonUtil.parse(cfgJson, StorageConfig.Database.class);
+        cfg.setDatabase(dbCfg);
+        cfg.getDatabase().getPool().setRetryAttempts(0);
     }
 
     @Override

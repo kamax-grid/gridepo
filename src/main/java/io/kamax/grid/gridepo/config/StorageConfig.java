@@ -24,10 +24,25 @@ import org.apache.commons.lang3.StringUtils;
 
 public class StorageConfig {
 
+    public static class Pool {
+
+        private int retryAttempts = 30;
+
+        public int getRetryAttempts() {
+            return retryAttempts;
+        }
+
+        public void setRetryAttempts(int retryAttempts) {
+            this.retryAttempts = retryAttempts;
+        }
+
+    }
+
     public static class Database {
 
         private String type = "memory";
         private String connection;
+        private Pool pool = new Pool();
 
         public String getType() {
             return type;
@@ -43,6 +58,14 @@ public class StorageConfig {
 
         public void setConnection(String connection) {
             this.connection = connection;
+        }
+
+        public Pool getPool() {
+            return pool;
+        }
+
+        public void setPool(Pool pool) {
+            this.pool = pool;
         }
 
     }
