@@ -52,7 +52,8 @@ public class MemoryStore implements Store {
     private Map<ChannelID, ChannelDao> chIdToDao = new ConcurrentHashMap<>();
     private Map<Long, ChannelEvent> chEvents = new ConcurrentHashMap<>();
     private Map<Long, ChannelState> chStates = new ConcurrentHashMap<>();
-    private Map<Long, List<Long>> chExtremities = new ConcurrentHashMap<>();
+    private Map<Long, List<Long>> chFrontExtremities = new ConcurrentHashMap<>();
+    private Map<Long, List<Long>> chBackExtremities = new ConcurrentHashMap<>();
     private Map<Long, Long> evStates = new ConcurrentHashMap<>();
 
     private Map<String, Long> uNameToLid = new ConcurrentHashMap<>();
@@ -237,21 +238,38 @@ public class MemoryStore implements Store {
         });
     }
 
-    private List<Long> getOrComputeExts(long cSid) {
-        return new ArrayList<>(chExtremities.computeIfAbsent(cSid, k -> new ArrayList<>()));
+    private List<Long> getOrComputeBackwardExts(long cSid) {
+        return new ArrayList<>(chBackExtremities.computeIfAbsent(cSid, k -> new ArrayList<>()));
     }
 
     @Override
-    public synchronized void updateExtremities(long cSid, List<Long> toRemove, List<Long> toAdd) {
-        List<Long> exts = getOrComputeExts(cSid);
+    public void updateBackwardExtremities(long cLid, List<Long> toRemove, List<Long> toAdd) {
+        List<Long> exts = getOrComputeBackwardExts(cLid);
         exts.removeAll(toRemove);
         exts.addAll(toAdd);
-        chExtremities.put(cSid, exts);
+        chBackExtremities.put(cLid, exts);
     }
 
     @Override
-    public List<Long> getExtremities(long cSid) {
-        return getOrComputeExts(cSid);
+    public List<Long> getBackwardExtremities(long cLid) {
+        return getOrComputeBackwardExts(cLid);
+    }
+
+    private List<Long> getOrComputeForwardExts(long cLid) {
+        return new ArrayList<>(chFrontExtremities.computeIfAbsent(cLid, k -> new ArrayList<>()));
+    }
+
+    @Override
+    public synchronized void updateForwardExtremities(long cLid, List<Long> toRemove, List<Long> toAdd) {
+        List<Long> exts = getOrComputeForwardExts(cLid);
+        exts.removeAll(toRemove);
+        exts.addAll(toAdd);
+        chFrontExtremities.put(cLid, exts);
+    }
+
+    @Override
+    public List<Long> getForwardExtremities(long cSid) {
+        return getOrComputeForwardExts(cSid);
     }
 
     @Override

@@ -81,7 +81,7 @@ public class Channel {
 
     private void init() {
         // FIXME we need to resolve the extremities as a timeline, get the HEAD and its state
-        List<ChannelEvent> extremities = store.getExtremities(getSid()).stream().map(store::getEvent).collect(Collectors.toList());
+        List<ChannelEvent> extremities = store.getForwardExtremities(getSid()).stream().map(store::getEvent).collect(Collectors.toList());
         EventID head = extremities.stream().max(Comparator.comparingLong(ChannelEvent::getSid)).map(ChannelEvent::getId).orElse(null);
         ChannelState state = extremities.stream()
                 .max(Comparator.comparingLong(ev -> ev.getBare().getDepth()))
@@ -127,7 +127,7 @@ public class Channel {
     }
 
     public List<Long> getExtremitySids() {
-        return store.getExtremities(getSid());
+        return store.getForwardExtremities(getSid());
     }
 
     public List<EventID> getExtremityIds() {
@@ -265,7 +265,7 @@ public class Channel {
                     .map(Optional::get)
                     .collect(Collectors.toList());
             List<Long> toAdd = Collections.singletonList(ev.getLid());
-            store.updateExtremities(getSid(), toRemove, toAdd);
+            store.updateForwardExtremities(getSid(), toRemove, toAdd);
             view = new ChannelView(origin, ev.getId(), state);
         }
 

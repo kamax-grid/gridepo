@@ -35,9 +35,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -112,6 +110,34 @@ public abstract class StoreTest {
     }
 
     @Test
+    public void channelRead() {
+        long cLid = makeChannel();
+
+        Optional<ChannelDao> cDaoOpt = store.findChannel(cLid);
+        assertTrue(cDaoOpt.isPresent());
+        ChannelDao cDao = cDaoOpt.get();
+        assertEquals(cLid, cDao.getSid());
+
+        ChannelID cId = cDao.getId();
+
+        List<ChannelDao> channels = store.listChannels();
+        boolean foundByLid = false;
+        boolean foundById = false;
+        for (ChannelDao channel : channels) {
+            if (channel.getSid() == cLid) {
+                foundByLid = true;
+            }
+
+            if (channel.getId().equals(cId)) {
+                foundById = true;
+            }
+        }
+
+        assertTrue(foundByLid);
+        assertTrue(foundById);
+    }
+
+    @Test
     public void saveAndReadChannelEvent() {
         long cSid = makeChannel();
         ChannelEvent ev1 = ChannelEvent.forNotFound(cSid, EventID.from("sarce1", "example.org"));
@@ -175,6 +201,40 @@ public abstract class StoreTest {
         Optional<ChannelID> addrAfter = store.lookupChannelAlias(cAlias);
         assertTrue(addrAfter.isPresent());
         assertEquals(cId, addrAfter.get());
+    }
+
+    @Test
+    public void channelForwardExtremitiesReadAndWrite() {
+        List<Long> data = Arrays.asList(1L, 2L, 3L);
+        long cLid = makeChannel();
+        List<Long> extremities = store.getForwardExtremities(cLid);
+        assertTrue(extremities.isEmpty());
+
+        store.updateForwardExtremities(cLid, extremities, data);
+        extremities = store.getForwardExtremities(cLid);
+        assertEquals(3, extremities.size());
+        assertTrue(extremities.containsAll(data));
+
+        store.updateForwardExtremities(cLid, data, Collections.emptyList());
+        extremities = store.getForwardExtremities(cLid);
+        assertTrue(extremities.isEmpty());
+    }
+
+    @Test
+    public void channelBackwardExtremitiesReadAndWrite() {
+        List<Long> data = Arrays.asList(1L, 2L, 3L);
+        long cLid = makeChannel();
+        List<Long> extremities = store.getBackwardExtremities(cLid);
+        assertTrue(extremities.isEmpty());
+
+        store.updateBackwardExtremities(cLid, extremities, data);
+        extremities = store.getBackwardExtremities(cLid);
+        assertEquals(3, extremities.size());
+        assertTrue(extremities.containsAll(data));
+
+        store.updateBackwardExtremities(cLid, data, Collections.emptyList());
+        extremities = store.getBackwardExtremities(cLid);
+        assertTrue(extremities.isEmpty());
     }
 
 }

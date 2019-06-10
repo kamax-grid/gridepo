@@ -36,12 +36,12 @@ public interface Store {
 
     List<ChannelDao> listChannels();
 
-    Optional<ChannelDao> findChannel(long cSid);
+    Optional<ChannelDao> findChannel(long cLid);
 
     Optional<ChannelDao> findChannel(ChannelID cId);
 
-    default ChannelDao getChannel(long cSid) {
-        return findChannel(cSid).orElseThrow(() -> new ObjectNotFoundException("Channel", Long.toString(cSid)));
+    default ChannelDao getChannel(long cLid) {
+        return findChannel(cLid).orElseThrow(() -> new ObjectNotFoundException("Channel", Long.toString(cLid)));
     }
 
     long addToStream(long eLid);
@@ -73,17 +73,21 @@ public interface Store {
 
     Optional<ChannelEvent> findEvent(long eSid);
 
-    void updateExtremities(long cSid, List<Long> toRemove, List<Long> toAdd);
+    void updateBackwardExtremities(long cLid, List<Long> toRemove, List<Long> toAdd);
 
-    List<Long> getExtremities(long cSid);
+    List<Long> getBackwardExtremities(long cLid);
 
-    long insertIfNew(long cSid, ChannelState state);
+    void updateForwardExtremities(long cLid, List<Long> toRemove, List<Long> toAdd);
 
-    ChannelState getState(long stateSid);
+    List<Long> getForwardExtremities(long cLid);
 
-    void map(long evSid, long stateSid);
+    long insertIfNew(long cLid, ChannelState state);
 
-    ChannelState getStateForEvent(long evSid);
+    ChannelState getState(long sLid);
+
+    void map(long evSid, long sLid);
+
+    ChannelState getStateForEvent(long evLid);
 
     boolean hasUser(String username);
 

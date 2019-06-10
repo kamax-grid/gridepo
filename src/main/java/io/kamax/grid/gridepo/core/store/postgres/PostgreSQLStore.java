@@ -483,10 +483,9 @@ public class PostgreSQLStore implements Store {
         });
     }
 
-    @Override
-    public void updateExtremities(long cSid, List<Long> toRemove, List<Long> toAdd) {
+    private void updateExtremities(String type, long cLid, List<Long> toRemove, List<Long> toAdd) {
         withTransaction(conn -> {
-            withStmtConsumer("DELETE FROM channel_extremities_forward WHERE event_lid = ?", conn, stmt -> {
+            withStmtConsumer("DELETE FROM channel_extremities_" + type + " WHERE event_lid = ?", conn, stmt -> {
                 for (long eLid : toRemove) {
                     stmt.setLong(1, eLid);
                     stmt.addBatch();
@@ -494,9 +493,9 @@ public class PostgreSQLStore implements Store {
                 stmt.executeBatch();
             });
 
-            withStmtConsumer("INSERT INTO channel_extremities_forward (channel_lid,event_lid) VALUES (?,?)", conn, stmt -> {
+            withStmtConsumer("INSERT INTO channel_extremities_" + type + " (channel_lid,event_lid) VALUES (?,?)", conn, stmt -> {
                 for (long eLid : toAdd) {
-                    stmt.setLong(1, cSid);
+                    stmt.setLong(1, cLid);
                     stmt.setLong(2, eLid);
                     stmt.addBatch();
                 }
@@ -505,10 +504,9 @@ public class PostgreSQLStore implements Store {
         });
     }
 
-    @Override
-    public List<Long> getExtremities(long cSid) {
-        return withStmtFunction("SELECT event_lid FROM channel_extremities_forward WHERE channel_lid = ?", stmt -> {
-            stmt.setLong(1, cSid);
+    private List<Long> getExtremities(String type, long cLid) {
+        return withStmtFunction("SELECT event_lid FROM channel_extremities_" + type + " WHERE channel_lid = ?", stmt -> {
+            stmt.setLong(1, cLid);
             ResultSet rSet = stmt.executeQuery();
 
             List<Long> extremities = new ArrayList<>();
@@ -517,6 +515,26 @@ public class PostgreSQLStore implements Store {
             }
             return extremities;
         });
+    }
+
+    @Override
+    public void updateBackwardExtremities(long cLid, List<Long> toRemove, List<Long> toAdd) {
+        updateExtremities("backward", cLid, toRemove, toAdd);
+    }
+
+    @Override
+    public List<Long> getBackwardExtremities(long cLid) {
+        return getExtremities("backward", cLid);
+    }
+
+    @Override
+    public void updateForwardExtremities(long cLid, List<Long> toRemove, List<Long> toAdd) {
+        updateExtremities("forward", cLid, toRemove, toAdd);
+    }
+
+    @Override
+    public List<Long> getForwardExtremities(long cLid) {
+        return getExtremities("forward", cLid);
     }
 
     @Override
