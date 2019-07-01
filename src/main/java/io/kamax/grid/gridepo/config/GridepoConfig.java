@@ -36,15 +36,17 @@ public class GridepoConfig {
 
     public static class ListenerNetwork {
 
-        public static ListenerNetwork build(String protocol, String type) {
+        public static ListenerNetwork build(String protocol, String role, String api) {
             ListenerNetwork v = new ListenerNetwork();
             v.setProtocol(protocol);
-            v.setType(type);
+            v.setRole(role);
+            v.setApi(api);
             return v;
         }
 
         private String protocol;
-        private String type;
+        private String role;
+        private String api;
 
         public String getProtocol() {
             return protocol;
@@ -54,14 +56,21 @@ public class GridepoConfig {
             this.protocol = protocol;
         }
 
-        public String getType() {
-            return type;
+        public String getRole() {
+            return role;
         }
 
-        public void setType(String type) {
-            this.type = type;
+        public void setRole(String role) {
+            this.role = role;
         }
 
+        public String getApi() {
+            return api;
+        }
+
+        public void setApi(String api) {
+            this.api = api;
+        }
     }
 
     public static class Listener {

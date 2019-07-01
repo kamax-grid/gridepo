@@ -64,7 +64,7 @@ public class MonolithHttpGridepo {
         this.cfg = cfg;
     }
 
-    private void buildGridClient(RoutingHandler handler) {
+    private void buildGridDataClient(RoutingHandler handler) {
         log.warn("Tried to add Grid Data client endpoints but not implemented yet");
 
         handler
@@ -72,7 +72,7 @@ public class MonolithHttpGridepo {
         ;
     }
 
-    private void buildGridServer(RoutingHandler handler) {
+    private void buildGridDataServer(RoutingHandler handler) {
         handler
                 .get("/data/server/version", new VersionHandler())
                 .post("/data/server/v0/do/approve/invite", new DoApproveInvite(g))
@@ -86,17 +86,25 @@ public class MonolithHttpGridepo {
         log.info("Added Grid Data server endpoints");
     }
 
-    private void buildGrid(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
-        if (StringUtils.equals("client", network.getType())) {
-            buildGridClient(handler);
-        } else if (StringUtils.equals("server", network.getType())) {
-            buildGridServer(handler);
+    private void buildGridData(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+        if (StringUtils.equals("client", network.getApi())) {
+            buildGridDataClient(handler);
+        } else if (StringUtils.equals("server", network.getApi())) {
+            buildGridDataServer(handler);
         } else {
-            throw new RuntimeException(network.getType() + " is not a supported Grid listener type");
+            throw new RuntimeException(network.getApi() + " is not a supported Grid Data API");
         }
     }
 
-    private void buildMatrixClient(RoutingHandler handler) {
+    private void buildGrid(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+        if (StringUtils.equalsAny("data", network.getRole())) {
+            buildGridData(handler, network);
+        } else {
+            throw new RuntimeException(network.getRole() + " is not a supported Grid Role");
+        }
+    }
+
+    private void buildMatrixHomeClient(RoutingHandler handler) {
         SendRoomStateHandler srsHandler = new SendRoomStateHandler(g);
 
         handler
@@ -162,13 +170,27 @@ public class MonolithHttpGridepo {
         log.info("Added Matrix client endpoints");
     }
 
-    private void buildMatrix(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
-        if (StringUtils.equals("client", network.getType())) {
-            buildMatrixClient(handler);
-        } else if (StringUtils.equals("server", network.getType())) {
-            log.warn("Tried to add Matrix server endpoints but not implemented yet");
+    private void buildMatrixHome(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+        if (StringUtils.equals("client", network.getApi())) {
+            buildMatrixHomeClient(handler);
+        } else if (StringUtils.equals("server", network.getApi())) {
+            log.warn("Tried to add Matrix Home server endpoints but not implemented yet");
         } else {
-            throw new RuntimeException(network.getType() + " is not a supported Matrix listener type");
+            throw new RuntimeException(network.getApi() + " is not a supported Matrix Home API");
+        }
+    }
+
+    private void buildMatrixIdentity(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+        log.warn("Tried to add Matrix Identity role but not implemented yet");
+    }
+
+    private void buildMatrix(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+        if (StringUtils.equalsAny("home", network.getRole())) {
+            buildMatrixHome(handler, network);
+        } else if (StringUtils.equals("identity", network.getRole())) {
+            buildMatrixIdentity(handler, network);
+        } else {
+            throw new RuntimeException(network.getRole() + " is not a supported Matrix Role");
         }
     }
 
@@ -185,10 +207,12 @@ public class MonolithHttpGridepo {
             if (Objects.isNull(l.getNetwork())) {
                 log.info("Absent network configuration on listener {}:{}, adding default", l.getAddress(), l.getPort());
                 l.setNetwork(new ArrayList<>());
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "client"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "server"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "client"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "server"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "data", "client"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "data", "server"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "home","client"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "home", "server"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "identity","client"));
+                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "identity", "server"));
             }
         }
 
