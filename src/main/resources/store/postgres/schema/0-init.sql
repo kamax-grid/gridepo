@@ -1,3 +1,22 @@
+CREATE TABLE IF NOT EXISTS entities
+(
+    lid bigserial NOT NULL,
+    id text NOT NULL
+);
+CREATE INDEX IF NOT EXISTS entities_id_idx
+    ON entities USING hash(id);
+
+CREATE TABLE IF NOT EXISTS entity_routes
+(
+    lid bigint NOT NULL,
+    target text NOT NULL,
+    notBefore timestamp NOT NULL,
+    notAfter timestamp NOT NULL,
+    revoked boolean NOT NULL DEFAULT false,
+    eventSet jsonb NOT NULL,
+    eventUnset jsonb DEFAULT NULL
+);
+
 CREATE TABLE IF NOT EXISTS channels
 (
     lid bigserial NOT NULL,
@@ -72,6 +91,7 @@ CREATE TABLE IF NOT EXISTS channel_aliases
 CREATE TABLE IF NOT EXISTS users
 (
     lid bigserial NOT NULL,
+    entity_lid NO NULL,
     username text NOT NULL,
     password text,
     CONSTRAINT u_username UNIQUE (username)
