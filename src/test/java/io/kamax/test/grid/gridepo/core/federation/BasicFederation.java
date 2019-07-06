@@ -161,7 +161,8 @@ public class BasicFederation extends Federation {
     public void joinAsThird() {
         GridepoConfig.ListenerNetwork net3 = new GridepoConfig.ListenerNetwork();
         net3.setProtocol("grid");
-        net3.setType("server");
+        net3.setApi("data");
+        net3.setRole("server");
         GridepoConfig.Listener l3 = new GridepoConfig.Listener();
         l3.addNetwork(net3);
         l3.setPort(60003);
