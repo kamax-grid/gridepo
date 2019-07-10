@@ -86,7 +86,7 @@ public class MonolithHttpGridepo {
         log.info("Added Grid Data server endpoints");
     }
 
-    private void buildGridData(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+    private void buildGridData(RoutingHandler handler, GridepoConfig.NetworkListener network) {
         if (StringUtils.equals("client", network.getApi())) {
             buildGridDataClient(handler);
         } else if (StringUtils.equals("server", network.getApi())) {
@@ -96,7 +96,7 @@ public class MonolithHttpGridepo {
         }
     }
 
-    private void buildGrid(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+    private void buildGrid(RoutingHandler handler, GridepoConfig.NetworkListener network) {
         if (StringUtils.equalsAny("data", network.getRole())) {
             buildGridData(handler, network);
         } else {
@@ -170,7 +170,7 @@ public class MonolithHttpGridepo {
         log.info("Added Matrix client endpoints");
     }
 
-    private void buildMatrixHome(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+    private void buildMatrixHome(RoutingHandler handler, GridepoConfig.NetworkListener network) {
         if (StringUtils.equals("client", network.getApi())) {
             buildMatrixHomeClient(handler);
         } else if (StringUtils.equals("server", network.getApi())) {
@@ -180,11 +180,11 @@ public class MonolithHttpGridepo {
         }
     }
 
-    private void buildMatrixIdentity(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+    private void buildMatrixIdentity(RoutingHandler handler, GridepoConfig.NetworkListener network) {
         log.warn("Tried to add Matrix Identity role but not implemented yet");
     }
 
-    private void buildMatrix(RoutingHandler handler, GridepoConfig.ListenerNetwork network) {
+    private void buildMatrix(RoutingHandler handler, GridepoConfig.NetworkListener network) {
         if (StringUtils.equalsAny("home", network.getRole())) {
             buildMatrixHome(handler, network);
         } else if (StringUtils.equals("identity", network.getRole())) {
@@ -207,12 +207,12 @@ public class MonolithHttpGridepo {
             if (Objects.isNull(l.getNetwork())) {
                 log.info("Absent network configuration on listener {}:{}, adding default", l.getAddress(), l.getPort());
                 l.setNetwork(new ArrayList<>());
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "data", "client"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("grid", "data", "server"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "home","client"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "home", "server"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "identity","client"));
-                l.addNetwork(GridepoConfig.ListenerNetwork.build("matrix", "identity", "server"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("grid", "data", "client"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("grid", "data", "server"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("matrix", "home", "client"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("matrix", "home", "server"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("matrix", "identity", "client"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("matrix", "identity", "server"));
             }
         }
 
@@ -223,7 +223,7 @@ public class MonolithHttpGridepo {
             log.info("Creating HTTP listener on {}:{}", cfg.getAddress(), cfg.getPort());
             RoutingHandler handler = Handlers.routing();
 
-            for (GridepoConfig.ListenerNetwork network : cfg.getNetwork()) {
+            for (GridepoConfig.NetworkListener network : cfg.getNetwork()) {
                 if (StringUtils.equals("grid", network.getProtocol())) {
                     buildGrid(handler, network);
                 } else if (StringUtils.equals("matrix", network.getProtocol())) {

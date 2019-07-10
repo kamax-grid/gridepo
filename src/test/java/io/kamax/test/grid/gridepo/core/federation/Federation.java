@@ -59,23 +59,15 @@ public class Federation {
 
         DataServerHttpClient.useHttps = false;
 
-        GridepoConfig.ListenerNetwork net1 = new GridepoConfig.ListenerNetwork();
-        net1.setProtocol("grid");
-        net1.setApi("data");
-        net1.setRole("server");
         GridepoConfig.Listener l1 = new GridepoConfig.Listener();
-        l1.addNetwork(net1);
+        l1.addNetwork(GridepoConfig.NetworkListeners.forGridDataServer());
         l1.setPort(60001);
         GridepoConfig cfg1 = GridepoConfig.inMemory();
         cfg1.setDomain("localhost:" + l1.getPort());
         cfg1.getListeners().add(l1);
 
-        GridepoConfig.ListenerNetwork net2 = new GridepoConfig.ListenerNetwork();
-        net2.setProtocol("grid");
-        net2.setApi("data");
-        net2.setRole("server");
         GridepoConfig.Listener l2 = new GridepoConfig.Listener();
-        l2.addNetwork(net2);
+        l2.addNetwork(GridepoConfig.NetworkListeners.forGridDataServer());
         l2.setPort(60002);
         GridepoConfig cfg2 = GridepoConfig.inMemory();
         cfg2.setDomain("localhost:" + l2.getPort());

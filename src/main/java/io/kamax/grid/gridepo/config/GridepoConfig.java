@@ -34,10 +34,18 @@ public class GridepoConfig {
         return cfg;
     }
 
-    public static class ListenerNetwork {
+    public static class NetworkListeners {
 
-        public static ListenerNetwork build(String protocol, String role, String api) {
-            ListenerNetwork v = new ListenerNetwork();
+        public static NetworkListener forGridDataServer() {
+            return NetworkListener.build("grid", "data", "server");
+        }
+
+    }
+
+    public static class NetworkListener {
+
+        public static NetworkListener build(String protocol, String role, String api) {
+            NetworkListener v = new NetworkListener();
             v.setProtocol(protocol);
             v.setRole(role);
             v.setApi(api);
@@ -75,22 +83,22 @@ public class GridepoConfig {
 
     public static class Listener {
 
-        private List<ListenerNetwork> network;
+        private List<NetworkListener> network;
         private String address = "0.0.0.0";
         private int port;
         private boolean tls;
         private String key;
         private String cert;
 
-        public List<ListenerNetwork> getNetwork() {
+        public List<NetworkListener> getNetwork() {
             return network;
         }
 
-        public void setNetwork(List<ListenerNetwork> network) {
+        public void setNetwork(List<NetworkListener> network) {
             this.network = network;
         }
 
-        public void addNetwork(ListenerNetwork network) {
+        public void addNetwork(NetworkListener network) {
             if (Objects.isNull(this.network)) {
                 this.network = new ArrayList<>();
             }
