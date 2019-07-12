@@ -1,14 +1,19 @@
 CREATE TABLE IF NOT EXISTS entities
 (
     lid bigserial NOT NULL,
-    id text NOT NULL
+    id text NOT NULL,
+    type text DEFAULT NULL,
+    isLocal boolean NOT NULL,
+    CONSTRAINT entities_id_uq UNIQUE (id)
 );
-CREATE INDEX IF NOT EXISTS entities_id_idx
+CREATE INDEX entities_id_idx
     ON entities USING hash(id);
+CREATE INDEX entities_type_idx
+    ON entities USING hash(type);
 
 CREATE TABLE IF NOT EXISTS entity_routes
 (
-    lid bigint NOT NULL,
+    lid bigserial NOT NULL,
     target text NOT NULL,
     notBefore timestamp NOT NULL,
     notAfter timestamp NOT NULL,
@@ -91,7 +96,7 @@ CREATE TABLE IF NOT EXISTS channel_aliases
 CREATE TABLE IF NOT EXISTS users
 (
     lid bigserial NOT NULL,
-    entity_lid NO NULL,
+    entity_lid bigint NOT NULL,
     username text NOT NULL,
     password text,
     CONSTRAINT u_username UNIQUE (username)
@@ -106,4 +111,11 @@ CREATE TABLE IF NOT EXISTS user_access_tokens
     user_lid bigint NOT NULL,
     token text NOT NULL,
     CONSTRAINT u_token UNIQUE (token)
+);
+
+CREATE TABLE user_threepids
+(
+    user_lid bigint NOT NULL,
+    medium text NOT NULL,
+    address text NOT NULL
 );

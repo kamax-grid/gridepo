@@ -20,6 +20,8 @@
 
 package io.kamax.grid.gridepo.core.store;
 
+import io.kamax.grid.GenericThreePid;
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
@@ -35,17 +37,20 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class MemoryStore implements Store {
 
     private static final Logger log = KxLog.make(MemoryStore.class);
 
+    private AtomicLong eLid = new AtomicLong(0);
     private AtomicLong uLid = new AtomicLong(0);
     private AtomicLong chSid = new AtomicLong(0);
     private AtomicLong evLid = new AtomicLong(0);
     private AtomicLong evSid = new AtomicLong(0);
     private AtomicLong sSid = new AtomicLong(0);
 
+    private Map<Long, EntityDao> entities = new ConcurrentHashMap<>();
     private Map<Long, UserDao> users = new ConcurrentHashMap<>();
     private Map<Long, List<String>> uTokens = new ConcurrentHashMap<>();
     private Map<Long, ChannelDao> channels = new ConcurrentHashMap<>();
@@ -55,6 +60,7 @@ public class MemoryStore implements Store {
     private Map<Long, List<Long>> chFrontExtremities = new ConcurrentHashMap<>();
     private Map<Long, List<Long>> chBackExtremities = new ConcurrentHashMap<>();
     private Map<Long, Long> evStates = new ConcurrentHashMap<>();
+    private Map<Long, List<ThreePid>> userThreepids = new ConcurrentHashMap<>();
 
     private Map<String, Long> uNameToLid = new ConcurrentHashMap<>();
 
@@ -71,6 +77,19 @@ public class MemoryStore implements Store {
 
     private String makeRef(ChannelID cId, EventID eId) {
         return cId + "/" + eId;
+    }
+
+    @Override
+    public long addEntity(String id, String type, boolean isLocal) {
+        long lid = eLid.incrementAndGet();
+
+        EntityDao dao = new EntityDao();
+        dao.setLid(lid);
+        dao.setId(id);
+        dao.setType(type);
+        dao.setLocal(isLocal);
+        entities.put(lid, dao);
+        return lid;
     }
 
     @Override
@@ -309,7 +328,7 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public boolean hasUser(String username) {
+    public boolean hasUsername(String username) {
         return uNameToLid.containsKey(username);
     }
 
@@ -319,18 +338,20 @@ public class MemoryStore implements Store {
     }
 
     @Override
-    public synchronized long storeUser(String username, String password) {
-        if (hasUser(username)) {
+    public long storeUser(long entityLid, String username, String password) {
+        if (hasUsername(username)) {
             throw new IllegalStateException(username + " already exists");
         }
 
         long lid = uLid.incrementAndGet();
         UserDao dao = new UserDao();
         dao.setLid(lid);
+        dao.setEntityLid(entityLid);
         dao.setUsername(username);
         dao.setPass(password);
         users.put(lid, dao);
         uNameToLid.put(username, lid);
+
         return lid;
     }
 
@@ -405,6 +426,39 @@ public class MemoryStore implements Store {
         }
 
         chIdToAlias.remove(chAliasToId.remove(chAd));
+    }
+
+    @Override
+    public List<ThreePid> listThreePid(long userLid) {
+        findUser(userLid).orElseThrow(() -> new ObjectNotFoundException("User LID " + userLid));
+
+        return new ArrayList<>(userThreepids.computeIfAbsent(userLid, k -> new CopyOnWriteArrayList<>()));
+    }
+
+    @Override
+    public List<ThreePid> listThreePid(long userLid, String medium) {
+        return listThreePid(userLid).stream()
+                .filter(v -> v.getMedium().equalsIgnoreCase(medium))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addThreePid(long userLid, ThreePid tpid) {
+        List<ThreePid> tpidList = listThreePid(userLid);
+        tpidList.add(new GenericThreePid(tpid));
+    }
+
+    @Override
+    public void removeThreePid(long userLid, ThreePid tpid) {
+        GenericThreePid tpidIn = new GenericThreePid(tpid);
+        List<ThreePid> tpidList = userThreepids.get(userLid);
+        if (Objects.isNull(tpidList)) {
+            throw new IllegalArgumentException("3PID not found");
+        }
+
+        if (!tpidList.remove(tpidIn)) {
+            throw new IllegalArgumentException("3PID not found");
+        }
     }
 
 }

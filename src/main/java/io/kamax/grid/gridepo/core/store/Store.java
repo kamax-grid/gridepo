@@ -20,6 +20,7 @@
 
 package io.kamax.grid.gridepo.core.store;
 
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
@@ -33,6 +34,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface Store {
+
+    long addEntity(String id, String type, boolean isLocal);
 
     List<ChannelDao> listChannels();
 
@@ -89,11 +92,11 @@ public interface Store {
 
     ChannelState getStateForEvent(long evLid);
 
-    boolean hasUser(String username);
+    boolean hasUsername(String username);
 
     long getUserCount();
 
-    long storeUser(String username, String password);
+    long storeUser(long entityLid, String username, String password);
 
     Optional<UserDao> findUser(long lid);
 
@@ -112,5 +115,13 @@ public interface Store {
     void setAliases(ServerID origin, ChannelID cId, Set<String> chAliases);
 
     void unmap(String cAlias);
+
+    List<ThreePid> listThreePid(long userLid); // TODO consider making this a Set
+
+    List<ThreePid> listThreePid(long userLid, String medium); // TODO consider making this a Set
+
+    void addThreePid(long userLid, ThreePid tpid);
+
+    void removeThreePid(long userLid, ThreePid tpid);
 
 }

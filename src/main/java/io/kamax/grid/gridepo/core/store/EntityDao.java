@@ -20,43 +20,43 @@
 
 package io.kamax.grid.gridepo.core.store;
 
-public class UserDao {
+public class EntityDao {
 
-    private Long lid;
-    private long entityLid;
-    private String username;
-    private String pass;
+    private long lid;
+    private String id;
+    private String type;
+    private boolean isLocal;
 
-    public Long getLid() {
+    public long getLid() {
         return lid;
     }
 
-    public void setLid(Long lid) {
+    public void setLid(long lid) {
         this.lid = lid;
     }
 
-    public long getEntityLid() {
-        return entityLid;
+    public String getId() {
+        return id;
     }
 
-    public void setEntityLid(long entityLid) {
-        this.entityLid = entityLid;
+    public void setId(String id) {
+        this.id = id;
     }
 
-    public String getUsername() {
-        return username;
+    public String getType() {
+        return type;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public String getPass() {
-        return pass;
+    public boolean isLocal() {
+        return isLocal;
     }
 
-    public void setPass(String pass) {
-        this.pass = pass;
+    public void setLocal(boolean local) {
+        isLocal = local;
     }
 
 }

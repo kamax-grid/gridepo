@@ -18,45 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.store;
+package io.kamax.grid;
 
-public class UserDao {
+public interface ThreePid {
 
-    private Long lid;
-    private long entityLid;
-    private String username;
-    private String pass;
+    String getMedium();
 
-    public Long getLid() {
-        return lid;
-    }
-
-    public void setLid(Long lid) {
-        this.lid = lid;
-    }
-
-    public long getEntityLid() {
-        return entityLid;
-    }
-
-    public void setEntityLid(long entityLid) {
-        this.entityLid = entityLid;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPass() {
-        return pass;
-    }
-
-    public void setPass(String pass) {
-        this.pass = pass;
-    }
+    String getAddress();
 
 }

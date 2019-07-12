@@ -63,19 +63,26 @@ public abstract class StoreTest {
     }
 
     @Test
+    public void newEntity() {
+        long id = store.addEntity(RandomStringUtils.random(12), null, false);
+        assertNotEquals(0, id);
+    }
+
+    @Test
     public void newUserDoesNotExistInNewStore() {
         String user = RandomStringUtils.random(12);
-        assertFalse(store.hasUser(user));
+        assertFalse(store.hasUsername(user));
         assertFalse(store.findUser(user).isPresent());
     }
 
     @Test
     public void userSavedAndRead() {
+        long eLid = store.addEntity(RandomStringUtils.random(12), null, true);
         String user = RandomStringUtils.random(12);
         String password = RandomStringUtils.random(12);
-        store.storeUser(user, password);
+        store.storeUser(eLid, user, password);
 
-        assertTrue(store.hasUser(user));
+        assertTrue(store.hasUsername(user));
         Optional<UserDao> dao = store.findUser(user);
         assertTrue(dao.isPresent());
         assertEquals(password, dao.get().getPass());
@@ -83,24 +90,26 @@ public abstract class StoreTest {
 
     @Test
     public void onlySavedUsersAreFound() {
+        long eLid1 = store.addEntity(RandomStringUtils.random(12), null, true);
         String user1 = RandomStringUtils.random(12);
+        long eLid2 = store.addEntity(RandomStringUtils.random(12), null, true);
         String user2 = RandomStringUtils.random(12);
         String user3 = RandomStringUtils.random(12);
 
-        store.storeUser(user1, user1);
-        store.storeUser(user2, user2);
+        store.storeUser(eLid1, user1, user1);
+        store.storeUser(eLid2, user2, user2);
 
-        assertTrue(store.hasUser(user1));
+        assertTrue(store.hasUsername(user1));
         Optional<UserDao> u1Dao = store.findUser(user1);
         assertTrue(u1Dao.isPresent());
         assertEquals(user1, u1Dao.get().getPass());
 
-        assertTrue(store.hasUser(user2));
+        assertTrue(store.hasUsername(user2));
         Optional<UserDao> u2Dao = store.findUser(user2);
         assertTrue(u2Dao.isPresent());
         assertEquals(user2, u2Dao.get().getPass());
 
-        assertFalse(store.hasUser(user3));
+        assertFalse(store.hasUsername(user3));
         assertFalse(store.findUser(user3).isPresent());
     }
 

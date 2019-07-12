@@ -20,6 +20,7 @@
 
 package io.kamax.grid.gridepo.core.store.postgres;
 
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.config.StorageConfig;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
@@ -77,7 +78,7 @@ public class PostgreSQLStore implements Store {
         this(new SqlConnectionPool(cfg));
     }
 
-    public PostgreSQLStore(SqlConnectionPool pool) {
+    private PostgreSQLStore(SqlConnectionPool pool) {
         this.pool = pool;
         withConnConsumer(conn -> conn.isValid(1000));
         log.info("Connected");
@@ -196,7 +197,7 @@ public class PostgreSQLStore implements Store {
         });
     }
 
-    public long getSchemaVersion() {
+    private long getSchemaVersion() {
         return withStmtFunction("SELECT * FROM schema ORDER BY version DESC LIMIT 1", stmt -> {
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
@@ -214,6 +215,22 @@ public class PostgreSQLStore implements Store {
 
         ChannelDao dao = new ChannelDao(rSet.getLong("lid"), ChannelID.fromRaw(rSet.getString("id")));
         return Optional.of(dao);
+    }
+
+    @Override
+    public long addEntity(String id, String type, boolean isLocal) {
+        String sql = "INSERT INTO entities (id, type, isLocal) VALUES (?,?,?) RETURNING lid";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setString(1, id);
+            stmt.setString(2, type);
+            stmt.setBoolean(3, isLocal);
+
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new IllegalStateException("Inserted identity " + id + " but got no Local ID back");
+            }
+            return rSet.getLong(1);
+        });
     }
 
     @Override
@@ -615,7 +632,7 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public boolean hasUser(String username) {
+    public boolean hasUsername(String username) {
         return withStmtFunction("SELECT * FROM users WHERE username = ? LIMIT 1", stmt -> {
             stmt.setString(1, username);
             return stmt.executeQuery().next();
@@ -635,10 +652,11 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public long storeUser(String username, String password) {
-        return withStmtFunction("INSERT INTO users (username,password) VALUES (?,?) RETURNING lid", stmt -> {
-            stmt.setString(1, username);
-            stmt.setString(2, password);
+    public long storeUser(long entityLid, String username, String password) {
+        return withStmtFunction("INSERT INTO users (entity_lid, username,password) VALUES (?,?,?) RETURNING lid", stmt -> {
+            stmt.setLong(1, entityLid);
+            stmt.setString(2, username);
+            stmt.setString(3, password);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
                 throw new IllegalStateException("Inserted user " + username + " but got no LID back");
@@ -771,6 +789,26 @@ public class PostgreSQLStore implements Store {
                 throw new IllegalStateException("Channel Alias to ID mapping: DB deleted " + rc + " rows. >= 1 expected");
             }
         });
+    }
+
+    @Override
+    public List<ThreePid> listThreePid(long userLid) {
+        return null;
+    }
+
+    @Override
+    public List<ThreePid> listThreePid(long userLid, String medium) {
+        return null;
+    }
+
+    @Override
+    public void addThreePid(long userLid, ThreePid tpid) {
+
+    }
+
+    @Override
+    public void removeThreePid(long userLid, ThreePid tpid) {
+
     }
 
 }

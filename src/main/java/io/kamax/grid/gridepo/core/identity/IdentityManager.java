@@ -20,6 +20,7 @@
 
 package io.kamax.grid.gridepo.core.identity;
 
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.core.store.UserDao;
@@ -47,21 +48,21 @@ public class IdentityManager {
     }
 
     public boolean isUsernameAvailable(String username) {
-        return !store.hasUser(username);
+        return !store.hasUsername(username);
     }
 
     public synchronized void register(String username, String password) {
         username = Objects.requireNonNull(username).toLowerCase();
         password = Objects.requireNonNull(password);
 
-        if (store.hasUser(username)) {
+        if (store.hasUsername(username)) {
             throw new IllegalArgumentException("Username already taken");
         }
 
         String salt = RandomStringUtils.randomAlphanumeric(16);
         String encPwd = OpenBSDBCrypt.generate(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 12);
 
-        store.storeUser(username, encPwd);
+        store.storeUser(0, username, encPwd);
     }
 
     public UserDao login(String username, String password) {
@@ -81,6 +82,10 @@ public class IdentityManager {
         }
 
         return user.get();
+    }
+
+    public void addThreepid(long userLid, ThreePid tpid) {
+        store.addThreePid(userLid, tpid);
     }
 
 }
