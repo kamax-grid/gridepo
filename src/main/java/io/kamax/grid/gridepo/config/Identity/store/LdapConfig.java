@@ -118,16 +118,15 @@ public abstract class LdapConfig {
 
     public static class Connection {
 
-        private List<ConnServer> server = new ArrayList<>();
         private ConnBind bind = new ConnBind();
-        private List<String> baseDNs = new ArrayList<>();
+        private List<ConnServer> servers = new ArrayList<>();
 
-        public List<ConnServer> getServer() {
-            return server;
+        public List<ConnServer> getServers() {
+            return servers;
         }
 
-        public void setServer(List<ConnServer> server) {
-            this.server = server;
+        public void setServers(List<ConnServer> servers) {
+            this.servers = servers;
         }
 
         public ConnBind getBind() {
@@ -136,14 +135,6 @@ public abstract class LdapConfig {
 
         public void setBind(ConnBind bind) {
             this.bind = bind;
-        }
-
-        public List<String> getBaseDNs() {
-            return baseDNs;
-        }
-
-        public void setBaseDNs(List<String> baseDNs) {
-            this.baseDNs = baseDNs;
         }
 
     }
@@ -259,6 +250,7 @@ public abstract class LdapConfig {
 
     }
 
+    private List<String> baseDNs = new ArrayList<>();
     private Connection connection = new Connection();
     private Entities entity = new Entities();
     private Attribute attribute = new Attribute();
@@ -266,6 +258,14 @@ public abstract class LdapConfig {
     private Directory directory = new Directory();
     private Identity identity = new Identity();
     private Profile profile = new Profile();
+
+    public List<String> getBaseDNs() {
+        return baseDNs;
+    }
+
+    public void setBaseDNs(List<String> baseDNs) {
+        this.baseDNs = baseDNs;
+    }
 
     public Connection getConnection() {
         return connection;

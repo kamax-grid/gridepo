@@ -22,12 +22,13 @@ package io.kamax.grid.gridepo.core.identity.store.ldap;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.config.Identity.store.LdapConfig;
+import io.kamax.grid.gridepo.core.auth.AuthPasswordDocument;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
 import io.kamax.grid.gridepo.core.identity.AuthIdentityStore;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
+import io.kamax.grid.gridepo.exception.ConfigurationException;
 import io.kamax.grid.gridepo.exception.InternalServerError;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
-import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.directory.api.ldap.model.cursor.CursorException;
 import org.apache.directory.api.ldap.model.cursor.CursorLdapReferralException;
@@ -56,9 +57,19 @@ public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
     private List<LdapServer> servers = new ArrayList<>();
 
     public LdapIdentityStore(LdapConfig cfg) {
-        cfg.getConnection().getServer().forEach(connCfg -> servers.add(new LdapServer(connCfg, cfg.getConnection().getBind(), cfg.getConnection().getBaseDNs())));
-
         this.cfg = cfg;
+
+        if (cfg.getConnection().getServers().isEmpty()) {
+            throw new ConfigurationException("No LDAP server configured");
+        }
+
+        if (getBaseDNs().isEmpty()) {
+            throw new ConfigurationException("No Base DNs configured");
+        }
+
+        cfg.getConnection().getServers().forEach(connCfg -> servers.add(new LdapServer(connCfg, cfg.getConnection().getBind(), getBaseDNs())));
+
+
     }
 
     private <T> T onAllServers(LdapServerFunction<LdapServer, T> f) {
@@ -76,7 +87,7 @@ public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
     }
 
     protected List<String> getBaseDNs() {
-        return cfg.getConnection().getBaseDNs();
+        return cfg.getBaseDNs();
     }
 
     protected LdapConfig.Attribute getAt() {
@@ -131,26 +142,23 @@ public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
 
     @Override
     public Set<String> getSupportedTypes() {
-        return null;
+        return Collections.singleton("g.auth.password");
     }
 
     @Override
     public AuthResult authenticate(String type, JsonObject document) {
-        if (!StringUtils.equals("g.auth.password", type)) {
+        AuthPasswordDocument credentials = AuthPasswordDocument.from(document);
+        if (!StringUtils.equals("g.auth.password", credentials.getType())) {
             throw new NotImplementedException();
         }
 
-        JsonObject id = GsonUtil.getObj(document, "identifier");
-        String idType = GsonUtil.getStringOrNull(id, "type");
-        String idValue = GsonUtil.getStringOrNull(id, "value");
-
+        String idType = credentials.getIdentifier().getType();
         List<String> attributes = cfg.getIdentity().getMapping().getOrDefault(idType, Collections.emptyList());
         if (attributes.isEmpty()) {
             throw new NotImplementedException("No attribute mapped to identifier type " + idType);
         }
 
-        String password = GsonUtil.getStringOrNull(document, "password");
-        String query = buildOrQueryWithFilter(cfg.getEntity().getUser().getFilter(), idValue, attributes);
+        String query = buildOrQueryWithFilter(cfg.getEntity().getUser().getFilter(), credentials.getIdentifier().getValue(), attributes);
 
         return onAllServers(srv -> srv.withConn(conn -> {
             for (String baseDN : getBaseDNs()) {
@@ -168,7 +176,7 @@ public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
 
                         log.info("Attempting authentication on LDAP for {}", dn);
                         try {
-                            conn.bind(entry.getDn(), password);
+                            conn.bind(entry.getDn(), credentials.getPassword());
                         } catch (LdapException e) {
                             log.info("Unable to bind using {} because {}", entry.getDn().getName(), e.getMessage());
                             return AuthResult.failed();

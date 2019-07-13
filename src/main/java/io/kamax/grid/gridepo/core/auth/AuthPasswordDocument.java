@@ -34,7 +34,7 @@ public class AuthPasswordDocument {
         return doc;
     }
 
-    public class Identifier {
+    public static class Identifier {
 
         private String type;
         private String value;

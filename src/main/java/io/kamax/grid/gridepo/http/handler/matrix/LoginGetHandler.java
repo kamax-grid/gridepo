@@ -20,22 +20,23 @@
 
 package io.kamax.grid.gridepo.http.handler.matrix;
 
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.auth.UIAuthSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.util.GsonUtil;
+import io.kamax.grid.gridepo.http.handler.matrix.json.UIAuthJson;
 
 public class LoginGetHandler extends ClientApiHandler {
 
-    private final String body;
+    private final Gridepo g;
 
-    public LoginGetHandler() {
-        body = GsonUtil.toJson(GsonUtil.makeObj("flows", GsonUtil.asArray(
-                GsonUtil.makeObj("type", "m.login.password"),
-                GsonUtil.makeObj("type", "m.login.dummy")))
-        );
+    public LoginGetHandler(Gridepo g) {
+        this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
+        UIAuthSession session = g.login();
+        UIAuthJson body = ProtocolMapper.g2m(session);
         exchange.respondJson(body);
     }
 

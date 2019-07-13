@@ -113,7 +113,7 @@ public class MonolithHttpGridepo {
 
                 // Fundamental endpoints
                 .get(ClientAPI.Base + "/versions", new VersionsHandler())
-                .get(ClientAPIr0.Base + "/login", new LoginGetHandler())
+                .get(ClientAPIr0.Base + "/login", new LoginGetHandler(g))
                 .post(ClientAPIr0.Base + "/login", new LoginHandler(g))
                 .get(ClientAPIr0.Base + "/sync", new SyncHandler(g))
                 .post(ClientAPIr0.Base + "/logout", new LogoutHandler(g))

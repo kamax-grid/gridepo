@@ -20,8 +20,6 @@
 
 package io.kamax.grid.gridepo.config;
 
-import com.google.gson.JsonObject;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +43,7 @@ public class IdentityConfig {
 
         private boolean enabled;
         private String type;
-        private JsonObject config;
+        private Object config;
 
         public boolean isEnabled() {
             return enabled;
@@ -63,11 +61,11 @@ public class IdentityConfig {
             this.type = type;
         }
 
-        public JsonObject getConfig() {
+        public Object getConfig() {
             return config;
         }
 
-        public void setConfig(JsonObject config) {
+        public void setConfig(Object config) {
             this.config = config;
         }
 

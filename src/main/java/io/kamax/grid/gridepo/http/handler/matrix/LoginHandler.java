@@ -23,36 +23,44 @@ package io.kamax.grid.gridepo.http.handler.matrix;
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.exception.UnauthenticatedException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.http.handler.matrix.json.UIAuthJson;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 
 public class LoginHandler extends ClientApiHandler {
 
-    private final Gridepo srv;
+    private final Gridepo g;
 
-    public LoginHandler(Gridepo srv) {
-        this.srv = srv;
+    public LoginHandler(Gridepo g) {
+        this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        JsonObject body = exchange.parseJsonObject();
-        String username = GsonUtil.getStringOrThrow(body, "user");
-        String password = GsonUtil.getStringOrThrow(body, "password");
+        try {
+            JsonObject credentials = exchange.parseJsonObject();
+            JsonObject gCreds = ProtocolMapper.m2gCredentials(credentials);
+            UserSession session = g.login(gCreds);
 
-        UserSession session = srv.login(username, password);
+            JsonObject reply = new JsonObject();
+            reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + g.getDomain());
+            reply.addProperty("access_token", session.getAccessToken());
+            reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
 
-        JsonObject reply = new JsonObject();
-        reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + srv.getDomain());
-        reply.addProperty("access_token", session.getAccessToken());
-        reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
+            // Required for some clients who fail if not present, even if not mandatory and deprecated.
+            // https://github.com/Nheko-Reborn/mtxclient/issues/7
+            reply.addProperty("home_server", g.getDomain());
 
-        // Required for some clients who fail if not present, even if not mandatory and deprecated.
-        // https://github.com/Nheko-Reborn/mtxclient/issues/7
-        reply.addProperty("home_server", srv.getDomain());
-
-        exchange.respondJson(reply);
+            exchange.respondJson(reply);
+        } catch (UnauthenticatedException e) {
+            UIAuthJson session = ProtocolMapper.g2m(e.getSession());
+            JsonObject body = GsonUtil.makeObj(session);
+            body.addProperty("errcode", "M_UNAUTHORIZED");
+            body.addProperty("error", e.getMessage());
+            exchange.respond(401, body);
+        }
     }
 
 }

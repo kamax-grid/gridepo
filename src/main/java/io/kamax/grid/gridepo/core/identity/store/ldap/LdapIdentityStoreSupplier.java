@@ -18,33 +18,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.identity.store.memory;
+package io.kamax.grid.gridepo.core.identity.store.ldap;
 
+import io.kamax.grid.gridepo.config.Identity.store.GenericLdapConfig;
 import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
 import io.kamax.grid.gridepo.core.identity.IdentityStoreSupplier;
-import io.kamax.grid.gridepo.core.store.MemoryStore;
 import io.kamax.grid.gridepo.util.GsonUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Set;
 
-public class MemoryIdentityStoreSupplier implements IdentityStoreSupplier {
-
-    private static final Logger log = LoggerFactory.getLogger(MemoryIdentityStoreSupplier.class);
+public class LdapIdentityStoreSupplier implements IdentityStoreSupplier {
 
     @Override
     public Set<String> getSupportedTypes() {
-        return Collections.singleton("memory.internal");
+        return Collections.singleton("ldap.internal");
     }
 
     @Override
     public IdentityStore build(IdentityConfig.Store cfg) {
-        String id = GsonUtil.getStringOrThrow(GsonUtil.makeObj(cfg.getConfig()), "connection");
-        log.info("Returning Memory store for identity with namespace {}", id);
-        return MemoryStore.get(id);
+        return new LdapIdentityStore(GsonUtil.map(GsonUtil.getConfig(), cfg.getConfig(), GenericLdapConfig.class));
     }
 
 }

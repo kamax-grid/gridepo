@@ -53,6 +53,7 @@ import io.kamax.grid.gridepo.core.store.crypto.MemoryKeyStore;
 import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLStore;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.UnauthenticatedException;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
@@ -63,6 +64,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MonolithGridepo implements Gridepo {
@@ -91,6 +93,9 @@ public class MonolithGridepo implements Gridepo {
 
     public MonolithGridepo(GridepoConfig cfg) {
         this.cfg = cfg;
+        if (cfg.getAuth().getFlows().isEmpty()) {
+            cfg.getAuth().addFlow().addStage("g.auth.password");
+        }
 
         if (StringUtils.isBlank(cfg.getDomain())) {
             throw new RuntimeException("Configuration: domain cannot be blank");
@@ -274,6 +279,20 @@ public class MonolithGridepo implements Gridepo {
         doc.add("identifier", id);
 
         session.complete(doc);
+        return login(session);
+    }
+
+    @Override
+    public UserSession login(JsonObject credentials) {
+        Optional<String> sessionId = GsonUtil.findString(credentials, "session");
+        UIAuthSession session;
+        if (sessionId.isPresent()) {
+            session = getAuth().getSession(sessionId.get());
+        } else {
+            session = login();
+        }
+
+        session.complete(credentials);
         return login(session);
     }
 

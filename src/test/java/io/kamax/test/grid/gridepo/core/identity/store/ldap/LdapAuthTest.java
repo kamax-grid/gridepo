@@ -81,12 +81,12 @@ public class LdapAuthTest {
         srv.setPort(65001);
 
         LdapConfig.Connection conn = new LdapConfig.Connection();
-        conn.setServer(Collections.singletonList(srv));
+        conn.setServers(Collections.singletonList(srv));
         conn.getBind().setDn(mxisdCn);
         conn.getBind().setPassword(mxisdPw);
-        conn.setBaseDNs(dnList);
 
         LdapConfig cfg = new GenericLdapConfig();
+        cfg.setBaseDNs(dnList);
         cfg.setConnection(conn);
         Map<String, List<String>> maps = cfg.getIdentity().getMapping();
         maps.put("g.id.username", Collections.singletonList(idAttribute));

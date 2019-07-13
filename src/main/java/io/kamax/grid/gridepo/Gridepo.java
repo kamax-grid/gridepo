@@ -20,12 +20,14 @@
 
 package io.kamax.grid.gridepo;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.core.auth.AuthService;
+import io.kamax.grid.gridepo.core.auth.UIAuthSession;
 import io.kamax.grid.gridepo.core.channel.ChannelDirectory;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.event.EventService;
@@ -77,7 +79,11 @@ public interface Gridepo {
 
     AuthService getAuth();
 
+    UIAuthSession login();
+
     UserSession login(String username, String password);
+
+    UserSession login(JsonObject credentials);
 
     void logout(UserSession session);
 

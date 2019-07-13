@@ -36,6 +36,7 @@ public class GsonUtil {
 
     private static final Gson instance = build();
     private static final Gson instancePretty = buildPretty();
+    private static final Gson instanceConfig = buildForConfig();
 
     private static GsonBuilder buildImpl() {
         return new GsonBuilder().disableHtmlEscaping().setFieldNamingStrategy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
@@ -47,6 +48,10 @@ public class GsonUtil {
 
     public static Gson build() {
         return buildImpl().create();
+    }
+
+    public static Gson buildForConfig() {
+        return new GsonBuilder().disableHtmlEscaping().setFieldNamingPolicy(FieldNamingPolicy.IDENTITY).create();
     }
 
     public static JsonArray asArray(List<JsonElement> elements) {
@@ -119,6 +124,10 @@ public class GsonUtil {
 
     public static Gson getPretty() {
         return instancePretty;
+    }
+
+    public static Gson getConfig() {
+        return instanceConfig;
     }
 
     public static String getPrettyForLog(Object o) {
@@ -214,7 +223,7 @@ public class GsonUtil {
 
     public static String getStringOrThrow(JsonObject obj, String member) {
         if (!obj.has(member)) {
-            throw new IllegalArgumentException(member + " key is missing");
+            throw new IllegalArgumentException("key '" + member + "' is missing");
         }
 
         return obj.get(member).getAsString();
@@ -262,6 +271,19 @@ public class GsonUtil {
 
     public static <T> T fromJson(JsonObject o, Class<T> c) {
         return get().fromJson(o, c);
+    }
+
+    public static <T> T map(Object o, Class<T> c) {
+        JsonObject json = makeObj(o);
+        T r = fromJson(json, c);
+        return r;
+    }
+
+    public static <T> T map(Gson g, Object o, Class<T> c) {
+
+        JsonObject json = g.toJsonTree(o).getAsJsonObject();
+        T r = g.fromJson(json, c);
+        return r;
     }
 
 }
