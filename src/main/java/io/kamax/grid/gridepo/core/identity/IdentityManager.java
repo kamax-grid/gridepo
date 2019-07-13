@@ -26,6 +26,7 @@ import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
@@ -62,7 +63,7 @@ public class IdentityManager {
         String salt = RandomStringUtils.randomAlphanumeric(16);
         String encPwd = OpenBSDBCrypt.generate(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 12);
 
-        store.storeUser(0, username, encPwd);
+        store.storeUser(RandomUtils.nextLong(), username, encPwd);
     }
 
     public UserDao login(String username, String password) {

@@ -76,19 +76,17 @@ public class Federation {
         MonolithHttpGridepo mg1 = new MonolithHttpGridepo(cfg1);
         MonolithHttpGridepo mg2 = new MonolithHttpGridepo(cfg2);
 
+        n1 = "dark";
         g1 = mg1.start();
         g1.getFedPusher().setAsync(false);
-        g2 = mg2.start();
-        g2.getFedPusher().setAsync(false);
-
-        n1 = "dark";
-        n2 = "light";
-
         g1.getIdentity().register(n1, pass);
-        g2.getIdentity().register(n2, pass);
-
         s1 = g1.login(n1, pass);
         u1 = s1.getUser().getId();
+
+        n2 = "light";
+        g2 = mg2.start();
+        g2.getFedPusher().setAsync(false);
+        g2.getIdentity().register(n2, pass);
         s2 = g2.login(n2, pass);
         u2 = s2.getUser().getId();
     }

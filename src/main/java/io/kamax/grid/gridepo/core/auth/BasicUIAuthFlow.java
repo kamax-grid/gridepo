@@ -18,16 +18,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.test.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.auth;
 
-import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-public class MemoryStoreTest extends StoreTest {
+public class BasicUIAuthFlow implements UIAuthFlow {
+
+    private List<UIAuthStage> stages;
+
+    public BasicUIAuthFlow(List<UIAuthStage> stages) {
+        this.stages = Collections.unmodifiableList(new ArrayList<>(stages));
+    }
 
     @Override
-    protected Store getNewStore() {
-        return MemoryStore.getNew();
+    public List<UIAuthStage> getStages() {
+        return stages;
+    }
+
+    @Override
+    public boolean isCompleted() {
+        return stages.stream().allMatch(UIAuthStage::isCompleted);
     }
 
 }

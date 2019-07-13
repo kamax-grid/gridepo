@@ -18,16 +18,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.test.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.auth;
 
-import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.config.UIAuthConfig;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 
-public class MemoryStoreTest extends StoreTest {
+public interface AuthService {
 
-    @Override
-    protected Store getNewStore() {
-        return MemoryStore.getNew();
-    }
+    UIAuthSession getSession(UIAuthConfig cfg);
+
+    UIAuthSession getSession(String sessionId) throws ObjectNotFoundException;
 
 }

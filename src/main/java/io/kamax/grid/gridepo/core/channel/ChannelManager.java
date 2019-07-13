@@ -85,7 +85,7 @@ public class ChannelManager {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(Instant.now().toEpochMilli() - 1546297200000L); // TS since 2019-01-01T00:00:00Z to keep IDs short
         byte[] tsBytes = buffer.array();
-        String localpart = new String(tsBytes, StandardCharsets.UTF_8) + RandomStringUtils.randomAlphanumeric(2);
+        String localpart = new String(tsBytes, StandardCharsets.UTF_8) + RandomStringUtils.randomAlphanumeric(4);
 
         return ChannelID.from(localpart, g.getDomain());
     }

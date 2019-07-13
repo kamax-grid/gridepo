@@ -21,13 +21,15 @@
 package io.kamax.grid.gridepo.util;
 
 import io.kamax.grid.gridepo.config.GridepoConfig;
+import org.apache.commons.io.IOUtils;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.representer.Representer;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.Optional;
 
 public class YamlConfigLoader {
@@ -36,12 +38,33 @@ public class YamlConfigLoader {
         // only static
     }
 
-    public static GridepoConfig loadFromFile(String path) throws IOException {
+    private static <T> T load(String input, Class<T> c) {
         Representer rep = new Representer();
         rep.getPropertyUtils().setAllowReadOnlyProperties(true);
         rep.getPropertyUtils().setSkipMissingProperties(true);
-        Yaml yaml = new Yaml(new Constructor(GridepoConfig.class), rep);
-        Object o = yaml.load(new FileInputStream(path));
+        Yaml yaml = new Yaml(new Constructor(c), rep);
+        return yaml.load(input);
+    }
+
+    public static <T> T loadFromResource(String path, Type type) {
+        return loadFromResource(YamlConfigLoader.class, path, type);
+    }
+
+    private static <T> T loadFromResource(Class<?> source, String path, Type type) {
+        try (InputStream is = Objects.requireNonNull(source.getResourceAsStream(path))) {
+            return loadAs(IOUtils.toString(is, StandardCharsets.UTF_8), type);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static <T> T loadAs(String input, Type type) {
+        return GsonUtil.get().fromJson(GsonUtil.toJson(load(input, Object.class)), type);
+    }
+
+    public static GridepoConfig loadFromFile(String path) throws IOException {
+        String data = IOUtils.toString(new FileInputStream(path), StandardCharsets.UTF_8);
+        Object o = load(data, GridepoConfig.class);
         return GsonUtil.get().fromJson(GsonUtil.get().toJson(o), GridepoConfig.class);
     }
 

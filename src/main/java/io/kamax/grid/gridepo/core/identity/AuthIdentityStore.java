@@ -18,16 +18,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.test.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.identity;
 
-import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import io.kamax.grid.gridepo.core.auth.AuthResult;
 
-public class MemoryStoreTest extends StoreTest {
+import java.util.Objects;
+import java.util.Set;
 
-    @Override
-    protected Store getNewStore() {
-        return MemoryStore.getNew();
+public interface AuthIdentityStore {
+
+    Set<String> getSupportedTypes();
+
+    default AuthResult authenticate(JsonObject document) {
+        JsonElement type = document.get("type");
+        if (Objects.isNull(type)) {
+            throw new IllegalArgumentException("type key is missing");
+        }
+
+        if (!type.isJsonPrimitive()) {
+            throw new IllegalArgumentException("type key is not a string");
+        }
+
+        return authenticate(type.getAsString(), document);
     }
+
+    AuthResult authenticate(String type, JsonObject document);
 
 }

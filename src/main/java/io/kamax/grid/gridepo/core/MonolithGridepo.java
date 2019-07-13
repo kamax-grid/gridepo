@@ -25,9 +25,14 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.codec.GridHash;
 import io.kamax.grid.gridepo.config.GridepoConfig;
+import io.kamax.grid.gridepo.core.auth.AuthService;
+import io.kamax.grid.gridepo.core.auth.UIAuthSession;
+import io.kamax.grid.gridepo.core.auth.UIAuthStage;
+import io.kamax.grid.gridepo.core.auth.multi.MultiStoreAuthService;
 import io.kamax.grid.gridepo.core.channel.ChannelDirectory;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.crypto.Cryptopher;
@@ -47,6 +52,7 @@ import io.kamax.grid.gridepo.core.store.crypto.KeyStore;
 import io.kamax.grid.gridepo.core.store.crypto.MemoryKeyStore;
 import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLStore;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
+import io.kamax.grid.gridepo.exception.UnauthenticatedException;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
@@ -71,6 +77,7 @@ public class MonolithGridepo implements Gridepo {
     private SignalBus bus;
     private Store store;
     private KeyStore kStore;
+    private AuthService authSvc;
     private IdentityManager idMgr;
     private EventService evSvc;
     private ChannelManager chMgr;
@@ -110,7 +117,7 @@ public class MonolithGridepo implements Gridepo {
         // FIXME use ServiceLoader
         String dbStoreType = cfg.getStorage().getDatabase().getType();
         if (StringUtils.equals("memory", dbStoreType)) {
-            store = new MemoryStore();
+            store = MemoryStore.get(cfg.getStorage().getDatabase().getConnection());
         } else if (StringUtils.equals("postgresql", dbStoreType)) {
             store = new PostgreSQLStore(cfg.getStorage());
         } else {
@@ -133,6 +140,7 @@ public class MonolithGridepo implements Gridepo {
 
         evSvc = new EventService(origin, crypto);
 
+        authSvc = new MultiStoreAuthService(cfg);
         idMgr = new IdentityManager(cfg.getIdentity(), store);
         chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);
         streamer = new EventStreamer(store);
@@ -220,22 +228,53 @@ public class MonolithGridepo implements Gridepo {
     }
 
     @Override
-    public UserSession login(String username, String password) {
-        UserDao dao = idMgr.login(username, password);
-        UserID uId = UserID.from(dao.getUsername(), cfg.getDomain());
-        User u = new User(uId, dao.getUsername());
+    public AuthService getAuth() {
+        return authSvc;
+    }
+
+    public UIAuthSession login() {
+        return getAuth().getSession(getConfig().getAuth());
+    }
+
+    public UserSession login(UIAuthSession auth) {
+        if (!auth.isAuthenticated()) {
+            throw new UnauthenticatedException(auth);
+        }
+
+        UIAuthStage stage = auth.getStage("g.auth.password");
+
+        String username = stage.getUid().orElseThrow(IllegalStateException::new);
+        UserDao dao = store.findUser(username).orElseThrow(IllegalStateException::new);
+        UserID uId = UserID.from(stage.getUid().orElseThrow(IllegalStateException::new), cfg.getDomain());
+        User u = new User(uId, username);
 
         String token = JWT.create()
                 .withIssuer(cfg.getDomain())
                 .withIssuedAt(new Date())
                 .withExpiresAt(Date.from(Instant.ofEpochMilli(Long.MAX_VALUE)))
                 .withClaim("UserID", uId.full())
-                .withClaim("Username", dao.getUsername())
+                .withClaim("Username", username)
                 .sign(jwtAlgo);
 
         store.insertUserAccessToken(dao.getLid(), token);
         tokens.put(token, true);
         return new UserSession(this, u, token);
+    }
+
+    @Override
+    public UserSession login(String username, String password) {
+        UIAuthSession session = login();
+
+        JsonObject id = new JsonObject();
+        id.addProperty("type", "g.id.username");
+        id.addProperty("value", username);
+        JsonObject doc = new JsonObject();
+        doc.addProperty("type", "g.auth.password");
+        doc.addProperty("password", password);
+        doc.add("identifier", id);
+
+        session.complete(doc);
+        return login(session);
     }
 
     @Override

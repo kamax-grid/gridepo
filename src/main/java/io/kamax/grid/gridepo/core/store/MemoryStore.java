@@ -20,17 +20,25 @@
 
 package io.kamax.grid.gridepo.core.store;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.GenericThreePid;
 import io.kamax.grid.ThreePid;
+import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.auth.AuthPasswordDocument;
+import io.kamax.grid.gridepo.core.auth.AuthResult;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.identity.AuthIdentityStore;
+import io.kamax.grid.gridepo.core.identity.IdentityStore;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
+import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -39,9 +47,31 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-public class MemoryStore implements Store {
+public class MemoryStore implements Store, IdentityStore {
 
     private static final Logger log = KxLog.make(MemoryStore.class);
+
+    private static Map<String, MemoryStore> singleton = new ConcurrentHashMap<>();
+
+    public static synchronized MemoryStore getNew() {
+        return get(UUID.randomUUID().toString());
+    }
+
+    public static synchronized MemoryStore get(String o) {
+        log.info("Getting memory store for namespace {}", o);
+        return singleton.computeIfAbsent(o, k -> {
+            log.info("Creating new memory store for namespace {}", k);
+            return new MemoryStore();
+        });
+    }
+
+    public static IdentityConfig.Store getMinimalConfig(String id) {
+        IdentityConfig.Store cfg = new IdentityConfig.Store();
+        cfg.setEnabled(true);
+        cfg.setType("memory.internal");
+        cfg.setConfig(GsonUtil.makeObj("connection", id));
+        return cfg;
+    }
 
     private AtomicLong eLid = new AtomicLong(0);
     private AtomicLong uLid = new AtomicLong(0);
@@ -70,6 +100,10 @@ public class MemoryStore implements Store {
     private Map<String, Long> evRefToLid = new ConcurrentHashMap<>();
     private Map<Long, Long> evSidToLid = new ConcurrentHashMap<>();
     private Map<Long, Long> evLidToSid = new ConcurrentHashMap<>();
+
+    private MemoryStore() {
+        // only via static
+    }
 
     private String makeRef(ChannelEvent ev) {
         return makeRef(channels.get(ev.getChannelSid()).getId(), ev.getId());
@@ -459,6 +493,42 @@ public class MemoryStore implements Store {
         if (!tpidList.remove(tpidIn)) {
             throw new IllegalArgumentException("3PID not found");
         }
+    }
+
+    @Override
+    public Optional<AuthIdentityStore> forAuth() {
+        return Optional.of(new AuthIdentityStore() {
+
+            @Override
+            public Set<String> getSupportedTypes() {
+                return Collections.singleton("g.auth.password");
+            }
+
+            @Override
+            public AuthResult authenticate(String type, JsonObject docJson) {
+                AuthPasswordDocument doc = AuthPasswordDocument.from(docJson);
+                if (!StringUtils.equals("g.auth.password", doc.getType())) {
+                    throw new IllegalArgumentException();
+                }
+
+
+                if (StringUtils.equals("g.id.username", doc.getIdentifier().getType())) {
+                    Optional<UserDao> dao = findUser(doc.getIdentifier().getValue());
+                    if (!dao.isPresent()) {
+                        return AuthResult.failed();
+                    }
+
+                    if (OpenBSDBCrypt.checkPassword(dao.get().getPass(), doc.getPassword().toCharArray())) {
+                        return AuthResult.success(dao.get().getUsername());
+                    } else {
+                        return AuthResult.failed();
+                    }
+                }
+
+                return AuthResult.failed();
+            }
+
+        });
     }
 
 }

@@ -18,16 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.test.grid.gridepo.core.store;
+package io.kamax.grid.gridepo.core.identity;
 
-import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
+import java.util.Optional;
 
-public class MemoryStoreTest extends StoreTest {
+public interface IdentityStore {
 
-    @Override
-    protected Store getNewStore() {
-        return MemoryStore.getNew();
-    }
+    Optional<AuthIdentityStore> forAuth();
 
 }

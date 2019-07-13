@@ -18,16 +18,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.test.grid.gridepo.core.store;
+package io.kamax.test.grid.gridepo.core.auth;
 
-import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.auth.BasicUIAuthStage;
+import org.junit.Test;
 
-public class MemoryStoreTest extends StoreTest {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-    @Override
-    protected Store getNewStore() {
-        return MemoryStore.getNew();
+public class BasicUIAuthStageTest {
+
+    @Test
+    public void basicUsage() {
+        BasicUIAuthStage stage = new BasicUIAuthStage("");
+        assertEquals("", stage.getId());
+        assertFalse(stage.getUid().isPresent());
+        assertFalse(stage.isCompleted());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getCompletedAtBeforeCompletion() {
+        new BasicUIAuthStage("").completedAt();
     }
 
 }

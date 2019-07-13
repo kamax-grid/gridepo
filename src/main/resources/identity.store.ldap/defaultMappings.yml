@@ -1,0 +1,17 @@
+g.id.username:
+  - 'sAMAccountName'
+g.id.net.matrix:
+  - 'sAMAccountName'
+g.id.net.email:
+  - 'email'
+  - 'mailPrimaryAddress'
+  - 'mail'
+  - 'otherMailbox'
+g.id.net.phone.msisdn:
+  - 'msisdn'
+  - 'telephoneNumber'
+  - 'mobile'
+  - 'homePhone'
+  - 'otherTelephone'
+  - 'otherMobile'
+  - 'otherHomePhone'

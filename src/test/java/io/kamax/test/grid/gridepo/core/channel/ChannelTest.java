@@ -69,7 +69,7 @@ public class ChannelTest {
     public void basic() {
         SignalBus bus = SignalBus.getDefault();
         Cryptopher crypto = new Ed25519Cryptopher(new MemoryKeyStore());
-        Store store = new MemoryStore();
+        Store store = MemoryStore.getNew();
         EventService evSvc = new EventService(sId, crypto);
         ChannelAlgo algo = new ChannelAlgoV0_0();
         DataServerManager srvMgr = new DataServerManager();

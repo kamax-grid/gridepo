@@ -25,6 +25,7 @@ import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.UserSession;
+import io.kamax.grid.gridepo.core.auth.AuthService;
 import io.kamax.grid.gridepo.core.channel.ChannelDirectory;
 import io.kamax.grid.gridepo.core.channel.ChannelManager;
 import io.kamax.grid.gridepo.core.event.EventService;
@@ -73,6 +74,8 @@ public interface Gridepo {
     DataServerManager getServers();
 
     FederationPusher getFedPusher();
+
+    AuthService getAuth();
 
     UserSession login(String username, String password);
 

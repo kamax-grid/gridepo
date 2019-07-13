@@ -20,17 +20,26 @@
 
 package io.kamax.grid.gridepo.config;
 
+import io.kamax.grid.gridepo.core.store.MemoryStore;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public class GridepoConfig {
 
     public static GridepoConfig inMemory() {
+        String uuid = UUID.randomUUID().toString();
+
         GridepoConfig cfg = new GridepoConfig();
         cfg.getStorage().getDatabase().setType("memory");
+        cfg.getStorage().getDatabase().setConnection(uuid);
         cfg.getStorage().getKey().setType("memory");
-        cfg.getStorage().setData(".");
+        cfg.getStorage().setData(uuid);
+        cfg.getIdentity().getStores().put("memory", MemoryStore.getMinimalConfig(uuid));
+        cfg.getAuth().addFlow().addStage("g.auth.password");
+
         return cfg;
     }
 
@@ -154,6 +163,7 @@ public class GridepoConfig {
     private ChannelConfig channel = new ChannelConfig();
     private StorageConfig storage = new StorageConfig();
     private IdentityConfig identity = new IdentityConfig();
+    private UIAuthConfig auth = new UIAuthConfig();
 
     public List<Listener> getListeners() {
         return listeners;
@@ -201,6 +211,14 @@ public class GridepoConfig {
 
     public void setIdentity(IdentityConfig identity) {
         this.identity = identity;
+    }
+
+    public UIAuthConfig getAuth() {
+        return auth;
+    }
+
+    public void setAuth(UIAuthConfig auth) {
+        this.auth = auth;
     }
 
 }
