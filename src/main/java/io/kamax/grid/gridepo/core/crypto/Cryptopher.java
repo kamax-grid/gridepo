@@ -49,4 +49,6 @@ public interface Cryptopher {
 
     Signature sign(byte[] data, KeyIdentifier keyId);
 
+    KeyIdentifier getKeyWithPublic(String pubKeyBase64);
+
 }

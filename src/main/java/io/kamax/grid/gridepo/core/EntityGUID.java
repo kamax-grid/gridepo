@@ -20,22 +20,16 @@
 
 package io.kamax.grid.gridepo.core;
 
-public class EntityGUID {
+import io.kamax.grid.GenericThreePid;
 
-    private final String network;
-    private final String address;
+public class EntityGUID extends GenericThreePid {
 
     public EntityGUID(String network, String address) {
-        this.network = network;
-        this.address = address;
+        super("g.id.net." + network, address);
     }
 
     public String getNetwork() {
-        return network;
-    }
-
-    public String getAddress() {
-        return address;
+        return getMedium().substring("g.id.net.".length());
     }
 
 }

@@ -22,17 +22,15 @@ package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.ChannelAlias;
-import io.kamax.grid.gridepo.core.ChannelID;
-import io.kamax.grid.gridepo.core.EventID;
-import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.ThreePid;
+import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.RemoteServerException;
-import io.kamax.grid.gridepo.http.handler.grid.server.io.ChannelLookupResponse;
+import io.kamax.grid.gridepo.http.handler.grid.data.io.ChannelLookupResponse;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;
@@ -432,6 +430,63 @@ public class DataServerHttpClient implements DataServerClient {
                 try {
                     JsonObject body = parse(res, JsonObject.class);
                     return GsonUtil.findObj(body, "event");
+                } catch (IllegalArgumentException e) {
+                    throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
+                }
+            } catch (IOException e) {
+                log.warn("", e);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    // FIXME must go into client
+    @Override
+    public Optional<UserID> lookupUser(String as, String target, ThreePid tpid) {
+        JsonObject identifier = new JsonObject();
+        identifier.addProperty("type", tpid.getMedium());
+        identifier.addProperty("value", tpid.getAddress());
+
+        HttpPost req = new HttpPost();
+        req.setHeader("X-Grid-Remote-ID", as);
+        req.setEntity(getJsonEntity(GsonUtil.makeObj("identifier", identifier)));
+
+        for (URL url : lookupSrv(target)) {
+            String srvUriRaw = url + URIPath.idSrv().add("v0", "do", "lookup", "user", "threepid").get();
+            URI srvUri;
+            try {
+                srvUri = new URI(srvUriRaw);
+            } catch (URISyntaxException e) {
+                log.warn("Unable to create URI for server: Invalid URI for {}: {}", srvUriRaw, e.getMessage());
+                continue;
+            }
+
+            req.setURI(srvUri);
+            try (CloseableHttpResponse res = client.execute(req)) {
+                int sc = res.getStatusLine().getStatusCode();
+                if (sc != 200) {
+                    JsonObject b;
+                    try {
+                        b = GsonUtil.parseObj(EntityUtils.toString(res.getEntity(), StandardCharsets.UTF_8));
+                    } catch (IllegalArgumentException e) {
+                        b = new JsonObject();
+                    }
+
+                    if (sc == 404 && StringUtils.equals("G_NOT_FOUND", GsonUtil.getStringOrNull(b, "errcode"))) {
+                        return Optional.empty();
+                    }
+
+                    if (sc == 403) {
+                        throw new ForbiddenException(GsonUtil.findString(b, "error").orElse("Server did not give a reason"));
+                    }
+
+                    throw new RemoteServerException(target, b);
+                }
+
+                try {
+                    JsonObject body = parse(res, JsonObject.class);
+                    return GsonUtil.findString(body, "id").map(UserID::parse);
                 } catch (IllegalArgumentException e) {
                     throw new RemoteServerException(target, "G_REMOTE_ERROR", "Server did not send us back JSON");
                 }

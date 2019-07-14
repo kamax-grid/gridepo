@@ -23,8 +23,7 @@ package io.kamax.test.grid.gridepo.core.auth;
 import io.kamax.grid.gridepo.core.auth.BasicUIAuthStage;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class BasicUIAuthStageTest {
 
@@ -32,8 +31,8 @@ public class BasicUIAuthStageTest {
     public void basicUsage() {
         BasicUIAuthStage stage = new BasicUIAuthStage("");
         assertEquals("", stage.getId());
-        assertFalse(stage.getUid().isPresent());
         assertFalse(stage.isCompleted());
+        assertNull(stage.getUid());
     }
 
     @Test(expected = IllegalStateException.class)

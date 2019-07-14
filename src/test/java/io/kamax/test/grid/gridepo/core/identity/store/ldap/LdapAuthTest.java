@@ -33,10 +33,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.assertFalse;
 
@@ -96,20 +93,19 @@ public class LdapAuthTest {
     }
 
     @Test
-    public void singleDn() {
+    public void notFound() {
         LdapIdentityStore p = new LdapIdentityStore(buildCfg());
 
         JsonObject id = new JsonObject();
         id.addProperty("type", "g.id.username");
         id.addProperty("value", userId);
         JsonObject doc = new JsonObject();
-        doc.addProperty("type", "g.auth.password");
+        doc.addProperty("type", "g.auth.id.password");
         doc.add("identifier", id);
         doc.addProperty("password", userPw);
 
-
-        AuthResult result = p.authenticate(doc);
-        assertFalse(result.isSuccess());
+        Optional<AuthResult> result = p.authenticate(doc);
+        assertFalse(result.isPresent());
     }
 
 }

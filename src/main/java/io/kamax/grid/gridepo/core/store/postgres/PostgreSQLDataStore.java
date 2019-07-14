@@ -25,11 +25,13 @@ import io.kamax.grid.gridepo.config.StorageConfig;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.auth.Credentials;
+import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.SqlConnectionPool;
-import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
@@ -46,9 +48,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class PostgreSQLStore implements Store {
+public class PostgreSQLDataStore implements DataStore {
 
-    private static final Logger log = LoggerFactory.getLogger(PostgreSQLStore.class);
+    private static final Logger log = LoggerFactory.getLogger(PostgreSQLDataStore.class);
 
     private interface ConnFunction<T, R> {
 
@@ -74,11 +76,11 @@ public class PostgreSQLStore implements Store {
 
     private SqlConnectionPool pool;
 
-    public PostgreSQLStore(StorageConfig cfg) {
+    public PostgreSQLDataStore(StorageConfig cfg) {
         this(new SqlConnectionPool(cfg));
     }
 
-    private PostgreSQLStore(SqlConnectionPool pool) {
+    private PostgreSQLDataStore(SqlConnectionPool pool) {
         this.pool = pool;
         withConnConsumer(conn -> conn.isValid(1000));
         log.info("Connected");
@@ -108,7 +110,7 @@ public class PostgreSQLStore implements Store {
                         continue;
                     }
 
-                    try (InputStream elIs = PostgreSQLStore.class.getResourceAsStream("/store/postgres/schema/" + sql)) {
+                    try (InputStream elIs = PostgreSQLDataStore.class.getResourceAsStream("/store/postgres/schema/" + sql)) {
                         String update = IOUtils.toString(Objects.requireNonNull(elIs), StandardCharsets.UTF_8);
                         stmt.execute(update);
                     } catch (IOException e) {
@@ -215,22 +217,6 @@ public class PostgreSQLStore implements Store {
 
         ChannelDao dao = new ChannelDao(rSet.getLong("lid"), ChannelID.fromRaw(rSet.getString("id")));
         return Optional.of(dao);
-    }
-
-    @Override
-    public long addEntity(String id, String type, boolean isLocal) {
-        String sql = "INSERT INTO entities (id, type, isLocal) VALUES (?,?,?) RETURNING lid";
-        return withStmtFunction(sql, stmt -> {
-            stmt.setString(1, id);
-            stmt.setString(2, type);
-            stmt.setBoolean(3, isLocal);
-
-            ResultSet rSet = stmt.executeQuery();
-            if (!rSet.next()) {
-                throw new IllegalStateException("Inserted identity " + id + " but got no Local ID back");
-            }
-            return rSet.getLong(1);
-        });
     }
 
     @Override
@@ -633,7 +619,7 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public boolean hasUsername(String username) {
-        return withStmtFunction("SELECT * FROM users WHERE username = ? LIMIT 1", stmt -> {
+        return withStmtFunction("SELECT * FROM identity_users WHERE id = ? LIMIT 1", stmt -> {
             stmt.setString(1, username);
             return stmt.executeQuery().next();
         });
@@ -641,7 +627,7 @@ public class PostgreSQLStore implements Store {
 
     @Override
     public long getUserCount() {
-        return withStmtFunction("SELECT COUNT(*) as total FROM users", stmt -> {
+        return withStmtFunction("SELECT COUNT(*) as total FROM identity_users", stmt -> {
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
                 throw new IllegalStateException("Expected one row for count, but got none");
@@ -652,14 +638,14 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public long storeUser(long entityLid, String username, String password) {
-        return withStmtFunction("INSERT INTO users (entity_lid, username,password) VALUES (?,?,?) RETURNING lid", stmt -> {
-            stmt.setLong(1, entityLid);
-            stmt.setString(2, username);
-            stmt.setString(3, password);
+    public long addUser(String id) {
+        String sql = "INSERT INTO identity_users (id) VALUES (?) RETURNING lid";
+
+        return withStmtFunction(sql, stmt -> {
+            stmt.setString(1, id);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
-                throw new IllegalStateException("Inserted user " + username + " but got no LID back");
+                throw new IllegalStateException("Inserted user " + id + " but got no LID back");
             }
 
             return rSet.getLong("lid");
@@ -667,8 +653,39 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
+    public void addCredentials(long userLid, Credentials credentials) {
+        SecureCredentials secCreds = SecureCredentials.from(credentials);
+
+        String sql = "INSERT INTO identity_user_credentials (user_lid, type, data) VALUES (?,?,?)";
+        withStmtConsumer(sql, stmt -> {
+            stmt.setLong(1, userLid);
+            stmt.setString(2, secCreds.getType());
+            stmt.setString(3, secCreds.getData());
+            int rc = stmt.executeUpdate();
+            if (rc != 1) {
+                throw new IllegalStateException("User " + userLid + " credentials state: DB inserted " + rc + " rows. 1 expected");
+            }
+        });
+    }
+
+    @Override
+    public SecureCredentials getCredentials(long userLid, String type) {
+        String sql = "SELECT * FROM identity_user_credentials WHERE user_lid = ? and type = ?";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setLong(1, userLid);
+            stmt.setString(2, type);
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                throw new ObjectNotFoundException("Credentials of type " + type + " for user LID " + userLid);
+            }
+
+            return new SecureCredentials(rSet.getString("type"), rSet.getString("data"));
+        });
+    }
+
+    @Override
     public Optional<UserDao> findUser(long lid) {
-        return withStmtFunction("SELECT * FROM users WHERE lid = ?", stmt -> {
+        return withStmtFunction("SELECT * FROM identity_users WHERE lid = ?", stmt -> {
             stmt.setLong(1, lid);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
@@ -676,18 +693,17 @@ public class PostgreSQLStore implements Store {
             }
 
             UserDao dao = new UserDao();
-            dao.setLid(lid);
-            dao.setUsername(rSet.getString("username"));
-            dao.setPass(rSet.getString("password"));
+            dao.setLid(rSet.getLong("lid"));
+            dao.setId(rSet.getString("id"));
 
             return Optional.of(dao);
         });
     }
 
     @Override
-    public Optional<UserDao> findUser(String username) {
-        return withStmtFunction("SELECT * FROM users WHERE username = ?", stmt -> {
-            stmt.setString(1, username);
+    public Optional<UserDao> findUser(String id) {
+        return withStmtFunction("SELECT * FROM identity_users WHERE id = ?", stmt -> {
+            stmt.setString(1, id);
             ResultSet rSet = stmt.executeQuery();
             if (!rSet.next()) {
                 return Optional.empty();
@@ -695,11 +711,30 @@ public class PostgreSQLStore implements Store {
 
             UserDao dao = new UserDao();
             dao.setLid(rSet.getLong("lid"));
-            dao.setUsername(rSet.getString("username"));
-            dao.setPass(rSet.getString("password"));
+            dao.setId(rSet.getString("id"));
 
             return Optional.of(dao);
         });
+    }
+
+    @Override
+    public Optional<UserDao> findUserByStoreLink(ThreePid storeId) {
+        String sql = "SELECT user_lid FROM identity_user_store_links WHERE type = ? AND id = ?";
+        return withStmtFunction(sql, stmt -> {
+            stmt.setString(1, storeId.getMedium());
+            stmt.setString(2, storeId.getAddress());
+            ResultSet rSet = stmt.executeQuery();
+            if (!rSet.next()) {
+                return Optional.empty();
+            }
+
+            return findUser(rSet.getLong("user_lid"));
+        });
+    }
+
+    @Override
+    public Optional<UserDao> findUserByTreePid(ThreePid tpid) {
+        return Optional.empty();
     }
 
     @Override
@@ -792,23 +827,37 @@ public class PostgreSQLStore implements Store {
     }
 
     @Override
-    public List<ThreePid> listThreePid(long userLid) {
-        return null;
+    public void linkUserToStore(long userLid, ThreePid storeId) {
+        String sql = "INSERT INTO identity_user_store_links (user_lid, type, id) VALUES (?,?,?)";
+        withStmtConsumer(sql, stmt -> {
+            stmt.setLong(1, userLid);
+            stmt.setString(2, storeId.getMedium());
+            stmt.setString(3, storeId.getAddress());
+            int rc = stmt.executeUpdate();
+            if (rc < 1) {
+                throw new IllegalStateException("User LID to Store ID insert: DB inserted " + rc + " rows. 1 expected");
+            }
+        });
     }
 
     @Override
-    public List<ThreePid> listThreePid(long userLid, String medium) {
-        return null;
+    public Set<ThreePid> listThreePid(long userLid) {
+        throw new RuntimeException("Not implemented");
+    }
+
+    @Override
+    public Set<ThreePid> listThreePid(long userLid, String medium) {
+        throw new RuntimeException("Not implemented");
     }
 
     @Override
     public void addThreePid(long userLid, ThreePid tpid) {
-
+        throw new RuntimeException("Not implemented");
     }
 
     @Override
     public void removeThreePid(long userLid, ThreePid tpid) {
-
+        throw new RuntimeException("Not implemented");
     }
 
 }

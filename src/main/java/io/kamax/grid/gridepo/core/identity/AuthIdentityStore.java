@@ -25,13 +25,14 @@ import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public interface AuthIdentityStore {
 
     Set<String> getSupportedTypes();
 
-    default AuthResult authenticate(JsonObject document) {
+    default Optional<AuthResult> authenticate(JsonObject document) {
         JsonElement type = document.get("type");
         if (Objects.isNull(type)) {
             throw new IllegalArgumentException("type key is missing");
@@ -44,6 +45,6 @@ public interface AuthIdentityStore {
         return authenticate(type.getAsString(), document);
     }
 
-    AuthResult authenticate(String type, JsonObject document);
+    Optional<AuthResult> authenticate(String type, JsonObject document);
 
 }

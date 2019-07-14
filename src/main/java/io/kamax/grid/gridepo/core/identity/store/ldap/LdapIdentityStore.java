@@ -21,11 +21,15 @@
 package io.kamax.grid.gridepo.core.identity.store.ldap;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.GenericThreePid;
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.config.Identity.store.LdapConfig;
 import io.kamax.grid.gridepo.core.auth.AuthPasswordDocument;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
 import io.kamax.grid.gridepo.core.identity.AuthIdentityStore;
+import io.kamax.grid.gridepo.core.identity.EntityProfile;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
+import io.kamax.grid.gridepo.core.identity.ProfileIdentityStore;
 import io.kamax.grid.gridepo.exception.ConfigurationException;
 import io.kamax.grid.gridepo.exception.InternalServerError;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
@@ -43,7 +47,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 
-public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
+public class LdapIdentityStore implements IdentityStore, AuthIdentityStore, ProfileIdentityStore {
 
     private static final Logger log = LoggerFactory.getLogger(LdapIdentityStore.class);
 
@@ -142,13 +146,13 @@ public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
 
     @Override
     public Set<String> getSupportedTypes() {
-        return Collections.singleton("g.auth.password");
+        return Collections.singleton("g.auth.id.password");
     }
 
     @Override
-    public AuthResult authenticate(String type, JsonObject document) {
+    public Optional<AuthResult> authenticate(String type, JsonObject document) {
         AuthPasswordDocument credentials = AuthPasswordDocument.from(document);
-        if (!StringUtils.equals("g.auth.password", credentials.getType())) {
+        if (!StringUtils.equals("g.auth.id.password", credentials.getType())) {
             throw new NotImplementedException();
         }
 
@@ -179,13 +183,13 @@ public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
                             conn.bind(entry.getDn(), credentials.getPassword());
                         } catch (LdapException e) {
                             log.info("Unable to bind using {} because {}", entry.getDn().getName(), e.getMessage());
-                            return AuthResult.failed();
+                            return Optional.of(AuthResult.failed());
                         }
 
                         log.info("Authentication successful for {}", entry.getDn().getName());
                         log.info("DN {} is a valid match", dn);
 
-                        return AuthResult.success(uid.get());
+                        return Optional.of(AuthResult.success(new GenericThreePid("g.id.local.store.ldap." + getAtUid(), uid.get())));
                     }
                 } catch (CursorLdapReferralException e) {
                     log.warn("Skipping an entry that is only available via referral");
@@ -193,13 +197,29 @@ public class LdapIdentityStore implements IdentityStore, AuthIdentityStore {
             }
 
             log.info("No match found");
-            return AuthResult.failed();
+            return Optional.empty();
         }));
     }
 
+
     @Override
-    public Optional<AuthIdentityStore> forAuth() {
-        return Optional.of(this);
+    public Optional<EntityProfile> findProfile(ThreePid uid) {
+        return Optional.empty();
+    }
+
+    @Override
+    public String getType() {
+        return "ldap";
+    }
+
+    @Override
+    public AuthIdentityStore forAuth() {
+        return this;
+    }
+
+    @Override
+    public ProfileIdentityStore forProfile() {
+        return this;
     }
 
 }

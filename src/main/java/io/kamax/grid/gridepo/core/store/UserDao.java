@@ -22,41 +22,23 @@ package io.kamax.grid.gridepo.core.store;
 
 public class UserDao {
 
-    private Long lid;
-    private long entityLid;
-    private String username;
-    private String pass;
+    private long lid;
+    private String id;
 
-    public Long getLid() {
+    public long getLid() {
         return lid;
     }
 
-    public void setLid(Long lid) {
+    public void setLid(long lid) {
         this.lid = lid;
     }
 
-    public long getEntityLid() {
-        return entityLid;
+    public String getId() {
+        return id;
     }
 
-    public void setEntityLid(long entityLid) {
-        this.entityLid = entityLid;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPass() {
-        return pass;
-    }
-
-    public void setPass(String pass) {
-        this.pass = pass;
+    public void setId(String id) {
+        this.id = id;
     }
 
 }

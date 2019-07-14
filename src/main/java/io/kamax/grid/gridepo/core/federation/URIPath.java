@@ -51,6 +51,14 @@ public class URIPath {
         return data().add("server");
     }
 
+    public static URIPath id() {
+        return root().add("identity");
+    }
+
+    public static URIPath idSrv() {
+        return id().add("server");
+    }
+
     private StringBuilder path = new StringBuilder();
 
     /**

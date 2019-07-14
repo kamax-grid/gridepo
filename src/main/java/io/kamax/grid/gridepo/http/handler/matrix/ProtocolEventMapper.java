@@ -120,7 +120,7 @@ public class ProtocolEventMapper {
 
             RoomEvent mEv = mapCommon(ev.getId().full(), gEv);
             mEv.setType("m.room.aliases");
-            mEv.setStateKey(ServerID.parse(gEv.getScope()).tryDecode().orElseGet(() -> gEv.getScope().substring(1)));
+            mEv.setStateKey(ServerID.parse(gEv.getScope()).tryDecodeDns().orElseGet(() -> gEv.getScope().substring(1)));
             mEv.setContent(mEvC);
 
             return mEv;

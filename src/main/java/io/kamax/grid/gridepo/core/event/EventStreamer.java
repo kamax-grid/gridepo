@@ -21,15 +21,15 @@
 package io.kamax.grid.gridepo.core.event;
 
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.DataStore;
 
 import java.util.List;
 
 public class EventStreamer {
 
-    private final Store store;
+    private final DataStore store;
 
-    public EventStreamer(Store store) {
+    public EventStreamer(DataStore store) {
         this.store = store;
     }
 

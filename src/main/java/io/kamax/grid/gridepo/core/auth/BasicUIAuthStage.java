@@ -20,15 +20,18 @@
 
 package io.kamax.grid.gridepo.core.auth;
 
+import io.kamax.grid.ThreePid;
+import io.kamax.grid.gridepo.core.identity.IdentityStore;
+
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
 
 public class BasicUIAuthStage implements UIAuthStage {
 
     private String id;
     private Instant completedAt;
-    private String uid;
+    private ThreePid uid;
+    private IdentityStore store;
 
     public BasicUIAuthStage(String id) {
         this.id = id;
@@ -51,14 +54,20 @@ public class BasicUIAuthStage implements UIAuthStage {
     }
 
     @Override
-    public void completeWith(AuthResult result) {
-        completedAt = Instant.now();
-        uid = result.getUid();
+    public IdentityStore completedWith() {
+        return store;
     }
 
     @Override
-    public Optional<String> getUid() {
-        return Optional.ofNullable(uid);
+    public void completeWith(IdentityStore store, AuthResult result) {
+        completedAt = Instant.now();
+        uid = result.getUid();
+        this.store = store;
+    }
+
+    @Override
+    public ThreePid getUid() {
+        return uid;
     }
 
 }

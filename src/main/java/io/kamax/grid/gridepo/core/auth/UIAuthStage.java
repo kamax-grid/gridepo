@@ -20,19 +20,23 @@
 
 package io.kamax.grid.gridepo.core.auth;
 
+import io.kamax.grid.ThreePid;
+import io.kamax.grid.gridepo.core.identity.IdentityStore;
+
 import java.time.Instant;
-import java.util.Optional;
 
 public interface UIAuthStage {
 
     String getId();
 
+    void completeWith(IdentityStore store, AuthResult result);
+
     boolean isCompleted();
 
     Instant completedAt() throws IllegalStateException;
 
-    void completeWith(AuthResult result);
+    IdentityStore completedWith();
 
-    Optional<String> getUid();
+    ThreePid getUid();
 
 }

@@ -24,8 +24,9 @@ import com.google.gson.JsonArray;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
-import io.kamax.grid.gridepo.http.handler.grid.server.*;
-import io.kamax.grid.gridepo.http.handler.grid.server.channel.GetEventHandler;
+import io.kamax.grid.gridepo.http.handler.grid.data.*;
+import io.kamax.grid.gridepo.http.handler.grid.data.channel.GetEventHandler;
+import io.kamax.grid.gridepo.http.handler.grid.identity.UserLookupHandler;
 import io.kamax.grid.gridepo.http.handler.matrix.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
@@ -96,9 +97,35 @@ public class MonolithHttpGridepo {
         }
     }
 
+    private void buildGridIdentityClient(RoutingHandler handler) {
+        log.warn("Tried to add Grid Identity client endpoints but not implemented yet");
+
+        handler
+                .add("OPTIONS", "/identity/client", new OptionsHandler())
+        ;
+    }
+
+    private void buildGridIdentityServer(RoutingHandler handler) {
+        handler
+                .post("/identity/server/v0/do/lookup/user/threepid", new UserLookupHandler(g))
+        ;
+    }
+
+    private void buildGridIdentity(RoutingHandler handler, GridepoConfig.NetworkListener network) {
+        if (StringUtils.equals("client", network.getApi())) {
+            buildGridIdentityClient(handler);
+        } else if (StringUtils.equals("server", network.getApi())) {
+            buildGridIdentityServer(handler);
+        } else {
+            throw new RuntimeException(network.getApi() + " is not a supported Grid Identity API");
+        }
+    }
+
     private void buildGrid(RoutingHandler handler, GridepoConfig.NetworkListener network) {
         if (StringUtils.equalsAny("data", network.getRole())) {
             buildGridData(handler, network);
+        } else if (StringUtils.equalsAny("identity", network.getRole())) {
+            buildGridIdentity(handler, network);
         } else {
             throw new RuntimeException(network.getRole() + " is not a supported Grid Role");
         }
@@ -209,6 +236,8 @@ public class MonolithHttpGridepo {
                 l.setNetwork(new ArrayList<>());
                 l.addNetwork(GridepoConfig.NetworkListener.build("grid", "data", "client"));
                 l.addNetwork(GridepoConfig.NetworkListener.build("grid", "data", "server"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("grid", "identity", "client"));
+                l.addNetwork(GridepoConfig.NetworkListener.build("grid", "identity", "server"));
                 l.addNetwork(GridepoConfig.NetworkListener.build("matrix", "home", "client"));
                 l.addNetwork(GridepoConfig.NetworkListener.build("matrix", "home", "server"));
                 l.addNetwork(GridepoConfig.NetworkListener.build("matrix", "identity", "client"));

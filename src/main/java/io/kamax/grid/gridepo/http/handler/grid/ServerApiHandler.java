@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.grid.server;
+package io.kamax.grid.gridepo.http.handler.grid;
 
 import io.kamax.grid.gridepo.exception.*;
 import io.kamax.grid.gridepo.http.handler.Exchange;

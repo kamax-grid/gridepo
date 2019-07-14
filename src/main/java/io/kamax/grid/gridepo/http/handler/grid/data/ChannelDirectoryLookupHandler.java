@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.grid.server;
+package io.kamax.grid.gridepo.http.handler.grid.data;
 
 import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
@@ -27,7 +27,8 @@ import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.http.handler.grid.server.io.ChannelLookupResponse;
+import io.kamax.grid.gridepo.http.handler.grid.ServerApiHandler;
+import io.kamax.grid.gridepo.http.handler.grid.data.io.ChannelLookupResponse;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
 import java.util.HashSet;

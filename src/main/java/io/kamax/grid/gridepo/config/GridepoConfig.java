@@ -38,7 +38,7 @@ public class GridepoConfig {
         cfg.getStorage().getKey().setType("memory");
         cfg.getStorage().setData(uuid);
         cfg.getIdentity().getStores().put("memory", MemoryStore.getMinimalConfig(uuid));
-        cfg.getAuth().addFlow().addStage("g.auth.password");
+        cfg.getAuth().addFlow().addStage("g.auth.id.password");
 
         return cfg;
     }
@@ -47,6 +47,10 @@ public class GridepoConfig {
 
         public static NetworkListener forGridDataServer() {
             return NetworkListener.build("grid", "data", "server");
+        }
+
+        public static NetworkListener forGridIdentityServer() {
+            return NetworkListener.build("grid", "identity", "server");
         }
 
     }

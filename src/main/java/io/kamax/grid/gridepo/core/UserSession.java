@@ -29,6 +29,7 @@ import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.event.EventKey;
+import io.kamax.grid.gridepo.core.identity.User;
 import io.kamax.grid.gridepo.core.signal.AppStopping;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
@@ -94,7 +95,7 @@ public class UserSession {
     }
 
     public Channel createChannel() {
-        return g.getChannelManager().createChannel(user.getId().full());
+        return g.getChannelManager().createChannel(user.getGridId().full());
     }
 
     // FIXME evaluate if we should compute the exact state at the stream position in an atomic way
@@ -152,7 +153,7 @@ public class UserSession {
                                 // FIXME move this into channel/state algo to check if a user can see an event in the stream
 
                                 // If we are the author
-                                if (StringUtils.equalsAny(user.getId().full(), ev.getBare().getSender(), ev.getBare().getScope())) {
+                                if (StringUtils.equalsAny(user.getGridId().full(), ev.getBare().getSender(), ev.getBare().getScope())) {
                                     return true;
                                 }
 
@@ -189,20 +190,20 @@ public class UserSession {
     }
 
     public String send(String cId, JsonObject data) {
-        data.addProperty(EventKey.Sender, user.getId().full());
+        data.addProperty(EventKey.Sender, user.getGridId().full());
         return g.getChannelManager().get(cId).makeAndOffer(data).getEventId().full();
     }
 
     public String inviteToChannel(String cId, EntityGUID uAl) {
         Channel c = g.getChannelManager().get(cId);
-        String evId = c.invite(user.getId().full(), uAl).getId().full();
+        String evId = c.invite(user.getGridId().full(), uAl).getId().full();
         return evId;
     }
 
     public String joinChannel(String cId) {
         BareMemberEvent ev = new BareMemberEvent();
-        ev.setSender(user.getId().full());
-        ev.setScope(user.getId().full());
+        ev.setSender(user.getGridId().full());
+        ev.setScope(user.getGridId().full());
         ev.getContent().setAction(ChannelMembership.Join);
 
         ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndOffer(ev.getJson());
@@ -214,13 +215,13 @@ public class UserSession {
     }
 
     public Channel joinChannel(ChannelAlias cAlias) {
-        return g.getChannelManager().join(cAlias, getUser().getId());
+        return g.getChannelManager().join(cAlias, getUser().getGridId());
     }
 
     public String leaveChannel(String cId) {
         BareMemberEvent ev = new BareMemberEvent();
-        ev.setSender(user.getId().full());
-        ev.setScope(user.getId().full());
+        ev.setSender(user.getGridId().full());
+        ev.setScope(user.getGridId().full());
         ev.getContent().setAction(ChannelMembership.Leave);
 
         ChannelEventAuthorization r = g.getChannelManager().get(cId).makeAndOffer(ev.getJson());
@@ -241,7 +242,7 @@ public class UserSession {
 
         BareAliasEvent ev = new BareAliasEvent();
         ev.setScope(g.getOrigin().full());
-        ev.setSender(user.getId().full());
+        ev.setSender(user.getGridId().full());
         ev.getContent().setAliases(aliases);
 
         g.getChannelManager().get(id).makeAndOffer(ev.getJson());
@@ -260,7 +261,7 @@ public class UserSession {
 
         BareAliasEvent ev = new BareAliasEvent();
         ev.setScope(g.getOrigin().full());
-        ev.setSender(user.getId().full());
+        ev.setSender(user.getGridId().full());
         ev.getContent().setAliases(aliases);
 
         g.getChannelManager().get(cId).makeAndOffer(ev.getJson());

@@ -21,10 +21,8 @@
 package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.gridepo.core.ChannelAlias;
-import io.kamax.grid.gridepo.core.ChannelID;
-import io.kamax.grid.gridepo.core.EventID;
-import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.ThreePid;
+import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
@@ -53,7 +51,7 @@ public class DataServer {
 
     public DataServer(ServerID id) {
         this.id = id;
-        this.hostname = id.tryDecode().orElseThrow(() -> new IllegalArgumentException("Unable to resolve " + id.full() + " to a hostname"));
+        this.hostname = id.tryDecodeDns().orElseThrow(() -> new IllegalArgumentException("Unable to resolve " + id.full() + " to a hostname"));
         this.client = new DataServerHttpClient();
         this.lastOut = Instant.EPOCH;
         this.lastIn = Instant.EPOCH;
@@ -137,7 +135,13 @@ public class DataServer {
     }
 
     public Optional<ChannelLookup> lookup(String as, ChannelAlias alias) {
+        log.info("Looking up {} on {}", alias, hostname);
         return withHealthCheck(true, () -> client.lookup(as, hostname, alias));
+    }
+
+    // FIXME this needs to go under Identity, Not data
+    public Optional<UserID> lookup(String as, ThreePid tpid) {
+        return withHealthCheck(true, () -> client.lookupUser(as, hostname, tpid));
     }
 
 }

@@ -21,6 +21,7 @@
 package io.kamax.grid.gridepo.core.channel;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.GenericThreePid;
 import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.event.*;
@@ -34,11 +35,13 @@ import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.time.Instant;
@@ -54,7 +57,7 @@ public class Channel {
     private ChannelDao dao;
     private ServerID origin;
 
-    private Store store;
+    private DataStore store;
     private DataServerManager srvMgr;
     private ChannelAlgo algo;
     private EventService evSvc;
@@ -63,11 +66,11 @@ public class Channel {
     private BarePowerEvent.Content defaultPls;
     private ChannelView view;
 
-    public Channel(long sid, ChannelID id, ServerID origin, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr, SignalBus bus) {
+    public Channel(long sid, ChannelID id, ServerID origin, ChannelAlgo algo, EventService evSvc, DataStore store, DataServerManager srvMgr, SignalBus bus) {
         this(new ChannelDao(sid, id), origin, algo, evSvc, store, srvMgr, bus);
     }
 
-    public Channel(ChannelDao dao, ServerID origin, ChannelAlgo algo, EventService evSvc, Store store, DataServerManager srvMgr, SignalBus bus) {
+    public Channel(ChannelDao dao, ServerID origin, ChannelAlgo algo, EventService evSvc, DataStore store, DataServerManager srvMgr, SignalBus bus) {
         this.dao = dao;
         this.origin = origin;
         this.algo = algo;
@@ -153,7 +156,7 @@ public class Channel {
         }
 
         obj.addProperty(EventKey.ChannelId, getId().full());
-        obj.addProperty(EventKey.Id, algo.generateEventId(origin.tryDecode().orElse(origin.base())).full());
+        obj.addProperty(EventKey.Id, algo.generateEventId(origin.tryDecodeDns().orElse(origin.base())).full());
         obj.addProperty(EventKey.Timestamp, Instant.now().toEpochMilli());
 
         List<ChannelEvent> exts = getExtremities();
@@ -450,28 +453,44 @@ public class Channel {
     }
 
     public ChannelEvent invite(String inviter, EntityGUID invitee) {
-        // FIXME export to solve resolver class (Back to the Identity!)
-        String localpart;
-        String domain;
+        UserID uId;
+        ServerID remoteId;
+
         if ("email".equals(invitee.getNetwork())) {
             String[] data = invitee.getAddress().split("@", 2);
-            localpart = data[0];
-            domain = data[1];
+            String localpart = data[0];
+            String domain = data[1];
+            uId = UserID.from(localpart, domain);
+            remoteId = ServerID.fromDns(domain);
         } else if ("matrix".equals(invitee.getNetwork())) {
             String[] data = invitee.getAddress().split(":", 2);
-            localpart = data[0].substring(1);
-            domain = data[1];
+            String localpart = data[0].substring(1);
+            String domain = data[1];
+            uId = UserID.from(localpart, domain);
+            remoteId = ServerID.fromDns(domain);
         } else if ("grid".equals(invitee.getNetwork())) {
-            // FIXME We need an address class to properly parse this
-            String[] data = invitee.getAddress().substring(1).split("@", 2);
-            localpart = data[0];
-            domain = data[1];
+            String alias = invitee.getAddress();
+            if (!StringUtils.startsWith(alias, "@")) {
+                throw new IllegalArgumentException(alias + " is not a valid Grid User alias: Does not start with '@'");
+            }
+
+            String uAlias = alias.substring(1);
+            if (!StringUtils.contains(uAlias, "@")) {
+                throw new IllegalArgumentException(alias + " is not a valid Grid User alias: no server delimiter");
+            }
+
+            String[] data = uAlias.substring(1).split("@", 2);
+            DataServer srv = srvMgr.resolve(data[1]);
+            remoteId = srv.getId();
+
+            Optional<UserID> lookup = srv.lookup(origin.full(), new GenericThreePid("g.id.net.grid.alias", alias));
+            if (!lookup.isPresent()) {
+                throw new ObjectNotFoundException("User with alias " + alias);
+            }
+            uId = lookup.get();
         } else {
             throw new NotImplementedException("Alias network " + invitee.getNetwork());
         }
-
-        UserID uId = UserID.from(localpart, domain);
-        ServerID remoteId = ServerID.from(domain);
 
         BareMemberEvent ev = new BareMemberEvent();
         ev.setSender(inviter);

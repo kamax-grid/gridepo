@@ -60,4 +60,9 @@ public class GenericThreePid implements ThreePid {
         return Objects.hash(getMedium(), getAddress());
     }
 
+    @Override
+    public String toString() {
+        return medium + ":" + address;
+    }
+
 }

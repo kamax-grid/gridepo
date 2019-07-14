@@ -28,7 +28,7 @@ public class AuthPasswordDocument {
 
     public static AuthPasswordDocument from(JsonObject docRaw) {
         AuthPasswordDocument doc = GsonUtil.fromJson(docRaw, AuthPasswordDocument.class);
-        if (!StringUtils.equals("g.auth.password", doc.getType())) {
+        if (!StringUtils.equals("g.auth.id.password", doc.getType())) {
             throw new IllegalArgumentException("Document is not of password type");
         }
         return doc;

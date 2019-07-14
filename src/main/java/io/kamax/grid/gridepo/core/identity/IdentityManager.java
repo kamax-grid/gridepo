@@ -22,26 +22,26 @@ package io.kamax.grid.gridepo.core.identity;
 
 import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.config.IdentityConfig;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.crypto.Cryptopher;
+import io.kamax.grid.gridepo.core.crypto.KeyIdentifier;
+import io.kamax.grid.gridepo.core.crypto.KeyType;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.UserDao;
-import io.kamax.grid.gridepo.exception.ForbiddenException;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 public class IdentityManager {
 
     private IdentityConfig cfg;
-    private Store store;
+    private DataStore store;
+    private Cryptopher crypto;
 
-    public IdentityManager(IdentityConfig cfg, Store store) {
+    public IdentityManager(IdentityConfig cfg, DataStore store, Cryptopher crypto) {
         this.cfg = cfg;
         this.store = store;
+        this.crypto = crypto;
     }
 
     public boolean canRegister() {
@@ -52,41 +52,31 @@ public class IdentityManager {
         return !store.hasUsername(username);
     }
 
-    public synchronized void register(String username, String password) {
-        username = Objects.requireNonNull(username).toLowerCase();
-        password = Objects.requireNonNull(password);
-
-        if (store.hasUsername(username)) {
-            throw new IllegalArgumentException("Username already taken");
-        }
-
-        String salt = RandomStringUtils.randomAlphanumeric(16);
-        String encPwd = OpenBSDBCrypt.generate(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 12);
-
-        store.storeUser(RandomUtils.nextLong(), username, encPwd);
+    public User createUser() {
+        KeyIdentifier key = crypto.generateKey(KeyType.Regular);
+        String pubKey = crypto.getPublicKeyBase64(key);
+        String id = UUID.randomUUID().toString().replace("-", "");
+        long lid = store.addUser(id);
+        return new User(lid, id, store, crypto);
     }
 
-    public UserDao login(String username, String password) {
-        Optional<UserDao> user = store.findUser(username);
-        if (!user.isPresent()) {
-            throw new ForbiddenException("Invalid credentials");
-        }
-
-        String pass = user.get().getPass();
-        if (StringUtils.isEmpty(pass)) {
-            throw new ForbiddenException("Invalid credentials");
-        }
-
-        boolean isValid = OpenBSDBCrypt.checkPassword(pass, password.toCharArray());
-        if (!isValid) {
-            throw new ForbiddenException("Invalid credentials");
-        }
-
-        return user.get();
+    public User createUserWithKey() {
+        User user = createUser();
+        user.generateKey();
+        return user;
     }
 
-    public void addThreepid(long userLid, ThreePid tpid) {
-        store.addThreePid(userLid, tpid);
+    private User getUser(UserDao dao) {
+        return new User(dao.getLid(), dao.getId(), store, crypto);
+    }
+
+    public User getUser(String id) {
+        UserDao dao = store.findUser(id).orElseThrow(() -> new ObjectNotFoundException("User with ID " + id));
+        return getUser(dao);
+    }
+
+    public Optional<User> findUser(ThreePid tpid) {
+        return store.findUserByTreePid(tpid).map(this::getUser);
     }
 
 }

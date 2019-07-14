@@ -43,7 +43,6 @@ public class MemoryIdentityStoreSupplier implements IdentityStoreSupplier {
     @Override
     public IdentityStore build(IdentityConfig.Store cfg) {
         String id = GsonUtil.getStringOrThrow(GsonUtil.makeObj(cfg.getConfig()), "connection");
-        log.info("Returning Memory store for identity with namespace {}", id);
         return MemoryStore.get(id);
     }
 

@@ -88,12 +88,12 @@ public class RegisterPostHandler extends ClientApiHandler {
         String password = GsonUtil.getStringOrNull(req, "password");
         String username = GsonUtil.getStringOrThrow(req, "username");
 
-        g.getIdentity().register(username, password);
+        // g.getIdentity().register(username, password);
 
         UserSession session = g.login(username, password);
 
         JsonObject reply = new JsonObject();
-        reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + g.getDomain());
+        // reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + g.getDomain());
         reply.addProperty("access_token", session.getAccessToken());
         reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
 

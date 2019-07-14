@@ -18,29 +18,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.grid.server.io;
+package io.kamax.grid.gridepo.core.identity;
 
-import java.util.Set;
+import io.kamax.grid.ThreePid;
 
-public class ChannelLookupResponse {
+import java.util.Optional;
 
-    private String id;
-    private Set<String> servers;
+public interface ProfileIdentityStore {
 
-    public String getId() {
-        return id;
-    }
+    Optional<EntityProfile> findProfile(ThreePid uid);
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public Set<String> getServers() {
-        return servers;
-    }
-
-    public void setServers(Set<String> servers) {
-        this.servers = servers;
+    default EntityProfile getProfile(ThreePid uid) {
+        return findProfile(uid).orElseThrow(IllegalStateException::new);
     }
 
 }

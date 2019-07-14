@@ -20,32 +20,46 @@
 
 package io.kamax.grid.gridepo.core.auth;
 
-import io.kamax.grid.ThreePid;
+import java.util.Arrays;
 
-public class AuthResult {
+public class Credentials {
 
-    public static AuthResult failed() {
-        return new AuthResult(false, null);
+    private String type;
+    private char[] data;
+
+    public Credentials(String type, char[] data) {
+        this.type = type;
+        this.data = data;
     }
 
-    public static AuthResult success(ThreePid uid) {
-        return new AuthResult(true, uid);
+    public Credentials(String type, String data) {
+        this(type, data.toCharArray());
     }
 
-    private boolean success;
-    private ThreePid uid;
-
-    private AuthResult(boolean success, ThreePid uid) {
-        this.success = success;
-        this.uid = uid;
+    public String getType() {
+        return type;
     }
 
-    public boolean isSuccess() {
-        return success;
+    protected void setType(String type) {
+        this.type = type;
     }
 
-    public ThreePid getUid() {
-        return uid;
+    public char[] getData() {
+        return data;
+    }
+
+    public char[] getDataAndClear() {
+        char[] toReturn = data;
+        clear();
+        return toReturn;
+    }
+
+    protected void setData(char[] data) {
+        this.data = data;
+    }
+
+    public void clear() {
+        Arrays.fill(data, (char) 0);
     }
 
 }

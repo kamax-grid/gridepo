@@ -48,4 +48,9 @@ public class ChannelAlias extends EntityAlias {
         super(Sigill, local, network);
     }
 
+    @Override
+    public String toString() {
+        return full();
+    }
+
 }

@@ -30,7 +30,7 @@ import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import net.engio.mbassy.listener.Handler;
@@ -45,10 +45,10 @@ public class ChannelDirectory {
     private static final Logger log = KxLog.make(ChannelDirectory.class);
 
     private final ServerID origin;
-    private final Store store;
+    private final DataStore store;
     private final DataServerManager srvMgr;
 
-    public ChannelDirectory(ServerID origin, Store store, SignalBus bus, DataServerManager srvMgr) {
+    public ChannelDirectory(ServerID origin, DataStore store, SignalBus bus, DataServerManager srvMgr) {
         this.origin = origin;
         this.store = store;
         this.srvMgr = srvMgr;
@@ -77,15 +77,18 @@ public class ChannelDirectory {
     }
 
     public Optional<ChannelLookup> lookup(ChannelAlias alias, boolean recursive) {
-        ServerID aSrvID = ServerID.from(alias.network());
+        ServerID aSrvID = ServerID.fromDns(alias.network());
         if (origin.equals(aSrvID)) {
+            log.info("Looking for our own alias {}", alias);
             return store.lookupChannelAlias(alias.full()).map(id -> new ChannelLookup(alias, id, Collections.singleton(origin)));
         }
 
         if (!recursive) {
+            log.info("Recursive lookup is not requested, returning empty lookup");
             return Optional.empty();
         }
 
+        log.info("Looking recursively on {} for {}", aSrvID, alias);
         return srvMgr.get(aSrvID).lookup(origin.full(), alias);
     }
 

@@ -26,10 +26,13 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.JsonObject;
+import io.kamax.grid.GenericThreePid;
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.codec.GridHash;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.auth.AuthService;
+import io.kamax.grid.gridepo.core.auth.Credentials;
 import io.kamax.grid.gridepo.core.auth.UIAuthSession;
 import io.kamax.grid.gridepo.core.auth.UIAuthStage;
 import io.kamax.grid.gridepo.core.auth.multi.MultiStoreAuthService;
@@ -42,30 +45,31 @@ import io.kamax.grid.gridepo.core.event.EventStreamer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.federation.FederationPusher;
 import io.kamax.grid.gridepo.core.identity.IdentityManager;
+import io.kamax.grid.gridepo.core.identity.User;
 import io.kamax.grid.gridepo.core.signal.AppStopping;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
-import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.core.store.crypto.FileKeyStore;
 import io.kamax.grid.gridepo.core.store.crypto.KeyStore;
 import io.kamax.grid.gridepo.core.store.crypto.MemoryKeyStore;
-import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLStore;
+import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLDataStore;
+import io.kamax.grid.gridepo.exception.InternalServerError;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.UnauthenticatedException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class MonolithGridepo implements Gridepo {
 
@@ -77,7 +81,7 @@ public class MonolithGridepo implements Gridepo {
 
     private GridepoConfig cfg;
     private SignalBus bus;
-    private Store store;
+    private DataStore store;
     private KeyStore kStore;
     private AuthService authSvc;
     private IdentityManager idMgr;
@@ -94,13 +98,13 @@ public class MonolithGridepo implements Gridepo {
     public MonolithGridepo(GridepoConfig cfg) {
         this.cfg = cfg;
         if (cfg.getAuth().getFlows().isEmpty()) {
-            cfg.getAuth().addFlow().addStage("g.auth.password");
+            cfg.getAuth().addFlow().addStage("g.auth.id.password");
         }
 
         if (StringUtils.isBlank(cfg.getDomain())) {
             throw new RuntimeException("Configuration: domain cannot be blank");
         }
-        origin = ServerID.from(cfg.getDomain());
+        origin = ServerID.fromDns(cfg.getDomain());
 
         bus = new SignalBus();
 
@@ -124,7 +128,7 @@ public class MonolithGridepo implements Gridepo {
         if (StringUtils.equals("memory", dbStoreType)) {
             store = MemoryStore.get(cfg.getStorage().getDatabase().getConnection());
         } else if (StringUtils.equals("postgresql", dbStoreType)) {
-            store = new PostgreSQLStore(cfg.getStorage());
+            store = new PostgreSQLDataStore(cfg.getStorage());
         } else {
             throw new IllegalArgumentException("Unknown database type: " + dbStoreType);
         }
@@ -146,7 +150,7 @@ public class MonolithGridepo implements Gridepo {
         evSvc = new EventService(origin, crypto);
 
         authSvc = new MultiStoreAuthService(cfg);
-        idMgr = new IdentityManager(cfg.getIdentity(), store);
+        idMgr = new IdentityManager(cfg.getIdentity(), store, crypto);
         chMgr = new ChannelManager(this, bus, evSvc, store, dsMgr);
         streamer = new EventStreamer(store);
 
@@ -237,6 +241,13 @@ public class MonolithGridepo implements Gridepo {
         return authSvc;
     }
 
+    @Override
+    public void register(String username, String password) {
+        User user = getIdentity().createUserWithKey();
+        user.addThreePid(new GenericThreePid("g.id.username", username));
+        store.addCredentials(user.getLid(), new Credentials("g.auth.id.password", password));
+    }
+
     public UIAuthSession login() {
         return getAuth().getSession(getConfig().getAuth());
     }
@@ -246,24 +257,33 @@ public class MonolithGridepo implements Gridepo {
             throw new UnauthenticatedException(auth);
         }
 
-        UIAuthStage stage = auth.getStage("g.auth.password");
+        Set<String> idStages = auth.getCompletedStages().stream()
+                .filter(id -> id.startsWith("g.auth.id."))
+                .collect(Collectors.toSet());
 
-        String username = stage.getUid().orElseThrow(IllegalStateException::new);
-        UserDao dao = store.findUser(username).orElseThrow(IllegalStateException::new);
-        UserID uId = UserID.from(stage.getUid().orElseThrow(IllegalStateException::new), cfg.getDomain());
-        User u = new User(uId, username);
+        if (idStages.isEmpty()) {
+            throw new InternalServerError("No ID-based authentication was completed, cannot identify the user");
+        }
+
+        UIAuthStage stage = auth.getStage("g.auth.id.password");
+
+        ThreePid uid = stage.getUid();
+        User usr = getIdentity().findUser(uid).orElseGet(() -> {
+            User newUsr = idMgr.createUserWithKey();
+            newUsr.linkToStoreId(uid);
+            return newUsr;
+        });
 
         String token = JWT.create()
                 .withIssuer(cfg.getDomain())
                 .withIssuedAt(new Date())
                 .withExpiresAt(Date.from(Instant.ofEpochMilli(Long.MAX_VALUE)))
-                .withClaim("UserID", uId.full())
-                .withClaim("Username", username)
+                .withClaim("g.id.internal", usr.getId())
                 .sign(jwtAlgo);
 
-        store.insertUserAccessToken(dao.getLid(), token);
+        store.insertUserAccessToken(usr.getLid(), token);
         tokens.put(token, true);
-        return new UserSession(this, u, token);
+        return new UserSession(this, usr, token);
     }
 
     @Override
@@ -274,7 +294,7 @@ public class MonolithGridepo implements Gridepo {
         id.addProperty("type", "g.id.username");
         id.addProperty("value", username);
         JsonObject doc = new JsonObject();
-        doc.addProperty("type", "g.auth.password");
+        doc.addProperty("type", "g.auth.id.password");
         doc.addProperty("password", password);
         doc.add("identifier", id);
 
@@ -310,9 +330,9 @@ public class MonolithGridepo implements Gridepo {
 
         try {
             DecodedJWT data = jwtVerifier.verify(JWT.decode(token));
-            UserID uId = UserID.parse(data.getClaim("UserID").asString());
-            String username = data.getClaim("Username").asString();
-            return new UserSession(this, new User(uId, username), token);
+            String uid = data.getClaim("g.id.internal").asString();
+            User user = getIdentity().getUser(uid); // FIXME check in cluster for missing events
+            return new UserSession(this, user, token);
         } catch (JWTVerificationException e) {
             throw new InvalidTokenException("Invalid token");
         }
@@ -320,7 +340,7 @@ public class MonolithGridepo implements Gridepo {
 
     @Override
     public boolean isLocal(UserID uId) {
-        return getDomain().equals(new String(Base64.decodeBase64(uId.base()), StandardCharsets.UTF_8).split("@", 2)[1]);
+        return idMgr.findUser(new GenericThreePid("g.id.net.grid", uId.full())).isPresent();
     }
 
     @Override
@@ -329,7 +349,7 @@ public class MonolithGridepo implements Gridepo {
     }
 
     @Override
-    public Store getStore() {
+    public DataStore getStore() {
         return store;
     }
 

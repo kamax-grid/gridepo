@@ -18,45 +18,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.grid.server;
+package io.kamax.grid.gridepo.http.handler.grid.identity;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.GenericThreePid;
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.ServerSession;
-import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
+import io.kamax.grid.gridepo.core.identity.User;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.http.handler.grid.ServerApiHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-import java.util.List;
-
-public class DoPushHandler extends ServerApiHandler {
+public class UserLookupHandler extends ServerApiHandler {
 
     private final Gridepo g;
 
-    public DoPushHandler(Gridepo g) {
+    public UserLookupHandler(Gridepo g) {
         this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        ServerSession s = g.forServer(exchange.authenticate());
+        JsonObject id = exchange.parseJsonObject("identifier");
+        String type = GsonUtil.getStringOrThrow(id, "type"); // TODO use shared structure with client
+        String value = GsonUtil.getStringOrThrow(id, "value"); // TODO use shared structure with client
 
-        JsonObject body = exchange.parseJsonObject();
-        List<JsonObject> events = GsonUtil.asList(body, "events", JsonObject.class);
+        ThreePid tpid = new GenericThreePid(type, value);
+        User u = g.getIdentity().findUser(tpid).orElseThrow(() -> new ObjectNotFoundException("User with 3PID " + tpid));
 
-        List<ChannelEventAuthorization> response = s.push(events);
-
-        JsonObject result = new JsonObject();
-        response.forEach(evAuth -> {
-            if (evAuth.isValid() && evAuth.isAuthorized()) {
-                return;
-            }
-
-            JsonObject evAuthJson = new JsonObject();
-            evAuthJson.addProperty("reason", evAuth.getReason());
-            result.add(evAuth.getEventId().full(), evAuthJson);
-        });
-        exchange.respond(GsonUtil.makeObj("denied", result));
+        exchange.respond(GsonUtil.makeObj("id", u.getGridId().full()));
     }
 
 }

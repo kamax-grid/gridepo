@@ -36,7 +36,7 @@ import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.federation.FederationPusher;
 import io.kamax.grid.gridepo.core.identity.IdentityManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import org.apache.commons.lang3.StringUtils;
 
 public interface Gridepo {
@@ -61,7 +61,7 @@ public interface Gridepo {
 
     SignalBus getBus();
 
-    Store getStore();
+    DataStore getStore();
 
     IdentityManager getIdentity();
 
@@ -78,6 +78,8 @@ public interface Gridepo {
     FederationPusher getFedPusher();
 
     AuthService getAuth();
+
+    void register(String username, String password);
 
     UIAuthSession login();
 

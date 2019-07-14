@@ -29,16 +29,19 @@ import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.auth.AuthPasswordDocument;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
+import io.kamax.grid.gridepo.core.auth.Credentials;
+import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
 import io.kamax.grid.gridepo.core.identity.AuthIdentityStore;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
+import io.kamax.grid.gridepo.core.identity.ProfileIdentityStore;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
+import org.apache.mina.util.ConcurrentHashSet;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -47,7 +50,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-public class MemoryStore implements Store, IdentityStore {
+public class MemoryStore implements DataStore, IdentityStore {
 
     private static final Logger log = KxLog.make(MemoryStore.class);
 
@@ -58,9 +61,8 @@ public class MemoryStore implements Store, IdentityStore {
     }
 
     public static synchronized MemoryStore get(String o) {
-        log.info("Getting memory store for namespace {}", o);
         return singleton.computeIfAbsent(o, k -> {
-            log.info("Creating new memory store for namespace {}", k);
+            log.debug("Creating new memory store for namespace {}", k);
             return new MemoryStore();
         });
     }
@@ -73,30 +75,29 @@ public class MemoryStore implements Store, IdentityStore {
         return cfg;
     }
 
-    private AtomicLong eLid = new AtomicLong(0);
     private AtomicLong uLid = new AtomicLong(0);
     private AtomicLong chSid = new AtomicLong(0);
     private AtomicLong evLid = new AtomicLong(0);
     private AtomicLong evSid = new AtomicLong(0);
     private AtomicLong sSid = new AtomicLong(0);
 
-    private Map<Long, EntityDao> entities = new ConcurrentHashMap<>();
     private Map<Long, UserDao> users = new ConcurrentHashMap<>();
+    private Map<Long, Set<ThreePid>> userStoreIds = new ConcurrentHashMap<>();
+    private Map<Long, Map<String, SecureCredentials>> userCreds = new ConcurrentHashMap<>();
     private Map<Long, List<String>> uTokens = new ConcurrentHashMap<>();
+    private Map<Long, Set<ThreePid>> userThreepids = new ConcurrentHashMap<>();
+    private Map<String, Long> uNameToLid = new ConcurrentHashMap<>();
+
     private Map<Long, ChannelDao> channels = new ConcurrentHashMap<>();
     private Map<ChannelID, ChannelDao> chIdToDao = new ConcurrentHashMap<>();
     private Map<Long, ChannelEvent> chEvents = new ConcurrentHashMap<>();
     private Map<Long, ChannelState> chStates = new ConcurrentHashMap<>();
     private Map<Long, List<Long>> chFrontExtremities = new ConcurrentHashMap<>();
     private Map<Long, List<Long>> chBackExtremities = new ConcurrentHashMap<>();
-    private Map<Long, Long> evStates = new ConcurrentHashMap<>();
-    private Map<Long, List<ThreePid>> userThreepids = new ConcurrentHashMap<>();
-
-    private Map<String, Long> uNameToLid = new ConcurrentHashMap<>();
-
     private Map<String, ChannelID> chAliasToId = new ConcurrentHashMap<>();
     private Map<ChannelID, Map<ServerID, Set<String>>> chIdToAlias = new ConcurrentHashMap<>();
 
+    private Map<Long, Long> evStates = new ConcurrentHashMap<>();
     private Map<String, Long> evRefToLid = new ConcurrentHashMap<>();
     private Map<Long, Long> evSidToLid = new ConcurrentHashMap<>();
     private Map<Long, Long> evLidToSid = new ConcurrentHashMap<>();
@@ -111,19 +112,6 @@ public class MemoryStore implements Store, IdentityStore {
 
     private String makeRef(ChannelID cId, EventID eId) {
         return cId + "/" + eId;
-    }
-
-    @Override
-    public long addEntity(String id, String type, boolean isLocal) {
-        long lid = eLid.incrementAndGet();
-
-        EntityDao dao = new EntityDao();
-        dao.setLid(lid);
-        dao.setId(id);
-        dao.setType(type);
-        dao.setLocal(isLocal);
-        entities.put(lid, dao);
-        return lid;
     }
 
     @Override
@@ -361,6 +349,7 @@ public class MemoryStore implements Store, IdentityStore {
         return state;
     }
 
+    // FIXME must rename, no longer a username
     @Override
     public boolean hasUsername(String username) {
         return uNameToLid.containsKey(username);
@@ -372,21 +361,35 @@ public class MemoryStore implements Store, IdentityStore {
     }
 
     @Override
-    public long storeUser(long entityLid, String username, String password) {
-        if (hasUsername(username)) {
-            throw new IllegalStateException(username + " already exists");
+    public long addUser(String id) {
+        if (hasUsername(id)) {
+            throw new IllegalStateException(id + " already exists");
         }
 
         long lid = uLid.incrementAndGet();
         UserDao dao = new UserDao();
         dao.setLid(lid);
-        dao.setEntityLid(entityLid);
-        dao.setUsername(username);
-        dao.setPass(password);
+        dao.setId(id);
         users.put(lid, dao);
-        uNameToLid.put(username, lid);
+        userCreds.put(lid, new ConcurrentHashMap<>());
+        uNameToLid.put(id, lid);
 
         return lid;
+    }
+
+    @Override
+    public void addCredentials(long userLid, Credentials credentials) {
+        Map<String, SecureCredentials> creds = userCreds.get(userLid);
+        if (Objects.isNull(creds)) {
+            throw new IllegalStateException("No user with LID " + userLid);
+        }
+
+        creds.put(credentials.getType(), SecureCredentials.from(credentials));
+    }
+
+    @Override
+    public SecureCredentials getCredentials(long userLid, String type) {
+        return userCreds.getOrDefault(userLid, new HashMap<>()).get(type);
     }
 
     @Override
@@ -398,6 +401,28 @@ public class MemoryStore implements Store, IdentityStore {
     public Optional<UserDao> findUser(String username) {
         return Optional.ofNullable(uNameToLid.get(username))
                 .flatMap(lid -> Optional.ofNullable(users.get(lid)));
+    }
+
+    @Override
+    public Optional<UserDao> findUserByStoreLink(ThreePid storeId) {
+        for (Map.Entry<Long, Set<ThreePid>> entity : userStoreIds.entrySet()) {
+            if (entity.getValue().contains(storeId)) {
+                return findUser(entity.getKey());
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<UserDao> findUserByTreePid(ThreePid tpid) {
+        for (Map.Entry<Long, Set<ThreePid>> entity : userThreepids.entrySet()) {
+            if (entity.getValue().contains(tpid)) {
+                return findUser(entity.getKey());
+            }
+        }
+
+        return Optional.empty();
     }
 
     @Override
@@ -451,6 +476,7 @@ public class MemoryStore implements Store, IdentityStore {
         data.remove(origin);
         data.put(origin, new HashSet<>(chAliases));
         chAliases.forEach(cAlias -> chAliasToId.put(cAlias, cId));
+        log.info("Added aliases {} to {} on server {}", chAliases, cId, origin);
     }
 
     @Override
@@ -463,72 +489,99 @@ public class MemoryStore implements Store, IdentityStore {
     }
 
     @Override
-    public List<ThreePid> listThreePid(long userLid) {
-        findUser(userLid).orElseThrow(() -> new ObjectNotFoundException("User LID " + userLid));
+    public void linkUserToStore(long userLid, ThreePid storeId) {
+        Set<ThreePid> storeIds = userStoreIds.computeIfAbsent(userLid, lid -> new ConcurrentHashSet<>());
+        storeIds.add(storeId);
+    }
 
-        return new ArrayList<>(userThreepids.computeIfAbsent(userLid, k -> new CopyOnWriteArrayList<>()));
+    private Set<ThreePid> getThreepids(long userLid) {
+        return userThreepids.computeIfAbsent(userLid, k -> new ConcurrentHashSet<>());
     }
 
     @Override
-    public List<ThreePid> listThreePid(long userLid, String medium) {
+    public Set<ThreePid> listThreePid(long userLid) {
+        findUser(userLid).orElseThrow(() -> new ObjectNotFoundException("User LID " + userLid));
+
+        return new HashSet<>(getThreepids(userLid));
+    }
+
+    @Override
+    public Set<ThreePid> listThreePid(long userLid, String medium) {
         return listThreePid(userLid).stream()
-                .filter(v -> v.getMedium().equalsIgnoreCase(medium))
-                .collect(Collectors.toList());
+                .filter(v -> v.getMedium().equals(medium))
+                .collect(Collectors.toSet());
     }
 
     @Override
     public void addThreePid(long userLid, ThreePid tpid) {
-        List<ThreePid> tpidList = listThreePid(userLid);
-        tpidList.add(new GenericThreePid(tpid));
+        Set<ThreePid> tpids = getThreepids(userLid);
+        if (!tpids.add(tpid)) {
+            throw new IllegalStateException("Already added");
+        }
     }
 
     @Override
     public void removeThreePid(long userLid, ThreePid tpid) {
         GenericThreePid tpidIn = new GenericThreePid(tpid);
-        List<ThreePid> tpidList = userThreepids.get(userLid);
-        if (Objects.isNull(tpidList)) {
-            throw new IllegalArgumentException("3PID not found");
-        }
-
+        Set<ThreePid> tpidList = getThreepids(userLid);
         if (!tpidList.remove(tpidIn)) {
             throw new IllegalArgumentException("3PID not found");
         }
     }
 
     @Override
-    public Optional<AuthIdentityStore> forAuth() {
-        return Optional.of(new AuthIdentityStore() {
+    public String getType() {
+        return "memory";
+    }
+
+    @Override
+    public AuthIdentityStore forAuth() {
+        return new AuthIdentityStore() {
 
             @Override
             public Set<String> getSupportedTypes() {
-                return Collections.singleton("g.auth.password");
+                return Collections.singleton("g.auth.id.password");
             }
 
             @Override
-            public AuthResult authenticate(String type, JsonObject docJson) {
+            public Optional<AuthResult> authenticate(String type, JsonObject docJson) {
                 AuthPasswordDocument doc = AuthPasswordDocument.from(docJson);
-                if (!StringUtils.equals("g.auth.password", doc.getType())) {
+                if (!StringUtils.equals("g.auth.id.password", doc.getType())) {
                     throw new IllegalArgumentException();
                 }
 
+                Credentials creds = new Credentials("g.auth.id.password", doc.getPassword());
 
-                if (StringUtils.equals("g.id.username", doc.getIdentifier().getType())) {
-                    Optional<UserDao> dao = findUser(doc.getIdentifier().getValue());
-                    if (!dao.isPresent()) {
-                        return AuthResult.failed();
-                    }
 
-                    if (OpenBSDBCrypt.checkPassword(dao.get().getPass(), doc.getPassword().toCharArray())) {
-                        return AuthResult.success(dao.get().getUsername());
-                    } else {
-                        return AuthResult.failed();
-                    }
+                if (!StringUtils.equals("g.id.username", doc.getIdentifier().getType())) {
+                    log.info("Identifier type {} is not supported", doc.getIdentifier().getType());
+                    return Optional.empty();
                 }
 
-                return AuthResult.failed();
+                ThreePid username = new GenericThreePid(doc.getIdentifier().getType(), doc.getIdentifier().getValue());
+                Optional<UserDao> daoOpt = findUserByTreePid(username);
+                if (!daoOpt.isPresent()) {
+                    log.info("Authentication of {}: no user found", doc.getIdentifier().getValue());
+                    return Optional.empty();
+                }
+
+                UserDao dao = daoOpt.get();
+                SecureCredentials pass = userCreds.computeIfAbsent(dao.getLid(), i -> new ConcurrentHashMap<>()).get("g.auth.id.password");
+                if (pass.matches(creds)) {
+                    log.info("Authentication of {}: via password: success", dao.getId());
+                    return Optional.of(AuthResult.success(new GenericThreePid("g.id.local.store.memory.id", dao.getId())));
+                } else {
+                    log.info("Authentication of {}: via password: failure", dao.getId());
+                    return Optional.of(AuthResult.failed());
+                }
             }
 
-        });
+        };
+    }
+
+    @Override
+    public ProfileIdentityStore forProfile() {
+        return uid -> Optional.empty();
     }
 
 }

@@ -18,14 +18,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.identity;
+package io.kamax.test.grid.gridepo.core.auth;
 
-public interface IdentityStore {
+import io.kamax.grid.gridepo.core.auth.Credentials;
+import io.kamax.grid.gridepo.core.auth.SecureCredentials;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Test;
 
-    String getType();
+import static junit.framework.TestCase.assertTrue;
 
-    AuthIdentityStore forAuth();
+public class SecureCredentialsTest {
 
-    ProfileIdentityStore forProfile();
+    @Test
+    public void basic() {
+        String type = "g.test.auth.id.password";
+        String pass = RandomStringUtils.randomAlphanumeric(6);
+        Credentials creds = new Credentials(type, pass);
+
+        SecureCredentials secCreds = SecureCredentials.from(creds);
+        assertTrue(secCreds.matches(creds));
+        assertTrue(secCreds.matches(pass));
+        assertTrue(secCreds.matches(pass.toCharArray()));
+    }
 
 }

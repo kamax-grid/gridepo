@@ -61,12 +61,16 @@ public class EntityID {
         return complete;
     }
 
-    public Optional<String> tryDecode() {
+    protected Optional<String> tryDecode(String base) {
         try {
-            return Optional.of(new String(Base64.getUrlDecoder().decode(base()), StandardCharsets.UTF_8));
+            return Optional.of(new String(Base64.getUrlDecoder().decode(base), StandardCharsets.UTF_8));
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
+    }
+
+    public Optional<String> tryDecode() {
+        return tryDecode(base());
     }
 
     @Override

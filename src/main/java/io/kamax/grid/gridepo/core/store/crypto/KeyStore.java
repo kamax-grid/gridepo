@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Store to persist signing keys and the identifier for the current long-term signing key
+ * DataStore to persist signing keys and the identifier for the current long-term signing key
  */
 public interface KeyStore {
 
@@ -90,7 +90,7 @@ public interface KeyStore {
     void delete(KeyIdentifier id) throws ObjectNotFoundException;
 
     /**
-     * Store the information of which key is the current signing key
+     * DataStore the information of which key is the current signing key
      *
      * @param id The key identifier
      * @throws IllegalArgumentException If the key is not known to the store

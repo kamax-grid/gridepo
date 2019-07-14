@@ -20,15 +20,19 @@
 
 package io.kamax.test.grid.gridepo.core.store;
 
+import io.kamax.grid.GenericThreePid;
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.UserID;
+import io.kamax.grid.gridepo.core.auth.Credentials;
+import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.BareCreateEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.UserDao;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -39,11 +43,11 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
-public abstract class StoreTest {
+public abstract class DataStoreTest {
 
-    private Store store;
+    private DataStore store;
 
-    protected abstract Store getNewStore();
+    protected abstract DataStore getNewStore();
 
     private long makeChannel() {
         ChannelID id = ChannelID.from(UUID.randomUUID().toString(), "example.org");
@@ -63,51 +67,60 @@ public abstract class StoreTest {
     }
 
     @Test
-    public void newEntity() {
-        long id = store.addEntity(RandomStringUtils.random(12), null, false);
-        assertNotEquals(0, id);
-    }
-
-    @Test
     public void newUserDoesNotExistInNewStore() {
-        String user = RandomStringUtils.random(12);
+        String user = RandomStringUtils.randomAlphanumeric(12);
         assertFalse(store.hasUsername(user));
         assertFalse(store.findUser(user).isPresent());
     }
 
     @Test
     public void userSavedAndRead() {
-        long eLid = store.addEntity(RandomStringUtils.random(12), null, true);
-        String user = RandomStringUtils.random(12);
-        String password = RandomStringUtils.random(12);
-        store.storeUser(eLid, user, password);
+        String user = RandomStringUtils.randomAlphanumeric(12);
+        long uLid = store.addUser(user);
+        char[] password = RandomStringUtils.randomAlphanumeric(12).toCharArray();
+        store.addCredentials(uLid, new Credentials("g.auth.id.password", password));
 
         assertTrue(store.hasUsername(user));
         Optional<UserDao> dao = store.findUser(user);
         assertTrue(dao.isPresent());
-        assertEquals(password, dao.get().getPass());
+        SecureCredentials creds = store.getCredentials(uLid, "g.auth.id.password");
+        assertTrue(creds.matches(password));
+    }
+
+    @Test
+    public void linkUserToStoreId() {
+        String user = RandomStringUtils.randomAlphanumeric(12);
+        long uLid = store.addUser(user);
+        ThreePid storeUid = new GenericThreePid("g.test.id.local.store", RandomStringUtils.randomAlphanumeric(12));
+        store.linkUserToStore(uLid, storeUid);
+        Optional<UserDao> dao = store.findUserByStoreLink(storeUid);
+        assertTrue(dao.isPresent());
+        assertEquals(dao.get().getLid(), uLid);
+        assertEquals(dao.get().getId(), user);
     }
 
     @Test
     public void onlySavedUsersAreFound() {
-        long eLid1 = store.addEntity(RandomStringUtils.random(12), null, true);
-        String user1 = RandomStringUtils.random(12);
-        long eLid2 = store.addEntity(RandomStringUtils.random(12), null, true);
-        String user2 = RandomStringUtils.random(12);
-        String user3 = RandomStringUtils.random(12);
+        String user1 = RandomStringUtils.randomAlphanumeric(12);
+        String user2 = RandomStringUtils.randomAlphanumeric(12);
+        String user3 = RandomStringUtils.randomAlphanumeric(12);
 
-        store.storeUser(eLid1, user1, user1);
-        store.storeUser(eLid2, user2, user2);
+        long uLid1 = store.addUser(user1);
+        store.addCredentials(uLid1, new Credentials("g.auth.id.password", user1));
+        long uLid2 = store.addUser(user2);
+        store.addCredentials(uLid2, new Credentials("g.auth.id.password", user2));
 
         assertTrue(store.hasUsername(user1));
         Optional<UserDao> u1Dao = store.findUser(user1);
         assertTrue(u1Dao.isPresent());
-        assertEquals(user1, u1Dao.get().getPass());
+        SecureCredentials user1SecCreds = store.getCredentials(uLid1, "g.auth.id.password");
+        assertNotNull(user1SecCreds);
 
         assertTrue(store.hasUsername(user2));
         Optional<UserDao> u2Dao = store.findUser(user2);
         assertTrue(u2Dao.isPresent());
-        assertEquals(user2, u2Dao.get().getPass());
+        SecureCredentials user2SecCreds = store.getCredentials(uLid2, "g.auth.id.password");
+        assertNotNull(user2SecCreds);
 
         assertFalse(store.hasUsername(user3));
         assertFalse(store.findUser(user3).isPresent());
@@ -206,7 +219,7 @@ public abstract class StoreTest {
         Optional<ChannelID> addrBefore = store.lookupChannelAlias(cAlias);
         assertFalse(addrBefore.isPresent());
 
-        store.setAliases(ServerID.from("example.org"), cId, Collections.singleton(cAlias));
+        store.setAliases(ServerID.fromDns("example.org"), cId, Collections.singleton(cAlias));
         Optional<ChannelID> addrAfter = store.lookupChannelAlias(cAlias);
         assertTrue(addrAfter.isPresent());
         assertEquals(cId, addrAfter.get());

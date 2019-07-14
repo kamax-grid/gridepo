@@ -26,6 +26,7 @@ import io.kamax.grid.gridepo.core.crypto.Key;
 import io.kamax.grid.gridepo.core.crypto.Signature;
 import io.kamax.grid.gridepo.core.crypto.*;
 import io.kamax.grid.gridepo.core.store.crypto.KeyStore;
+import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import net.i2p.crypto.eddsa.EdDSAEngine;
 import net.i2p.crypto.eddsa.EdDSAPrivateKey;
 import net.i2p.crypto.eddsa.EdDSAPublicKey;
@@ -177,6 +178,21 @@ public class Ed25519Cryptopher implements Cryptopher {
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public KeyIdentifier getKeyWithPublic(String pubKeyBase64) {
+        if (StringUtils.isBlank(pubKeyBase64)) {
+            throw new IllegalArgumentException("Invalid public key: " + pubKeyBase64);
+        }
+
+        for (KeyIdentifier id : store.list()) {
+            if (StringUtils.equals(getPublicKeyBase64(id), pubKeyBase64)) {
+                return id;
+            }
+        }
+
+        throw new ObjectNotFoundException("No keypair with matching public key " + pubKeyBase64);
     }
 
 }

@@ -38,8 +38,8 @@ import io.kamax.grid.gridepo.core.crypto.ed25519.Ed25519Cryptopher;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
 import io.kamax.grid.gridepo.core.store.crypto.MemoryKeyStore;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
@@ -52,7 +52,7 @@ import static org.junit.Assert.*;
 public class ChannelTest {
 
     private final String domain = "localhost";
-    private final ServerID sId = ServerID.from(domain);
+    private final ServerID sId = ServerID.fromDns(domain);
     private final ChannelID cId = ChannelID.from("test", "domain");
     private final UserID janeId = UserID.from("jane", domain);
     private final UserID johnId = UserID.from("john", domain);
@@ -69,7 +69,7 @@ public class ChannelTest {
     public void basic() {
         SignalBus bus = SignalBus.getDefault();
         Cryptopher crypto = new Ed25519Cryptopher(new MemoryKeyStore());
-        Store store = MemoryStore.getNew();
+        DataStore store = MemoryStore.getNew();
         EventService evSvc = new EventService(sId, crypto);
         ChannelAlgo algo = new ChannelAlgoV0_0();
         DataServerManager srvMgr = new DataServerManager();

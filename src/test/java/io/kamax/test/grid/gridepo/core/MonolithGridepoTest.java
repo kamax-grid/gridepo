@@ -42,9 +42,9 @@ public class MonolithGridepoTest {
         Gridepo g = new MonolithGridepo(cfg);
         g.start();
 
-        g.getIdentity().register("gridepo", "gridepo");
+        g.register("gridepo", "gridepo");
         UserSession u = g.login("gridepo", "gridepo");
-        String uId = u.getUser().getId().full();
+        String uId = u.getUser().getGridId().full();
 
         Channel ch = g.getChannelManager().createChannel(uId);
         assertEquals(ChannelMembership.Join, ch.getView().getState().getMembership(uId));

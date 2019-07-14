@@ -45,7 +45,7 @@ public class LoginHandler extends ClientApiHandler {
             UserSession session = g.login(gCreds);
 
             JsonObject reply = new JsonObject();
-            reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + g.getDomain());
+            reply.addProperty("user_id", "@" + session.getUser().getId() + ":" + g.getDomain());
             reply.addProperty("access_token", session.getAccessToken());
             reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
 

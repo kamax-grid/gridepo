@@ -21,14 +21,14 @@
 package io.kamax.grid.gridepo.core.channel;
 
 import io.kamax.grid.gridepo.core.EventID;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.DataStore;
 
 public class ChannelTimeline {
 
     private long id;
-    private Store store;
+    private DataStore store;
 
-    public ChannelTimeline(long id, Store store) {
+    public ChannelTimeline(long id, DataStore store) {
         this.id = id;
         this.store = store;
     }

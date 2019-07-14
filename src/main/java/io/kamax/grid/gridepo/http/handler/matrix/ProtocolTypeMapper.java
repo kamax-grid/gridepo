@@ -9,7 +9,7 @@ public class ProtocolTypeMapper {
     private static BiMap<String, String> idTypes = HashBiMap.create();
 
     static {
-        authTypes.put("g.auth.password", "m.login.password");
+        authTypes.put("g.auth.id.password", "m.login.password");
         idTypes.put("g.id.username", "m.id.user");
     }
 

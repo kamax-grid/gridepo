@@ -18,34 +18,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core;
+package io.kamax.grid.gridepo.http.handler.grid.data;
 
-public class User {
+import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.ServerSession;
+import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
+import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.http.handler.grid.ServerApiHandler;
 
-    private Long lid;
-    private UserID id;
-    private String username;
+public class DoApproveInvite extends ServerApiHandler {
 
-    public User(Long lid, UserID id, String username) {
-        this.lid = lid;
-        this.id = id;
-        this.username = username;
+    private final Gridepo g;
+
+    public DoApproveInvite(Gridepo g) {
+        this.g = g;
     }
 
-    public User(UserID id, String username) {
-        this(null, id, username);
-    }
-
-    public Long getSid() {
-        return lid;
-    }
-
-    public UserID getId() {
-        return id;
-    }
-
-    public String getUsername() {
-        return username;
+    @Override
+    protected void handle(Exchange exchange) {
+        ServerSession s = g.forServer(exchange.authenticate());
+        InviteApprovalRequest request = exchange.parseJsonTo(InviteApprovalRequest.class);
+        exchange.respond(s.approveInvite(request));
     }
 
 }

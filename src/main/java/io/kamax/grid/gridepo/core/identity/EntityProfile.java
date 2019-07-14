@@ -20,12 +20,20 @@
 
 package io.kamax.grid.gridepo.core.identity;
 
-public interface IdentityStore {
+import io.kamax.grid.ThreePid;
 
-    String getType();
+import java.util.Set;
 
-    AuthIdentityStore forAuth();
+public interface EntityProfile {
 
-    ProfileIdentityStore forProfile();
+    ThreePid getUid();
+
+    String getDisplayName();
+
+    Set<ThreePid> getThreePids();
+
+    Set<ThreePid> findThreePid(String medium);
+
+    Set<String> getRoles();
 
 }

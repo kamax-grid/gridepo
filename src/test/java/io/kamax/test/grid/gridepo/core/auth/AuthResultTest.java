@@ -20,6 +20,7 @@
 
 package io.kamax.test.grid.gridepo.core.auth;
 
+import io.kamax.grid.GenericThreePid;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
 import org.junit.Test;
 
@@ -29,9 +30,10 @@ public class AuthResultTest {
 
     @Test
     public void success() {
-        AuthResult result = AuthResult.success("uid");
+        AuthResult result = AuthResult.success(new GenericThreePid("uid", "uid"));
         assertTrue(result.isSuccess());
-        assertEquals("uid", result.getUid());
+        assertEquals("uid", result.getUid().getMedium());
+        assertEquals("uid", result.getUid().getAddress());
     }
 
     @Test

@@ -37,7 +37,7 @@ import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
-import io.kamax.grid.gridepo.core.store.Store;
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.exception.EntityUnreachableException;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
@@ -63,12 +63,12 @@ public class ChannelManager {
     private Gridepo g;
     private SignalBus bus;
     private EventService evSvc;
-    private Store store;
+    private DataStore store;
     private DataServerManager dsmgr;
 
     private Map<ChannelID, Channel> channels = new ConcurrentHashMap<>();
 
-    public ChannelManager(Gridepo g, SignalBus bus, EventService evSvc, Store store, DataServerManager dsmgr) {
+    public ChannelManager(Gridepo g, SignalBus bus, EventService evSvc, DataStore store, DataServerManager dsmgr) {
         this.g = g;
         this.bus = bus;
         this.evSvc = evSvc;

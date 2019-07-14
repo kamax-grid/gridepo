@@ -20,13 +20,13 @@
 
 package io.kamax.test.grid.gridepo.core.store;
 
+import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
-import io.kamax.grid.gridepo.core.store.Store;
 
-public class MemoryStoreTest extends StoreTest {
+public class MemoryStoreTest extends DataStoreTest {
 
     @Override
-    protected Store getNewStore() {
+    protected DataStore getNewStore() {
         return MemoryStore.getNew();
     }
 

@@ -24,6 +24,8 @@ import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
+import io.kamax.grid.gridepo.core.auth.Credentials;
+import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
@@ -33,9 +35,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-public interface Store {
-
-    long addEntity(String id, String type, boolean isLocal);
+public interface DataStore {
 
     List<ChannelDao> listChannels();
 
@@ -96,11 +96,19 @@ public interface Store {
 
     long getUserCount();
 
-    long storeUser(long entityLid, String username, String password);
+    long addUser(String id);
+
+    void addCredentials(long userLid, Credentials credentials);
+
+    SecureCredentials getCredentials(long userLid, String type);
 
     Optional<UserDao> findUser(long lid);
 
-    Optional<UserDao> findUser(String username);
+    Optional<UserDao> findUser(String id);
+
+    Optional<UserDao> findUserByStoreLink(ThreePid storeId);
+
+    Optional<UserDao> findUserByTreePid(ThreePid tpid);
 
     boolean hasUserAccessToken(String token);
 
@@ -116,9 +124,11 @@ public interface Store {
 
     void unmap(String cAlias);
 
-    List<ThreePid> listThreePid(long userLid); // TODO consider making this a Set
+    void linkUserToStore(long userLid, ThreePid storeId);
 
-    List<ThreePid> listThreePid(long userLid, String medium); // TODO consider making this a Set
+    Set<ThreePid> listThreePid(long userLid); // TODO consider making this a Set
+
+    Set<ThreePid> listThreePid(long userLid, String medium); // TODO consider making this a Set
 
     void addThreePid(long userLid, ThreePid tpid);
 

@@ -21,8 +21,8 @@
 package io.kamax.test.grid.gridepo.core.store;
 
 import io.kamax.grid.gridepo.config.StorageConfig;
-import io.kamax.grid.gridepo.core.store.Store;
-import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLStore;
+import io.kamax.grid.gridepo.core.store.DataStore;
+import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLDataStore;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.BeforeClass;
@@ -31,10 +31,10 @@ import java.util.Objects;
 
 import static org.junit.Assume.assumeTrue;
 
-public class PostgresSQLStoreTest extends StoreTest {
+public class PostgresSQLDataStoreTest extends DataStoreTest {
 
     private static StorageConfig cfg = new StorageConfig();
-    private static PostgreSQLStore pStore;
+    private static PostgreSQLDataStore pStore;
 
     @BeforeClass
     public static void beforeClass() {
@@ -46,9 +46,9 @@ public class PostgresSQLStoreTest extends StoreTest {
     }
 
     @Override
-    protected Store getNewStore() {
+    protected DataStore getNewStore() {
         if (Objects.isNull(pStore)) {
-            pStore = new PostgreSQLStore(cfg);
+            pStore = new PostgreSQLDataStore(cfg);
         }
 
         return pStore;

@@ -22,6 +22,8 @@ package io.kamax.grid.gridepo.core;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Optional;
+
 public class ServerID extends EntityID {
 
     public static final String Sigill = ":";
@@ -36,6 +38,18 @@ public class ServerID extends EntityID {
 
     public static ServerID from(String namespace) {
         return new ServerID(encode(namespace));
+    }
+
+    public static ServerID fromDns(String domain) {
+        return new ServerID("dns:" + encode(domain));
+    }
+
+    public Optional<String> tryDecodeDns() {
+        if (!base().startsWith("dns:")) {
+            return Optional.empty();
+        }
+
+        return tryDecode(base().substring(4));
     }
 
     public ServerID(String id) {

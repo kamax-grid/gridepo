@@ -18,19 +18,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.http.handler.grid.server;
+package io.kamax.grid.gridepo.http.handler.grid.data;
 
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.ServerSession;
-import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
-import io.kamax.grid.gridepo.core.channel.structure.ApprovalExchange;
+import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.http.handler.grid.ServerApiHandler;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class DoApproveJoin extends ServerApiHandler {
+import java.util.List;
+
+public class DoPushHandler extends ServerApiHandler {
 
     private final Gridepo g;
 
-    public DoApproveJoin(Gridepo g) {
+    public DoPushHandler(Gridepo g) {
         this.g = g;
     }
 
@@ -38,10 +42,22 @@ public class DoApproveJoin extends ServerApiHandler {
     protected void handle(Exchange exchange) {
         ServerSession s = g.forServer(exchange.authenticate());
 
-        BareMemberEvent evToApprove = exchange.parseJsonTo(BareMemberEvent.class);
-        ApprovalExchange reply = s.approveJoin(evToApprove);
+        JsonObject body = exchange.parseJsonObject();
+        List<JsonObject> events = GsonUtil.asList(body, "events", JsonObject.class);
 
-        exchange.respondJson(reply);
+        List<ChannelEventAuthorization> response = s.push(events);
+
+        JsonObject result = new JsonObject();
+        response.forEach(evAuth -> {
+            if (evAuth.isValid() && evAuth.isAuthorized()) {
+                return;
+            }
+
+            JsonObject evAuthJson = new JsonObject();
+            evAuthJson.addProperty("reason", evAuth.getReason());
+            result.add(evAuth.getEventId().full(), evAuthJson);
+        });
+        exchange.respond(GsonUtil.makeObj("denied", result));
     }
 
 }

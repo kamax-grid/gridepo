@@ -66,4 +66,8 @@ public class DataServerManager {
                 .collect(Collectors.toList());
     }
 
+    public DataServer resolve(String hostname) {
+        return get(ServerID.fromDns(hostname));
+    }
+
 }

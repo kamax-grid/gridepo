@@ -48,7 +48,7 @@ public class BasicFederation extends Federation {
     public void inviteAndJoin() {
         Channel g1c1 = s1.createChannel();
         String c1Id = g1c1.getId().full();
-        s1.inviteToChannel(c1Id, new EntityGUID("grid", UserID.Sigill + n2 + EntityAlias.Delimiter + g2.getDomain())); // TODO use UserAlias sigill
+        s1.inviteToChannel(c1Id, new EntityGUID("grid", a2)); // TODO use UserAlias sigill
 
         ChannelMembership g1u2c1 = g1c1.getView().getState().getMembership(u2);
         assertEquals(ChannelMembership.Invite, g1u2c1);
@@ -171,10 +171,10 @@ public class BasicFederation extends Federation {
         Gridepo g3 = mg3.start();
         g3.getFedPusher().setAsync(false);
 
-        g3.getIdentity().register("shadow", pass);
+        g3.register("shadow", pass);
 
         UserSession s3 = g3.login("shadow", pass);
-        UserID u3 = s3.getUser().getId();
+        UserID u3 = s3.getUser().getGridId();
 
         String cId = makeSharedChannel();
         Channel g3c1 = s3.joinChannel(new ChannelAlias("test", g1.getDomain()));

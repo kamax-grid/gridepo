@@ -47,7 +47,7 @@ public class RoomAliasLookupHandler extends ClientApiHandler {
         ChannelLookup lookup = s.lookup(cAlias).orElseThrow(() -> new ObjectNotFoundException("Room alias", rAlias));
 
         JsonArray servers = new JsonArray();
-        lookup.getServers().forEach(id -> id.tryDecode().ifPresent(servers::add));
+        lookup.getServers().forEach(id -> id.tryDecodeDns().ifPresent(servers::add));
 
         JsonObject response = new JsonObject();
         response.addProperty("room_id", ProtocolEventMapper.fromGridToMatrix(lookup.getId()));

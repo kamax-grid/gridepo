@@ -18,14 +18,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.core.identity;
+package io.kamax.grid.gridepo.http.handler.grid.data.io;
 
-public interface IdentityStore {
+import java.util.Set;
 
-    String getType();
+public class ChannelLookupResponse {
 
-    AuthIdentityStore forAuth();
+    private String id;
+    private Set<String> servers;
 
-    ProfileIdentityStore forProfile();
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public Set<String> getServers() {
+        return servers;
+    }
+
+    public void setServers(Set<String> servers) {
+        this.servers = servers;
+    }
 
 }

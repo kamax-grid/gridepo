@@ -25,7 +25,6 @@ import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.config.UIAuthConfig;
 import io.kamax.grid.gridepo.core.auth.AuthService;
 import io.kamax.grid.gridepo.core.auth.UIAuthSession;
-import io.kamax.grid.gridepo.core.identity.AuthIdentityStore;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
 import io.kamax.grid.gridepo.core.identity.IdentityStoreSupplier;
 import io.kamax.grid.gridepo.core.identity.IdentityStoreSuppliers;
@@ -38,7 +37,7 @@ public class MultiStoreAuthService implements AuthService {
 
     private Map<String, IdentityStore> storeByLabel = new ConcurrentHashMap<>();
 
-    private Set<AuthIdentityStore> stores = new HashSet<>();
+    private Set<IdentityStore> stores = new HashSet<>();
     private Map<String, UIAuthSession> sessions = new ConcurrentHashMap<>();
 
     private IdentityStore forLabel(String label, IdentityConfig.Store storeCfg) {
@@ -47,7 +46,7 @@ public class MultiStoreAuthService implements AuthService {
             if (!store.isPresent()) {
                 store = IdentityStoreSuppliers.get(storeCfg.getType() + ".internal");
                 if (!store.isPresent()) {
-                    throw new IllegalStateException("No provider found for identity store type \"" + storeCfg.getType() + "\"");
+                    throw new IllegalStateException("No provider found for identity store type '" + storeCfg.getType() + "'");
                 }
             }
 
@@ -58,12 +57,7 @@ public class MultiStoreAuthService implements AuthService {
     public MultiStoreAuthService(GridepoConfig cfg) {
         cfg.getIdentity().getStores().forEach((label, storeCfg) -> {
             IdentityStore store = forLabel(label, storeCfg);
-            Optional<AuthIdentityStore> auth = store.forAuth();
-            if (!auth.isPresent()) {
-                return;
-            }
-
-            stores.add(auth.get());
+            stores.add(store);
         });
     }
 

@@ -21,9 +21,11 @@
 package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonObject;
+import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.ChannelAlias;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
@@ -45,5 +47,8 @@ public interface DataServerClient {
     Optional<ChannelLookup> lookup(String as, String target, ChannelAlias alias);
 
     Optional<JsonObject> getEvent(String as, String target, ChannelID cId, EventID eId);
+
+    //FIXME this needs to go under Identity client
+    Optional<UserID> lookupUser(String as, String target, ThreePid tpid);
 
 }
