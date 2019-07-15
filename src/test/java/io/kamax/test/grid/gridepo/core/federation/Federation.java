@@ -20,7 +20,6 @@
 
 package io.kamax.test.grid.gridepo.core.federation;
 
-import io.kamax.grid.GenericThreePid;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.ChannelAlias;
@@ -30,6 +29,7 @@ import io.kamax.grid.gridepo.core.channel.Channel;
 import io.kamax.grid.gridepo.core.channel.event.BareAliasEvent;
 import io.kamax.grid.gridepo.core.channel.event.BareJoiningEvent;
 import io.kamax.grid.gridepo.core.federation.DataServerHttpClient;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
 import io.kamax.grid.gridepo.http.MonolithHttpGridepo;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

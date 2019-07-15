@@ -20,8 +20,6 @@
 
 package io.kamax.grid.gridepo.core.identity;
 
-import io.kamax.grid.GenericThreePid;
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.UserID;
 import io.kamax.grid.gridepo.core.crypto.Cryptopher;
 import io.kamax.grid.gridepo.core.crypto.KeyIdentifier;

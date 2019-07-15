@@ -21,8 +21,6 @@
 package io.kamax.grid.gridepo.core.store;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.GenericThreePid;
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
@@ -34,9 +32,7 @@ import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
-import io.kamax.grid.gridepo.core.identity.AuthIdentityStore;
-import io.kamax.grid.gridepo.core.identity.IdentityStore;
-import io.kamax.grid.gridepo.core.identity.ProfileIdentityStore;
+import io.kamax.grid.gridepo.core.identity.*;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;

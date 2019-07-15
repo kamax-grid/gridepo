@@ -26,8 +26,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.JsonObject;
-import io.kamax.grid.GenericThreePid;
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.codec.GridHash;
 import io.kamax.grid.gridepo.config.GridepoConfig;
@@ -44,7 +42,9 @@ import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.event.EventStreamer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
 import io.kamax.grid.gridepo.core.federation.FederationPusher;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
 import io.kamax.grid.gridepo.core.identity.IdentityManager;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 import io.kamax.grid.gridepo.core.identity.User;
 import io.kamax.grid.gridepo.core.signal.AppStopping;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
@@ -57,6 +57,7 @@ import io.kamax.grid.gridepo.core.store.postgres.PostgreSQLDataStore;
 import io.kamax.grid.gridepo.exception.InternalServerError;
 import io.kamax.grid.gridepo.exception.InvalidTokenException;
 import io.kamax.grid.gridepo.exception.UnauthenticatedException;
+import io.kamax.grid.gridepo.network.matrix.core.MatrixServer;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;
@@ -346,6 +347,11 @@ public class MonolithGridepo implements Gridepo {
     @Override
     public ServerSession forServer(String srvId) {
         return new ServerSession(this, ServerID.parse(srvId));
+    }
+
+    @Override
+    public MatrixServer forMatrix(String host) {
+        return null;
     }
 
     @Override

@@ -20,8 +20,8 @@
 
 package io.kamax.grid.gridepo.core.auth;
 
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 
 import java.time.Instant;
 import java.util.Objects;

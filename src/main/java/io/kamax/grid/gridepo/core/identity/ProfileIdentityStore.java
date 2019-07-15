@@ -20,8 +20,6 @@
 
 package io.kamax.grid.gridepo.core.identity;
 
-import io.kamax.grid.ThreePid;
-
 import java.util.Optional;
 
 public interface ProfileIdentityStore {

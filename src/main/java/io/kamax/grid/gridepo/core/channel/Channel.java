@@ -21,7 +21,6 @@
 package io.kamax.grid.gridepo.core.channel;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.GenericThreePid;
 import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.algo.ChannelAlgo;
 import io.kamax.grid.gridepo.core.channel.event.*;
@@ -32,6 +31,7 @@ import io.kamax.grid.gridepo.core.event.EventKey;
 import io.kamax.grid.gridepo.core.event.EventService;
 import io.kamax.grid.gridepo.core.federation.DataServer;
 import io.kamax.grid.gridepo.core.federation.DataServerManager;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
 import io.kamax.grid.gridepo.core.signal.ChannelMessageProcessed;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.signal.SignalTopic;

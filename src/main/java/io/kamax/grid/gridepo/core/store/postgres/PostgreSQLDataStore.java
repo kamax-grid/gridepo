@@ -20,7 +20,6 @@
 
 package io.kamax.grid.gridepo.core.store.postgres;
 
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.config.StorageConfig;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
@@ -30,6 +29,7 @@ import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.SqlConnectionPool;
 import io.kamax.grid.gridepo.core.store.UserDao;

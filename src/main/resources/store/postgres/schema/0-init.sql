@@ -133,3 +133,4 @@ CREATE TABLE identity_user_threepids
     medium text NOT NULL,
     address text NOT NULL
 );
+

@@ -20,8 +20,8 @@
 
 package io.kamax.test.grid.gridepo.core.auth;
 
-import io.kamax.grid.GenericThreePid;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

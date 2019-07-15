@@ -20,7 +20,6 @@
 
 package io.kamax.grid.gridepo.core.store;
 
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
 import io.kamax.grid.gridepo.core.ServerID;
@@ -29,6 +28,7 @@ import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 
 import java.util.List;

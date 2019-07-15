@@ -20,8 +20,8 @@
 
 package io.kamax.test.grid;
 
-import io.kamax.grid.GenericThreePid;
-import io.kamax.grid.ThreePid;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

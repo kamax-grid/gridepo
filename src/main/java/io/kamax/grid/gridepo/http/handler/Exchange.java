@@ -35,10 +35,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class Exchange {
 
@@ -105,6 +102,23 @@ public class Exchange {
         return getQueryParameter(name);
     }
 
+    public String getHeader(String name) {
+        return exchange.getRequestHeaders().getFirst(name);
+    }
+
+    public String requireHeader(String name) {
+        String header = getHeader(name);
+        if (Objects.isNull(header)) {
+            throw new IllegalArgumentException("Header '" + name + "' is required");
+        }
+
+        return header;
+    }
+
+    public String requireHost() {
+        return requireHeader("Host");
+    }
+
     public Optional<String> getContentType() {
         return Optional.ofNullable(exchange.getRequestHeaders().getFirst("Content-Type"));
     }
@@ -135,7 +149,7 @@ public class Exchange {
 
     public void respond(int statusCode, JsonElement bodyJson) {
         if (log.isDebugEnabled()) {
-            log.debug("Body:{}", GsonUtil.getPrettyForLog(bodyJson));
+            log.debug("Body: {}", GsonUtil.getPrettyForLog(bodyJson));
         }
 
         respondJson(statusCode, GsonUtil.get().toJson(bodyJson));

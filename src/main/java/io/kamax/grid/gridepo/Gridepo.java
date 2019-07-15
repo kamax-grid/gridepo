@@ -37,6 +37,7 @@ import io.kamax.grid.gridepo.core.federation.FederationPusher;
 import io.kamax.grid.gridepo.core.identity.IdentityManager;
 import io.kamax.grid.gridepo.core.signal.SignalBus;
 import io.kamax.grid.gridepo.core.store.DataStore;
+import io.kamax.grid.gridepo.network.matrix.core.MatrixServer;
 import org.apache.commons.lang3.StringUtils;
 
 public interface Gridepo {
@@ -94,5 +95,7 @@ public interface Gridepo {
     boolean isLocal(UserID uId);
 
     ServerSession forServer(String srvId);
+
+    MatrixServer forMatrix(String host);
 
 }

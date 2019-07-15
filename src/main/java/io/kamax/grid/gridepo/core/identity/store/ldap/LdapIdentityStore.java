@@ -21,15 +21,10 @@
 package io.kamax.grid.gridepo.core.identity.store.ldap;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.GenericThreePid;
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.config.Identity.store.LdapConfig;
 import io.kamax.grid.gridepo.core.auth.AuthPasswordDocument;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
-import io.kamax.grid.gridepo.core.identity.AuthIdentityStore;
-import io.kamax.grid.gridepo.core.identity.EntityProfile;
-import io.kamax.grid.gridepo.core.identity.IdentityStore;
-import io.kamax.grid.gridepo.core.identity.ProfileIdentityStore;
+import io.kamax.grid.gridepo.core.identity.*;
 import io.kamax.grid.gridepo.exception.ConfigurationException;
 import io.kamax.grid.gridepo.exception.InternalServerError;
 import io.kamax.grid.gridepo.exception.NotImplementedException;

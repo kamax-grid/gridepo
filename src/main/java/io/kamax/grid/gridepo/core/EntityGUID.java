@@ -20,7 +20,7 @@
 
 package io.kamax.grid.gridepo.core;
 
-import io.kamax.grid.GenericThreePid;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
 
 public class EntityGUID extends GenericThreePid {
 

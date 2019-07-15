@@ -21,13 +21,13 @@
 package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonObject;
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.ApprovalExchange;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.slf4j.Logger;

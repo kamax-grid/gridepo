@@ -20,7 +20,7 @@
 
 package io.kamax.grid.gridepo.core.auth;
 
-import io.kamax.grid.ThreePid;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 
 public class AuthResult {
 

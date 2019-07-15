@@ -22,15 +22,15 @@ package io.kamax.grid.gridepo.core.federation;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.kamax.grid.ThreePid;
 import io.kamax.grid.gridepo.core.*;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
+import io.kamax.grid.gridepo.core.identity.ThreePid;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.RemoteServerException;
-import io.kamax.grid.gridepo.http.handler.grid.data.io.ChannelLookupResponse;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.data.io.ChannelLookupResponse;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import org.apache.commons.lang3.StringUtils;

@@ -24,10 +24,15 @@ import com.google.gson.JsonArray;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
-import io.kamax.grid.gridepo.http.handler.grid.data.*;
-import io.kamax.grid.gridepo.http.handler.grid.data.channel.GetEventHandler;
-import io.kamax.grid.gridepo.http.handler.grid.identity.UserLookupHandler;
-import io.kamax.grid.gridepo.http.handler.matrix.*;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.data.*;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.data.channel.GetEventHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.identity.UserLookupHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.matrix.home.client.*;
+import io.kamax.grid.gridepo.network.matrix.http.HomeClientAPI;
+import io.kamax.grid.gridepo.network.matrix.http.HomeClientAPIr0;
+import io.kamax.grid.gridepo.network.matrix.http.handler.NotFoundHandler;
+import io.kamax.grid.gridepo.network.matrix.http.handler.OptionsHandler;
+import io.kamax.grid.gridepo.network.matrix.http.handler.identity.HelloHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
 import io.kamax.grid.gridepo.util.TlsUtils;
@@ -136,60 +141,60 @@ public class MonolithHttpGridepo {
 
         handler
                 // CORS support
-                .add("OPTIONS", ClientAPI.Base + "/**", new OptionsHandler())
+                .add("OPTIONS", HomeClientAPI.Base + "/**", new OptionsHandler())
 
                 // Fundamental endpoints
-                .get(ClientAPI.Base + "/versions", new VersionsHandler())
-                .get(ClientAPIr0.Base + "/login", new LoginGetHandler(g))
-                .post(ClientAPIr0.Base + "/login", new LoginHandler(g))
-                .get(ClientAPIr0.Base + "/sync", new SyncHandler(g))
-                .post(ClientAPIr0.Base + "/logout", new LogoutHandler(g))
+                .get(HomeClientAPI.Base + "/versions", new VersionsHandler())
+                .get(HomeClientAPIr0.Base + "/login", new LoginGetHandler(g))
+                .post(HomeClientAPIr0.Base + "/login", new LoginHandler(g))
+                .get(HomeClientAPIr0.Base + "/sync", new SyncHandler(g))
+                .post(HomeClientAPIr0.Base + "/logout", new LogoutHandler(g))
 
                 // Account endpoints
-                .get(ClientAPIr0.Base + "/register/available", new RegisterAvailableHandler(g))
-                .post(ClientAPIr0.Base + "/register", new RegisterPostHandler(g))
-                .get(ClientAPIr0.Base + "/account/3pid", new JsonObjectHandler(
+                .get(HomeClientAPIr0.Base + "/register/available", new RegisterAvailableHandler(g))
+                .post(HomeClientAPIr0.Base + "/register", new RegisterPostHandler(g))
+                .get(HomeClientAPIr0.Base + "/account/3pid", new JsonObjectHandler(
                         g,
                         true,
                         GsonUtil.makeObj("threepids", new JsonArray()))
                 )
 
                 // User-related endpoints
-                .get(ClientAPIr0.Base + "/profile/**", new EmptyJsonObjectHandler(g, false))
-                .post(ClientAPIr0.Base + "/user_directory/search", new UserDirectorySearchHandler(g))
+                .get(HomeClientAPIr0.Base + "/profile/**", new EmptyJsonObjectHandler(g, false))
+                .post(HomeClientAPIr0.Base + "/user_directory/search", new UserDirectorySearchHandler(g))
 
                 // Room management endpoints
-                .post(ClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
-                .post(ClientAPIr0.Room + "/invite", new RoomInviteHandler(g))
-                .post(ClientAPIr0.Base + "/join/{roomId}", new RoomJoinHandler(g))
-                .post(ClientAPIr0.Room + "/leave", new RoomLeaveHandler(g))
-                .post(ClientAPIr0.Room + "/forget", new EmptyJsonObjectHandler(g, true))
-                .get(ClientAPIr0.Room + "/initialSync", new RoomInitialSyncHandler(g))
+                .post(HomeClientAPIr0.Base + "/createRoom", new CreateRoomHandler(g))
+                .post(HomeClientAPIr0.Room + "/invite", new RoomInviteHandler(g))
+                .post(HomeClientAPIr0.Base + "/join/{roomId}", new RoomJoinHandler(g))
+                .post(HomeClientAPIr0.Room + "/leave", new RoomLeaveHandler(g))
+                .post(HomeClientAPIr0.Room + "/forget", new EmptyJsonObjectHandler(g, true))
+                .get(HomeClientAPIr0.Room + "/initialSync", new RoomInitialSyncHandler(g))
 
                 // Room event endpoints
-                .put(ClientAPIr0.Room + "/send/{type}/{txnId}", new SendRoomEventHandler(g))
-                .put(ClientAPIr0.Room + "/state/{type}", srsHandler)
-                .put(ClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
-                .get(ClientAPIr0.Room + "/messages", new RoomMessagesHandler(g))
+                .put(HomeClientAPIr0.Room + "/send/{type}/{txnId}", new SendRoomEventHandler(g))
+                .put(HomeClientAPIr0.Room + "/state/{type}", srsHandler)
+                .put(HomeClientAPIr0.Room + "/state/{type}/{stateKey}", srsHandler)
+                .get(HomeClientAPIr0.Room + "/messages", new RoomMessagesHandler(g))
 
                 // Room Directory endpoints
-                .get(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomAliasLookupHandler(g))
-                .put(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryAddHandler(g))
-                .delete(ClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryRemoveHandler(g))
-                .post(ClientAPIr0.Base + "/publicRooms", new PublicChannelListingHandler(g))
+                .get(HomeClientAPIr0.Directory + "/room/{roomAlias}", new RoomAliasLookupHandler(g))
+                .put(HomeClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryAddHandler(g))
+                .delete(HomeClientAPIr0.Directory + "/room/{roomAlias}", new RoomDirectoryRemoveHandler(g))
+                .post(HomeClientAPIr0.Base + "/publicRooms", new PublicChannelListingHandler(g))
 
                 // Not supported over Matrix
-                .post(ClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))
-                .put(ClientAPIr0.Room + "/typing/{userId}", new EmptyJsonObjectHandler(g, true))
-                .put(ClientAPIr0.UserID + "/rooms/{roomId}/account_data/{type}", new EmptyJsonObjectHandler(g, true))
-                .get(ClientAPIr0.UserID + "/filter/{filterId}", new FilterGetHandler(g))
-                .post(ClientAPIr0.UserID + "/filter", new FiltersPostHandler(g))
+                .post(HomeClientAPIr0.Room + "/read_markers", new EmptyJsonObjectHandler(g, true))
+                .put(HomeClientAPIr0.Room + "/typing/{userId}", new EmptyJsonObjectHandler(g, true))
+                .put(HomeClientAPIr0.UserID + "/rooms/{roomId}/account_data/{type}", new EmptyJsonObjectHandler(g, true))
+                .get(HomeClientAPIr0.UserID + "/filter/{filterId}", new FilterGetHandler(g))
+                .post(HomeClientAPIr0.UserID + "/filter", new FiltersPostHandler(g))
 
                 // So various Matrix clients (e.g. Riot) stops spamming us with requests
-                .get(ClientAPIr0.Base + "/pushrules/", new PushRulesHandler())
-                .put(ClientAPIr0.Base + "/presence/**", new EmptyJsonObjectHandler(g, true))
-                .get(ClientAPIr0.Base + "/voip/turnServer", new EmptyJsonObjectHandler(g, true))
-                .get(ClientAPIr0.Base + "/joined_groups", new EmptyJsonObjectHandler(g, true))
+                .get(HomeClientAPIr0.Base + "/pushrules/", new PushRulesHandler())
+                .put(HomeClientAPIr0.Base + "/presence/**", new EmptyJsonObjectHandler(g, true))
+                .get(HomeClientAPIr0.Base + "/voip/turnServer", new EmptyJsonObjectHandler(g, true))
+                .get(HomeClientAPIr0.Base + "/joined_groups", new EmptyJsonObjectHandler(g, true))
 
                 .setFallbackHandler(new NotFoundHandler())
                 .setInvalidMethodHandler(new NotFoundHandler());
@@ -209,6 +214,15 @@ public class MonolithHttpGridepo {
 
     private void buildMatrixIdentity(RoutingHandler handler, GridepoConfig.NetworkListener network) {
         log.warn("Tried to add Matrix Identity role but not implemented yet");
+
+        HelloHandler helloHandler = new HelloHandler();
+
+        handler
+                // CORS support
+                .add("OPTIONS", "/_matrix/identity/**", new OptionsHandler())
+                .get(HelloHandler.Path, helloHandler)
+                .get(HelloHandler.Path + "/", helloHandler) // Be lax with possibly trailing slash
+        ;
     }
 
     private void buildMatrix(RoutingHandler handler, GridepoConfig.NetworkListener network) {
