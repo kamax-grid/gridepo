@@ -80,7 +80,9 @@ public interface Gridepo {
 
     AuthService getAuth();
 
-    void register(String username, String password);
+    UIAuthSession register();
+
+    UserSession register(String username, String password);
 
     UIAuthSession login();
 

@@ -21,10 +21,15 @@
 package io.kamax.grid.gridepo.network.grid.http.handler.matrix.home.client;
 
 import io.kamax.grid.gridepo.Gridepo;
+import io.kamax.grid.gridepo.core.GridType;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
+import io.kamax.grid.gridepo.core.identity.User;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.network.matrix.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
+
+import java.util.Optional;
 
 public class RegisterAvailableHandler extends ClientApiHandler {
 
@@ -41,11 +46,12 @@ public class RegisterAvailableHandler extends ClientApiHandler {
         }
 
         String username = exchange.getQueryParameter("username");
-        if (g.getIdentity().isUsernameAvailable(username)) {
-            exchange.respond(GsonUtil.makeObj("available", true));
-        } else {
+        Optional<User> u = g.getIdentity().findUser(new GenericThreePid(GridType.id().local().username(), username));
+        if (u.isPresent()) {
             throw new IllegalArgumentException("Not available, not allowed, who knows?");
         }
+
+        exchange.respond(GsonUtil.makeObj("available", true));
     }
 
 }

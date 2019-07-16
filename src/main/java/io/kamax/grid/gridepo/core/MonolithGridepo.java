@@ -243,12 +243,32 @@ public class MonolithGridepo implements Gridepo {
     }
 
     @Override
-    public void register(String username, String password) {
-        User user = getIdentity().createUserWithKey();
-        user.addThreePid(new GenericThreePid("g.id.username", username));
-        store.addCredentials(user.getLid(), new Credentials("g.auth.id.password", password));
+    public UIAuthSession register() {
+        return getAuth().getSession(getConfig().getAuth());
     }
 
+    private UserSession createSession(User usr) {
+        String token = JWT.create()
+                .withIssuer(cfg.getDomain())
+                .withIssuedAt(new Date())
+                .withExpiresAt(Date.from(Instant.ofEpochMilli(Long.MAX_VALUE)))
+                .withClaim(GridType.of("id.internal"), usr.getId())
+                .sign(jwtAlgo);
+
+        store.insertUserAccessToken(usr.getLid(), token);
+        tokens.put(token, true);
+        return new UserSession(this, usr, token);
+    }
+
+    @Override
+    public UserSession register(String username, String password) {
+        User user = getIdentity().createUserWithKey();
+        user.addThreePid(new GenericThreePid(GridType.id().local().username(), username));
+        store.addCredentials(user.getLid(), new Credentials(GridType.of("auth.id.password"), password));
+        return createSession(user);
+    }
+
+    @Override
     public UIAuthSession login() {
         return getAuth().getSession(getConfig().getAuth());
     }
@@ -259,14 +279,15 @@ public class MonolithGridepo implements Gridepo {
         }
 
         Set<String> idStages = auth.getCompletedStages().stream()
-                .filter(id -> id.startsWith("g.auth.id."))
+                .filter(id -> id.startsWith(GridType.of("auth.id.")))
                 .collect(Collectors.toSet());
 
         if (idStages.isEmpty()) {
             throw new InternalServerError("No ID-based authentication was completed, cannot identify the user");
         }
 
-        UIAuthStage stage = auth.getStage("g.auth.id.password");
+        // FIXME assumption that it will be done via password
+        UIAuthStage stage = auth.getStage(GridType.of("auth.id.password"));
 
         ThreePid uid = stage.getUid();
         User usr = getIdentity().findUser(uid).orElseGet(() -> {
@@ -275,16 +296,7 @@ public class MonolithGridepo implements Gridepo {
             return newUsr;
         });
 
-        String token = JWT.create()
-                .withIssuer(cfg.getDomain())
-                .withIssuedAt(new Date())
-                .withExpiresAt(Date.from(Instant.ofEpochMilli(Long.MAX_VALUE)))
-                .withClaim("g.id.internal", usr.getId())
-                .sign(jwtAlgo);
-
-        store.insertUserAccessToken(usr.getLid(), token);
-        tokens.put(token, true);
-        return new UserSession(this, usr, token);
+        return createSession(usr);
     }
 
     @Override
@@ -292,10 +304,10 @@ public class MonolithGridepo implements Gridepo {
         UIAuthSession session = login();
 
         JsonObject id = new JsonObject();
-        id.addProperty("type", "g.id.username");
+        id.addProperty("type", GridType.id().local().username().getId());
         id.addProperty("value", username);
         JsonObject doc = new JsonObject();
-        doc.addProperty("type", "g.auth.id.password");
+        doc.addProperty("type", GridType.of("auth.id.password"));
         doc.addProperty("password", password);
         doc.add("identifier", id);
 
@@ -331,7 +343,7 @@ public class MonolithGridepo implements Gridepo {
 
         try {
             DecodedJWT data = jwtVerifier.verify(JWT.decode(token));
-            String uid = data.getClaim("g.id.internal").asString();
+            String uid = data.getClaim(GridType.of("id.internal")).asString();
             User user = getIdentity().getUser(uid); // FIXME check in cluster for missing events
             return new UserSession(this, user, token);
         } catch (JWTVerificationException e) {
@@ -341,7 +353,7 @@ public class MonolithGridepo implements Gridepo {
 
     @Override
     public boolean isLocal(UserID uId) {
-        return idMgr.findUser(new GenericThreePid("g.id.net.grid", uId.full())).isPresent();
+        return idMgr.findUser(new GenericThreePid(GridType.of("id.net.grid"), uId.full())).isPresent();
     }
 
     @Override

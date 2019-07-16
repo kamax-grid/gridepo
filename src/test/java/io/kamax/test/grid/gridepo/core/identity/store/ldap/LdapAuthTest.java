@@ -27,6 +27,7 @@ import com.unboundid.ldap.listener.InMemoryListenerConfig;
 import com.unboundid.ldap.sdk.LDAPException;
 import io.kamax.grid.gridepo.config.Identity.store.GenericLdapConfig;
 import io.kamax.grid.gridepo.config.Identity.store.LdapConfig;
+import io.kamax.grid.gridepo.core.GridType;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
 import io.kamax.grid.gridepo.core.identity.store.ldap.LdapIdentityStore;
 import org.junit.AfterClass;
@@ -86,7 +87,7 @@ public class LdapAuthTest {
         cfg.setBaseDNs(dnList);
         cfg.setConnection(conn);
         Map<String, List<String>> maps = cfg.getIdentity().getMapping();
-        maps.put("g.id.username", Collections.singletonList(idAttribute));
+        maps.put(GridType.id().local().username().getId(), Collections.singletonList(idAttribute));
         cfg.getIdentity().setMapping(maps);
 
         return cfg;
@@ -97,7 +98,7 @@ public class LdapAuthTest {
         LdapIdentityStore p = new LdapIdentityStore(buildCfg());
 
         JsonObject id = new JsonObject();
-        id.addProperty("type", "g.id.username");
+        id.addProperty("type", GridType.id().local().username().getId());
         id.addProperty("value", userId);
         JsonObject doc = new JsonObject();
         doc.addProperty("type", "g.auth.id.password");

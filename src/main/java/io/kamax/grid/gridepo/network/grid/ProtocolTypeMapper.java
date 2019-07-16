@@ -2,6 +2,7 @@ package io.kamax.grid.gridepo.network.grid;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import io.kamax.grid.gridepo.core.GridType;
 
 public class ProtocolTypeMapper {
 
@@ -9,8 +10,8 @@ public class ProtocolTypeMapper {
     private static BiMap<String, String> idTypes = HashBiMap.create();
 
     static {
-        authTypes.put("g.auth.id.password", "m.login.password");
-        idTypes.put("g.id.username", "m.id.user");
+        authTypes.put(GridType.of("auth.id.password"), "m.login.password");
+        idTypes.put(GridType.id().local().username().getId(), "m.id.user");
     }
 
     public static class GridToMatrix {

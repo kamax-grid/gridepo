@@ -89,9 +89,7 @@ public class RegisterPostHandler extends ClientApiHandler {
         String password = GsonUtil.getStringOrNull(req, "password");
         String username = GsonUtil.getStringOrThrow(req, "username");
 
-        // g.getIdentity().register(username, password);
-
-        UserSession session = g.login(username, password);
+        UserSession session = g.register(username, password);
 
         JsonObject reply = new JsonObject();
         // reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + g.getDomain());

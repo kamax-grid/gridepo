@@ -20,6 +20,8 @@
 
 package io.kamax.grid.gridepo.core.identity;
 
+import io.kamax.grid.gridepo.core.Type;
+
 import java.util.Objects;
 
 public class GenericThreePid implements ThreePid {
@@ -29,6 +31,10 @@ public class GenericThreePid implements ThreePid {
 
     public GenericThreePid(ThreePid tpid) {
         this(tpid.getMedium(), tpid.getAddress());
+    }
+
+    public GenericThreePid(Type type, String address) {
+        this(type.getId(), address);
     }
 
     public GenericThreePid(String medium, String address) {

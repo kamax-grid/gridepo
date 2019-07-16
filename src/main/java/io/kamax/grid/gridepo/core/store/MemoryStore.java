@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.config.IdentityConfig;
 import io.kamax.grid.gridepo.core.ChannelID;
 import io.kamax.grid.gridepo.core.EventID;
+import io.kamax.grid.gridepo.core.GridType;
 import io.kamax.grid.gridepo.core.ServerID;
 import io.kamax.grid.gridepo.core.auth.AuthPasswordDocument;
 import io.kamax.grid.gridepo.core.auth.AuthResult;
@@ -536,20 +537,20 @@ public class MemoryStore implements DataStore, IdentityStore {
 
             @Override
             public Set<String> getSupportedTypes() {
-                return Collections.singleton("g.auth.id.password");
+                return Collections.singleton(GridType.of("auth.id.password"));
             }
 
             @Override
             public Optional<AuthResult> authenticate(String type, JsonObject docJson) {
                 AuthPasswordDocument doc = AuthPasswordDocument.from(docJson);
-                if (!StringUtils.equals("g.auth.id.password", doc.getType())) {
+                if (!StringUtils.equals(GridType.of("auth.id.password"), doc.getType())) {
                     throw new IllegalArgumentException();
                 }
 
-                Credentials creds = new Credentials("g.auth.id.password", doc.getPassword());
+                Credentials creds = new Credentials(GridType.of("auth.id.password"), doc.getPassword());
 
 
-                if (!StringUtils.equals("g.id.username", doc.getIdentifier().getType())) {
+                if (!GridType.id().local().username().matches(doc.getIdentifier().getType())) {
                     log.info("Identifier type {} is not supported", doc.getIdentifier().getType());
                     return Optional.empty();
                 }
@@ -562,10 +563,10 @@ public class MemoryStore implements DataStore, IdentityStore {
                 }
 
                 UserDao dao = daoOpt.get();
-                SecureCredentials pass = userCreds.computeIfAbsent(dao.getLid(), i -> new ConcurrentHashMap<>()).get("g.auth.id.password");
+                SecureCredentials pass = userCreds.computeIfAbsent(dao.getLid(), i -> new ConcurrentHashMap<>()).get(GridType.of("auth.id.password"));
                 if (pass.matches(creds)) {
                     log.info("Authentication of {}: via password: success", dao.getId());
-                    return Optional.of(AuthResult.success(new GenericThreePid("g.id.local.store.memory.id", dao.getId())));
+                    return Optional.of(AuthResult.success(new GenericThreePid(GridType.id().local("store.memory.id"), dao.getId())));
                 } else {
                     log.info("Authentication of {}: via password: failure", dao.getId());
                     return Optional.of(AuthResult.failed());
