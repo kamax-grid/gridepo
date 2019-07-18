@@ -27,6 +27,7 @@ import io.kamax.grid.gridepo.core.UserSession;
 import io.kamax.grid.gridepo.exception.ForbiddenException;
 import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
+import io.kamax.grid.gridepo.network.grid.ProtocolEventMapper;
 import io.kamax.grid.gridepo.network.matrix.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -92,7 +93,7 @@ public class RegisterPostHandler extends ClientApiHandler {
         UserSession session = g.register(username, password);
 
         JsonObject reply = new JsonObject();
-        // reply.addProperty("user_id", "@" + session.getUser().getUsername() + ":" + g.getDomain());
+        reply.addProperty("user_id", "@" + ProtocolEventMapper.forUserIdFromGridToMatrix(session.getUser().getGridId().full()));
         reply.addProperty("access_token", session.getAccessToken());
         reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
 

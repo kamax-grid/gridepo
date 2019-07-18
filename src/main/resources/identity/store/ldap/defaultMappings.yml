@@ -1,4 +1,4 @@
-g.id.username:
+g.id.local.username:
   - 'sAMAccountName'
 g.id.net.matrix:
   - 'sAMAccountName'

@@ -49,8 +49,8 @@ public class RoomMessagesHandler extends ClientApiHandler {
         String from = exchange.getQueryParameter("from");
         String dir = exchange.getQueryParameter("dir");
 
-        ChannelID cId = ChannelID.from(ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId));
-        EventID anchor = EventID.from(from);
+        ChannelID cId = ChannelID.parse(ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId));
+        EventID anchor = EventID.parse(from);
         TimelineDirection direction = StringUtils.equals("b", dir) ? TimelineDirection.Backward : TimelineDirection.Forward;
 
         TimelineChunk chunk = u.paginateTimeline(cId, anchor, direction, 10);

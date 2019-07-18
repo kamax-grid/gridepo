@@ -213,7 +213,7 @@ public class Channel {
         long maxParentDepth = bEv.getDepth() - 1;
         if (!isSeed) {
             maxParentDepth = bEv.getPreviousEvents().stream()
-                    .map(EventID::from)
+                    .map(EventID::parse)
                     .map(pEvId -> {
                         if (recursive) {
                             return processIfNotAlready(pEvId);
@@ -263,7 +263,7 @@ public class Channel {
 
         if (ev.getMeta().isAllowed()) {
             List<Long> toRemove = ev.getBare().getPreviousEvents().stream()
-                    .map(id -> store.findEventLid(getId(), EventID.from(id)))
+                    .map(id -> store.findEventLid(getId(), EventID.parse(id)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());

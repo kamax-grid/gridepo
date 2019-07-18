@@ -45,8 +45,8 @@ public class GetEventHandler extends ServerApiHandler {
     protected void handle(Exchange exchange) {
         ServerSession s = g.forServer(exchange.authenticate());
 
-        ChannelID cId = ChannelID.from(exchange.getPathVariable("channelId"));
-        EventID eId = EventID.from(exchange.getPathVariable("eventId"));
+        ChannelID cId = ChannelID.parse(exchange.getPathVariable("channelId"));
+        EventID eId = EventID.parse(exchange.getPathVariable("eventId"));
         Optional<ChannelEvent> cEv = s.getEvent(cId, eId);
         JsonObject data = cEv.flatMap(ev -> {
             if (!ev.getMeta().isPresent()) {

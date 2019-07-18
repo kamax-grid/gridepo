@@ -33,7 +33,7 @@ public class ProtocolEventMapperTest {
         ChannelID cId = ChannelID.from("a", "example.org");
         String rId = ProtocolEventMapper.forChannelIdFromGridToMatrix(cId.full());
         String cIdRawMap = ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId);
-        ChannelID cIdMap = ChannelID.from(cIdRawMap);
+        ChannelID cIdMap = ChannelID.parse(cIdRawMap);
         assertEquals(cId, cIdMap);
     }
 

@@ -218,7 +218,7 @@ public class ChannelAlgoV0_0 implements ChannelAlgo {
         BareGenericEvent ev = toProto(evRaw);
 
         if (Objects.isNull(evId)) {
-            evId = EventID.from(ev.getId());
+            evId = EventID.parse(ev.getId());
         }
 
         ChannelEventAuthorization.Builder auth = new ChannelEventAuthorization.Builder(evId);

@@ -27,11 +27,9 @@ import io.kamax.grid.gridepo.exception.NotImplementedException;
 import io.kamax.grid.gridepo.network.matrix.http.json.*;
 import io.kamax.grid.gridepo.util.GsonUtil;
 import io.kamax.grid.gridepo.util.KxLog;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -310,33 +308,27 @@ public class ProtocolEventMapper {
     }
 
     public static String forUserIdFromMatrixToGrid(String mId) {
-        String gId = mId.substring(1);
-        String[] parts = gId.split(":", 1);
-        gId = UserID.from(parts[0], parts[1]).full();
+        String[] parts = mId.split(":", 2);
+        String gId = UserID.parse(parts[0]).full();
         log.debug("User ID: Matrix -> Grid: {} -> {}", mId, gId);
         return gId;
     }
 
     public static String forUserIdFromGridToMatrix(String gId) {
-        String mId = gId.substring(1);
-        mId = new String(Base64.decodeBase64(mId), StandardCharsets.UTF_8);
-        mId = "@" + mId.replace("@", ":");
+        String mId = gId + ":g";
         log.debug("User ID: Grid -> Matrix: {} -> {}", mId, gId);
         return mId;
     }
 
     public static String forEventIdFromMatrixToGrid(String mId) {
-        String gId = mId.substring(1);
-        String[] parts = gId.split(":", 1);
-        gId = EventID.from(parts[0], parts[1]).full();
+        String[] parts = mId.split(":", 2);
+        String gId = EventID.parse(parts[0]).full();
         log.debug("Event ID: Matrix -> Grid: {} -> {}", mId, gId);
         return gId;
     }
 
     public static String forEventIdFromGridToMatrix(String gId) {
-        String mId = gId.substring(1);
-        mId = new String(Base64.decodeBase64(mId), StandardCharsets.UTF_8);
-        mId = "$" + mId.replace("@", ":");
+        String mId = gId + ":g";
         log.debug("Event ID: Grid -> Matrix: {} -> {}", gId, mId);
         return mId;
     }
@@ -350,10 +342,7 @@ public class ProtocolEventMapper {
             return gId;
         }
 
-        String mId = gId.substring(1);
-        mId = new String(Base64.decodeBase64(mId), StandardCharsets.UTF_8);
-        String[] parts = mId.split("@");
-        mId = "!" + Base64.encodeBase64URLSafeString(parts[0].getBytes(StandardCharsets.UTF_8)) + ":" + parts[1];
+        String mId = gId + ":g";
         log.debug("Channel ID: Grid -> Matrix: {} -> {}", gId, mId);
         return mId;
     }
@@ -363,9 +352,8 @@ public class ProtocolEventMapper {
             return mId;
         }
 
-        String gId = mId.substring(1);
-        String[] parts = gId.split(":", 2);
-        gId = ChannelID.from(new String(Base64.decodeBase64(parts[0]), StandardCharsets.UTF_8), parts[1]).full();
+        String[] parts = mId.split(":", 2);
+        String gId = ChannelID.parse(parts[0]).full();
         log.debug("Channel ID: Matrix -> Grid: {} -> {}", mId, gId);
         return gId;
     }

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class ChannelEvent {
 
     public static ChannelEvent forNotFound(long cSid, String evId) {
-        return forNotFound(cSid, EventID.from(evId));
+        return forNotFound(cSid, EventID.parse(evId));
     }
 
     public static ChannelEvent forNotFound(long cSid, EventID evId) {
@@ -120,7 +120,7 @@ public class ChannelEvent {
 
     public EventID getId() {
         if (Objects.isNull(id)) {
-            id = EventID.from(getBare().getId());
+            id = EventID.parse(getBare().getId());
         }
         return id;
     }
@@ -144,7 +144,7 @@ public class ChannelEvent {
 
     public List<EventID> getPreviousEvents() {
         if (Objects.isNull(prevEvents)) {
-            prevEvents = getBare().getPreviousEvents().stream().map(EventID::from).collect(Collectors.toList());
+            prevEvents = getBare().getPreviousEvents().stream().map(EventID::parse).collect(Collectors.toList());
         }
 
         return prevEvents;

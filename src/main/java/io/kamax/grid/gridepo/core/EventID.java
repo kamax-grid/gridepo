@@ -26,7 +26,7 @@ public class EventID extends EntityID {
 
     public static final String Sigill = "$";
 
-    public static EventID from(String id) {
+    public static EventID parse(String id) {
         if (!StringUtils.startsWith(id, Sigill)) {
             throw new IllegalArgumentException("Does not start with " + Sigill);
         }

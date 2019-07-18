@@ -58,7 +58,7 @@ public class RoomDirectoryAddHandler extends ClientApiHandler {
         }
 
         String cAlias = rAlias.replaceFirst(":", "@");
-        ChannelID cId = ChannelID.from(ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId));
+        ChannelID cId = ChannelID.parse(ProtocolEventMapper.forChannelIdFromMatrixToGrid(rId));
 
         s.addChannelAlias(cAlias, cId);
 

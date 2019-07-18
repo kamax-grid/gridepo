@@ -26,7 +26,7 @@ public class ChannelID extends EntityID {
 
     public static final String Sigill = "#";
 
-    public static ChannelID from(String id) {
+    public static ChannelID parse(String id) {
         if (!StringUtils.startsWith(id, Sigill)) {
             throw new IllegalArgumentException("Does not start with " + Sigill);
         }

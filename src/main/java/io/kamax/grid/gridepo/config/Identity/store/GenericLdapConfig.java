@@ -31,30 +31,9 @@ public class GenericLdapConfig extends LdapConfig {
 
     @Override
     protected Map<String, List<String>> getDefaultIdentityMappings() {
-        String data = "g.id.username:\n" +
-                "  - 'sAMAccountName'\n" +
-                "g.id.net.matrix:\n" +
-                "  - 'sAMAccountName'\n" +
-                "g.id.net.email:\n" +
-                "  - 'email'\n" +
-                "  - 'mailPrimaryAddress'\n" +
-                "  - 'mail'\n" +
-                "  - 'otherMailbox'\n" +
-                "g.id.net.phone.msisdn:\n" +
-                "  - 'msisdn'\n" +
-                "  - 'telephoneNumber'\n" +
-                "  - 'mobile'\n" +
-                "  - 'homePhone'\n" +
-                "  - 'otherTelephone'\n" +
-                "  - 'otherMobile'\n" +
-                "  - 'otherHomePhone'";
-
         Type type = new TypeToken<Map<String, List<String>>>() {
         }.getType();
-        // FIXME loading from resource doesn't work, but it works in PostgreSQL store - why?
-        //return YamlConfigLoader.loadFromResource("/identity/store/ldap/defaultMappings.yml", type);
-
-        return YamlConfigLoader.loadAs(data, type);
+        return YamlConfigLoader.loadFromResource("/identity/store/ldap/defaultMappings.yml", type);
     }
 
 }

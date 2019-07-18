@@ -118,7 +118,7 @@ public class ChannelManager {
 
     public Channel create(String from, JsonObject seedJson, List<JsonObject> stateJson) {
         BareMemberEvent ev = GsonUtil.fromJson(seedJson, BareMemberEvent.class);
-        ChannelDao dao = new ChannelDao(ChannelID.from(ev.getChannelId()));
+        ChannelDao dao = new ChannelDao(ChannelID.parse(ev.getChannelId()));
         dao = store.saveChannel(dao);
 
         BareCreateEvent createEv = GsonUtil.fromJson(stateJson.get(0), BareCreateEvent.class);
@@ -152,7 +152,7 @@ public class ChannelManager {
     }
 
     public Channel get(String id) {
-        return get(ChannelID.from(id));
+        return get(ChannelID.parse(id));
     }
 
     public Channel join(ChannelAlias cAlias, UserID uId) {

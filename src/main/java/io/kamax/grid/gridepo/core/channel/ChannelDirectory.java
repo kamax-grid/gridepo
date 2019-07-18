@@ -73,7 +73,7 @@ public class ChannelDirectory {
         }
 
         BareAliasEvent ev = GsonUtil.fromJson(evP.getEvent().getData(), BareAliasEvent.class);
-        setAliases(ChannelID.from(ev.getChannelId()), ev.getContent().getAliases());
+        setAliases(ChannelID.parse(ev.getChannelId()), ev.getContent().getAliases());
     }
 
     public Optional<ChannelLookup> lookup(ChannelAlias alias, boolean recursive) {

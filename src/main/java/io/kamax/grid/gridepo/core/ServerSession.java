@@ -81,7 +81,7 @@ public class ServerSession {
         log.info("Approving invite from {} for {} in {}", mEv.getSender(), mEv.getScope(), chId);
 
         JsonObject invEv = g.getEventService().sign(request.getObject());
-        Optional<Channel> chOpt = g.getChannelManager().find(ChannelID.from(chId));
+        Optional<Channel> chOpt = g.getChannelManager().find(ChannelID.parse(chId));
 
         if (chOpt.isPresent()) {
             ChannelEventAuthorization auth = chOpt.get().offer(id.full(), invEv);
@@ -102,7 +102,7 @@ public class ServerSession {
         markActive();
 
         // We make sure we are given a valid Channel ID
-        ChannelID cId = ChannelID.from(ev.getChannelId());
+        ChannelID cId = ChannelID.parse(ev.getChannelId());
 
         // We make sure we know the channel itself
         Channel c = g.getChannelManager().find(cId).orElseThrow(() -> new ObjectNotFoundException("Channel", cId));

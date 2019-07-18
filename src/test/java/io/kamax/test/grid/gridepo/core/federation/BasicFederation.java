@@ -111,7 +111,7 @@ public class BasicFederation extends Federation {
         assertEquals(g2Ev2Id, g1c1.getView().getHead().full());
         assertEquals(g2Ev2Id, g2c1.getView().getHead().full());
 
-        Optional<ChannelEvent> g1Ev1 = g1.getStore().findEvent(ChannelID.from(cId), EventID.from(g2Ev1Id));
+        Optional<ChannelEvent> g1Ev1 = g1.getStore().findEvent(ChannelID.parse(cId), EventID.parse(g2Ev1Id));
         assertTrue(g1Ev1.isPresent());
     }
 
@@ -126,7 +126,7 @@ public class BasicFederation extends Federation {
         List<Callable<EventID>> tasks = new ArrayList<>();
         for (int i = 0; i < 16; i++) {
             int j = i;
-            tasks.add(() -> EventID.from(s1.send(cId, BareMessageEvent.build(u1, "Message " + j).getJson())));
+            tasks.add(() -> EventID.parse(s1.send(cId, BareMessageEvent.build(u1, "Message " + j).getJson())));
         }
 
         List<EventID> events = executor.invokeAll(tasks).stream().map(f -> {
@@ -138,17 +138,17 @@ public class BasicFederation extends Federation {
         }).collect(Collectors.toList());
 
         g1.getFedPusher().setEnabled(true);
-        events.add(EventID.from(s1.send(cId, BareMessageEvent.build(u1, "Final message").getJson())));
+        events.add(EventID.parse(s1.send(cId, BareMessageEvent.build(u1, "Final message").getJson())));
 
         for (EventID evId : events) {
-            Optional<ChannelEvent> g1c1evOpt = g1.getStore().findEvent(ChannelID.from(cId), evId);
+            Optional<ChannelEvent> g1c1evOpt = g1.getStore().findEvent(ChannelID.parse(cId), evId);
             assertTrue(g1c1evOpt.isPresent());
             ChannelEvent g1c1ev = g1c1evOpt.get();
             assertTrue(g1c1ev.getMeta().isPresent());
             assertTrue(g1c1ev.getMeta().isProcessed());
             assertTrue(g1c1ev.getMeta().isAllowed());
 
-            Optional<ChannelEvent> g2c1evOpt = g2.getStore().findEvent(ChannelID.from(cId), evId);
+            Optional<ChannelEvent> g2c1evOpt = g2.getStore().findEvent(ChannelID.parse(cId), evId);
             assertTrue(g2c1evOpt.isPresent());
             ChannelEvent g2c1ev = g2c1evOpt.get();
             assertTrue(g2c1ev.getMeta().isPresent());
@@ -179,7 +179,7 @@ public class BasicFederation extends Federation {
         String cId = makeSharedChannel();
         Channel g3c1 = s3.joinChannel(new ChannelAlias("test", g1.getDomain()));
 
-        assertEquals(g3c1.getId(), ChannelID.from(cId));
+        assertEquals(g3c1.getId(), ChannelID.parse(cId));
         assertEquals(3, g3c1.getView().getAllServers().size());
     }
 

@@ -372,7 +372,7 @@ public class DataServerHttpClient implements DataServerClient {
                                 return Optional.empty();
                             }
 
-                            ChannelID cId = ChannelID.from(data.getId());
+                            ChannelID cId = ChannelID.parse(data.getId());
                             Set<ServerID> srvIds = data.getServers().stream().map(ServerID::parse).collect(Collectors.toSet());
                             return Optional.of(new ChannelLookup(alias, cId, srvIds));
                         } catch (IllegalArgumentException e) {
