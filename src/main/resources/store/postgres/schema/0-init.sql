@@ -7,9 +7,9 @@ CREATE TABLE entities
     CONSTRAINT entities_id_uq UNIQUE (id)
 );
 CREATE INDEX entities_id_idx
-    ON entities USING hash(id);
+    ON entities(id);
 CREATE INDEX entities_type_idx
-    ON entities USING hash(type);
+    ON entities(type);
 
 CREATE TABLE entity_routes
 (
@@ -30,9 +30,9 @@ CREATE TABLE channels
     CONSTRAINT c_ids UNIQUE (id, network)
 );
 CREATE INDEX IF NOT EXISTS c_id_idx
-    ON channels USING hash(id);
+    ON channels(id);
 CREATE INDEX IF NOT EXISTS c_net_idx
-    ON channels USING hash(network);
+    ON channels(network);
 
 CREATE TABLE channel_events
 (
@@ -44,9 +44,9 @@ CREATE TABLE channel_events
     CONSTRAINT c_ev_gid UNIQUE(id,channel_lid)
 );
 CREATE INDEX IF NOT EXISTS c_ev_id_idx
-    ON channel_events USING hash(id);
+    ON channel_events(id);
 CREATE INDEX IF NOT EXISTS c_ev_cid_idx
-    ON channel_events USING hash(channel_lid);
+    ON channel_events(channel_lid);
 
 CREATE TABLE channel_states
 (
@@ -100,9 +100,9 @@ CREATE TABLE identity_users
     CONSTRAINT id_user_id UNIQUE (id)
 );
 CREATE INDEX IF NOT EXISTS id_user_lid_idx
-    ON identity_users USING hash(lid);
+    ON identity_users(lid);
 CREATE INDEX IF NOT EXISTS id_user_id_idx
-    ON identity_users USING hash(id);
+    ON identity_users(id);
 
 CREATE TABLE user_access_tokens
 (
@@ -131,6 +131,6 @@ CREATE TABLE identity_user_threepids
 (
     user_lid bigint NOT NULL,
     medium text NOT NULL,
-    address text NOT NULL
+    address text NOT NULL,
+    CONSTRAINT id_u_tpid UNIQUE(user_lid, medium, address)
 );
-

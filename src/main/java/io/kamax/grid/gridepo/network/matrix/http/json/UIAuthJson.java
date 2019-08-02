@@ -48,7 +48,7 @@ public class UIAuthJson {
     }
 
     private List<Flow> flows = new ArrayList<>();
-    private Map<String, JsonObject> parameters = new HashMap<>();
+    private Map<String, JsonObject> params = new HashMap<>();
     private String session;
 
     public List<Flow> getFlows() {
@@ -65,12 +65,12 @@ public class UIAuthJson {
         return f;
     }
 
-    public Map<String, JsonObject> getParameters() {
-        return parameters;
+    public Map<String, JsonObject> getParams() {
+        return params;
     }
 
-    public void setParameters(Map<String, JsonObject> parameters) {
-        this.parameters = parameters;
+    public void setParams(Map<String, JsonObject> params) {
+        this.params = params;
     }
 
     public String getSession() {

@@ -29,6 +29,7 @@ import io.kamax.grid.gridepo.core.auth.SecureCredentials;
 import io.kamax.grid.gridepo.core.channel.ChannelDao;
 import io.kamax.grid.gridepo.core.channel.event.ChannelEvent;
 import io.kamax.grid.gridepo.core.channel.state.ChannelState;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
 import io.kamax.grid.gridepo.core.identity.ThreePid;
 import io.kamax.grid.gridepo.core.store.DataStore;
 import io.kamax.grid.gridepo.core.store.SqlConnectionPool;
@@ -842,22 +843,69 @@ public class PostgreSQLDataStore implements DataStore {
 
     @Override
     public Set<ThreePid> listThreePid(long userLid) {
-        throw new RuntimeException("Not implemented");
+        Set<ThreePid> list = new HashSet<>();
+
+        String sql = "SELECT * FROM identity_user_threepids WHERE user_lid = ?";
+        withStmtConsumer(sql, stmt -> {
+            stmt.setLong(1, userLid);
+            try (ResultSet rSet = stmt.executeQuery()) {
+                while (rSet.next()) {
+                    String medium = rSet.getString("medium");
+                    String address = rSet.getString("address");
+                    list.add(new GenericThreePid(medium, address));
+                }
+            }
+        });
+
+        return list;
     }
 
     @Override
-    public Set<ThreePid> listThreePid(long userLid, String medium) {
-        throw new RuntimeException("Not implemented");
+    public Set<ThreePid> listThreePid(long userLid, String mediumFilter) {
+        Set<ThreePid> list = new HashSet<>();
+
+        String sql = "SELECT * FROM identity_user_threepids WHERE user_lid = ? AND medium = ?";
+        withStmtConsumer(sql, stmt -> {
+            stmt.setLong(1, userLid);
+            stmt.setString(2, mediumFilter);
+            try (ResultSet rSet = stmt.executeQuery()) {
+                while (rSet.next()) {
+                    String medium = rSet.getString("medium");
+                    String address = rSet.getString("address");
+                    list.add(new GenericThreePid(medium, address));
+                }
+            }
+        });
+
+        return list;
     }
 
     @Override
     public void addThreePid(long userLid, ThreePid tpid) {
-        throw new RuntimeException("Not implemented");
+        String sql = "INSERT INTO identity_user_threepids(user_lid, medium, address) VALUES (?,?,?)";
+        withStmtConsumer(sql, stmt -> {
+            stmt.setLong(1, userLid);
+            stmt.setString(2, tpid.getMedium());
+            stmt.setString(3, tpid.getAddress());
+            int rc = stmt.executeUpdate();
+            if (rc < 1) {
+                throw new IllegalStateException("User 3PID insert: DB inserted " + rc + " rows. 1 expected");
+            }
+        });
     }
 
     @Override
     public void removeThreePid(long userLid, ThreePid tpid) {
-        throw new RuntimeException("Not implemented");
+        String sql = "DELETE FROM identity_user_threepids WHERE user_lid = ? AND medium = ? AND address = ?";
+        withStmtConsumer(sql, stmt-> {
+            stmt.setLong(1, userLid);
+            stmt.setString(2, tpid.getMedium());
+            stmt.setString(3, tpid.getAddress());
+            int rc = stmt.executeUpdate();
+            if (rc < 1) {
+                throw new IllegalStateException("User 3PID delete: DB deleted " + rc + " rows. 1 expected");
+            }
+        });
     }
 
 }

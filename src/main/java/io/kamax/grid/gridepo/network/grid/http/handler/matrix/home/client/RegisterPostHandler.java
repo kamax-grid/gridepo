@@ -71,15 +71,18 @@ public class RegisterPostHandler extends ClientApiHandler {
         }
 
         JsonObject req = exchange.parseJsonObject();
+        JsonObject auth = GsonUtil.findObj(req, "auth").orElseGet(JsonObject::new);
 
-        Optional<JsonObject> authOpt = GsonUtil.findObj(req, "auth");
-        Optional<String> sessionOpt = authOpt.flatMap(v -> GsonUtil.findString(v, "session"));
+        // TODO implement UI Auth session
+        /*
+        Optional<String> sessionOpt = GsonUtil.findString(auth, "session");
         if (!authOpt.isPresent() || !sessionOpt.isPresent()) {
             exchange.respond(HttpStatus.SC_UNAUTHORIZED, makeFlows());
             return;
         }
-        JsonObject auth = authOpt.get();
+
         String sessionId = sessionOpt.get();
+         */
 
         String type = GsonUtil.findString(auth, "type").orElse("m.login.password");
 
@@ -87,13 +90,19 @@ public class RegisterPostHandler extends ClientApiHandler {
             throw new IllegalArgumentException("Type " + type + " is not valid");
         }
 
+        String username = GsonUtil.getStringOrNull(req, "username");
+        if (StringUtils.isEmpty(username)) {
+            exchange.respond(HttpStatus.SC_UNAUTHORIZED, makeFlows());
+            return;
+        }
+
         String password = GsonUtil.getStringOrNull(req, "password");
-        String username = GsonUtil.getStringOrThrow(req, "username");
+
 
         UserSession session = g.register(username, password);
 
         JsonObject reply = new JsonObject();
-        reply.addProperty("user_id", "@" + ProtocolEventMapper.forUserIdFromGridToMatrix(session.getUser().getGridId().full()));
+        reply.addProperty("user_id", ProtocolEventMapper.forUserIdFromGridToMatrix(session.getUser().getGridId().full()));
         reply.addProperty("access_token", session.getAccessToken());
         reply.addProperty("device_id", RandomStringUtils.randomAlphanumeric(8));
 

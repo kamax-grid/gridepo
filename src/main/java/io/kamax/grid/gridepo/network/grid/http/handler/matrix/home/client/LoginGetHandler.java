@@ -20,12 +20,15 @@
 
 package io.kamax.grid.gridepo.network.grid.http.handler.matrix.home.client;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.auth.UIAuthSession;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.network.grid.ProtocolMapper;
 import io.kamax.grid.gridepo.network.matrix.http.handler.ClientApiHandler;
 import io.kamax.grid.gridepo.network.matrix.http.json.UIAuthJson;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
 public class LoginGetHandler extends ClientApiHandler {
 
@@ -37,9 +40,10 @@ public class LoginGetHandler extends ClientApiHandler {
 
     @Override
     protected void handle(Exchange exchange) {
-        UIAuthSession session = g.login();
-        UIAuthJson body = ProtocolMapper.g2m(session);
-        exchange.respondJson(body);
+        JsonObject flow  = GsonUtil.makeObj("type", "m.login.password");
+        JsonArray flows = GsonUtil.asArray(flow);
+        JsonObject response = GsonUtil.makeObj("flows", flows);
+        exchange.respondJson(response);
     }
 
 }
