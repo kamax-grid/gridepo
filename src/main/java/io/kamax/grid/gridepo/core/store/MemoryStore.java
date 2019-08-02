@@ -58,6 +58,10 @@ public class MemoryStore implements DataStore, IdentityStore {
     }
 
     public static synchronized MemoryStore get(String o) {
+        if (Objects.isNull(o)) {
+            o = "";
+        }
+
         return singleton.computeIfAbsent(o, k -> {
             log.debug("Creating new memory store for namespace {}", k);
             return new MemoryStore();
