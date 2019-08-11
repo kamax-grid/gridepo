@@ -25,12 +25,12 @@ import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.channel.state.ChannelEventAuthorization;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.network.grid.http.handler.grid.ServerApiHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.GridApiHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
 import java.util.List;
 
-public class DoPushHandler extends ServerApiHandler {
+public class DoPushHandler extends GridApiHandler {
 
     private final Gridepo g;
 

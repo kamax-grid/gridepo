@@ -32,9 +32,9 @@ import org.slf4j.Logger;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 
-public abstract class ServerApiHandler implements HttpHandler {
+public abstract class GridApiHandler implements HttpHandler {
 
-    private transient final Logger log = KxLog.make(ServerApiHandler.class);
+    private transient final Logger log = KxLog.make(GridApiHandler.class);
 
     @Override
     public void handleRequest(HttpServerExchange exchange) {

@@ -27,10 +27,10 @@ import io.kamax.grid.gridepo.core.identity.ThreePid;
 import io.kamax.grid.gridepo.core.identity.User;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.network.grid.http.handler.grid.ServerApiHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.GridApiHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class UserLookupHandler extends ServerApiHandler {
+public class UserLookupHandler extends GridApiHandler {
 
     private final Gridepo g;
 

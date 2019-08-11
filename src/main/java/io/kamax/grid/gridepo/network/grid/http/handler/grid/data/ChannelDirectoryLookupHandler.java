@@ -27,13 +27,13 @@ import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.channel.ChannelLookup;
 import io.kamax.grid.gridepo.exception.ObjectNotFoundException;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.network.grid.http.handler.grid.ServerApiHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.GridApiHandler;
 import io.kamax.grid.gridepo.network.grid.http.handler.grid.data.io.ChannelLookupResponse;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
 import java.util.HashSet;
 
-public class ChannelDirectoryLookupHandler extends ServerApiHandler {
+public class ChannelDirectoryLookupHandler extends GridApiHandler {
 
     private final Gridepo g;
 

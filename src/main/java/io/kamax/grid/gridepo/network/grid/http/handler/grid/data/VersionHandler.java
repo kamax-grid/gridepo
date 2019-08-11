@@ -21,10 +21,10 @@
 package io.kamax.grid.gridepo.network.grid.http.handler.grid.data;
 
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.network.grid.http.handler.grid.ServerApiHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.GridApiHandler;
 import io.kamax.grid.gridepo.util.GsonUtil;
 
-public class VersionHandler extends ServerApiHandler {
+public class VersionHandler extends GridApiHandler {
 
     private final String responseBody;
 

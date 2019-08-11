@@ -20,8 +20,6 @@
 
 package io.kamax.grid.gridepo.config;
 
-import com.google.gson.JsonObject;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +27,7 @@ import java.util.Map;
 
 public class UIAuthConfig {
 
-    public class Flow {
+    public static class Flow {
 
         private List<String> stages = new ArrayList<>();
 
@@ -48,7 +46,7 @@ public class UIAuthConfig {
     }
 
     private List<Flow> flows = new ArrayList<>();
-    private Map<String, JsonObject> parameters = new HashMap<>();
+    private Map<String, Object> parameters = new HashMap<>();
 
     public List<Flow> getFlows() {
         return flows;
@@ -64,11 +62,11 @@ public class UIAuthConfig {
         return f;
     }
 
-    public Map<String, JsonObject> getParameters() {
+    public Map<String, Object> getParameters() {
         return parameters;
     }
 
-    public void setParameters(Map<String, JsonObject> parameters) {
+    public void setParameters(Map<String, Object> parameters) {
         this.parameters = parameters;
     }
 

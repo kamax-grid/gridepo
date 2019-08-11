@@ -1,5 +1,4 @@
 /*
- * Gridepo - Grid Data Server
  * Copyright (C) 2019 Kamax Sarl
  *
  * https://www.kamax.io/
@@ -18,31 +17,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.kamax.grid.gridepo.network.grid.http.handler.grid.data;
+package io.kamax.grid.gridepo.network.grid.http.handler.grid.identity;
 
 import io.kamax.grid.gridepo.Gridepo;
-import io.kamax.grid.gridepo.core.ServerSession;
-import io.kamax.grid.gridepo.core.channel.event.BareMemberEvent;
-import io.kamax.grid.gridepo.core.channel.structure.ApprovalExchange;
 import io.kamax.grid.gridepo.http.handler.Exchange;
 import io.kamax.grid.gridepo.network.grid.http.handler.grid.GridApiHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.identity.json.UIAuthJson;
 
-public class DoApproveJoin extends GridApiHandler {
+public class LoginGetHandler extends GridApiHandler {
 
-    private final Gridepo g;
+    private Gridepo g;
 
-    public DoApproveJoin(Gridepo g) {
+    public LoginGetHandler(Gridepo g) {
         this.g = g;
     }
 
     @Override
     protected void handle(Exchange exchange) {
-        ServerSession s = g.forServer(exchange.authenticate());
-
-        BareMemberEvent evToApprove = exchange.parseJsonTo(BareMemberEvent.class);
-        ApprovalExchange reply = s.approveJoin(evToApprove);
-
-        exchange.respondJson(reply);
+        exchange.respondJson(UIAuthJson.from(g.login()));
     }
 
 }

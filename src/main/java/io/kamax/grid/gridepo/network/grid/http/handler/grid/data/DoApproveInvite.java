@@ -24,9 +24,9 @@ import io.kamax.grid.gridepo.Gridepo;
 import io.kamax.grid.gridepo.core.ServerSession;
 import io.kamax.grid.gridepo.core.channel.structure.InviteApprovalRequest;
 import io.kamax.grid.gridepo.http.handler.Exchange;
-import io.kamax.grid.gridepo.network.grid.http.handler.grid.ServerApiHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.GridApiHandler;
 
-public class DoApproveInvite extends ServerApiHandler {
+public class DoApproveInvite extends GridApiHandler {
 
     private final Gridepo g;
 

@@ -24,16 +24,13 @@ import com.google.gson.JsonObject;
 import io.kamax.grid.gridepo.config.UIAuthConfig;
 import io.kamax.grid.gridepo.core.auth.*;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.kamax.grid.gridepo.util.GsonUtil;
 
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class MultiStoreUIAuthSession implements UIAuthSession {
-
-    private static Logger log = LoggerFactory.getLogger(MultiStoreAuthService.class);
 
     private String id;
     private Instant createTs;
@@ -52,7 +49,9 @@ public class MultiStoreUIAuthSession implements UIAuthSession {
             });
         });
 
-        parameters.putAll(cfg.getParameters());
+        cfg.getParameters().forEach((k, v) -> {
+            parameters.put(k, GsonUtil.makeObj(v));
+        });
 
         cfg.getFlows().forEach(flowCfg -> {
             List<UIAuthStage> flowStages = new ArrayList<>();

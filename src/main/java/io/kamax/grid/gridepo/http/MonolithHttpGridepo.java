@@ -107,6 +107,7 @@ public class MonolithHttpGridepo {
 
         handler
                 .add("OPTIONS", "/identity/client", new OptionsHandler())
+                .get("/identity/client/v0/do/login", new io.kamax.grid.gridepo.network.grid.http.handler.grid.identity.LoginGetHandler(g)) // FIXME
         ;
     }
 

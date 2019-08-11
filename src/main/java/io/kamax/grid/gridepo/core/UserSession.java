@@ -167,9 +167,10 @@ public class UserSession {
                             .collect(Collectors.toList());
 
                     data.getEvents().addAll(events);
+                    break;
                 }
 
-                long waitTime = Math.min(options.getTimeout(), 1000L);
+                long waitTime = Math.max(options.getTimeout(), 0L);
                 if (waitTime > 0) {
                     try {
                         synchronized (this) {
