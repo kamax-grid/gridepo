@@ -169,6 +169,10 @@ public class Exchange {
         }
     }
 
+    public void respondJson(int status, Object o) {
+        respondJson(status, GsonUtil.toJson(o));
+    }
+
     public void respondJson(String body) {
         respondJson(200, body);
     }

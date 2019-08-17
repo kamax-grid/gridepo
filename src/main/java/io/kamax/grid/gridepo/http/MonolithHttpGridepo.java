@@ -26,6 +26,7 @@ import io.kamax.grid.gridepo.config.GridepoConfig;
 import io.kamax.grid.gridepo.core.MonolithGridepo;
 import io.kamax.grid.gridepo.network.grid.http.handler.grid.data.*;
 import io.kamax.grid.gridepo.network.grid.http.handler.grid.data.channel.GetEventHandler;
+import io.kamax.grid.gridepo.network.grid.http.handler.grid.identity.AuthHandler;
 import io.kamax.grid.gridepo.network.grid.http.handler.grid.identity.UserLookupHandler;
 import io.kamax.grid.gridepo.network.grid.http.handler.matrix.home.client.*;
 import io.kamax.grid.gridepo.network.matrix.http.HomeClientAPI;
@@ -107,6 +108,7 @@ public class MonolithHttpGridepo {
 
         handler
                 .add("OPTIONS", "/identity/client", new OptionsHandler())
+                .post("/identity/client/v0/do/auth", new AuthHandler(g))
                 .get("/identity/client/v0/do/login", new io.kamax.grid.gridepo.network.grid.http.handler.grid.identity.LoginGetHandler(g)) // FIXME
         ;
     }
