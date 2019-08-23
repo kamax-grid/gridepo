@@ -273,6 +273,7 @@ public class MonolithGridepo implements Gridepo {
         return getAuth().getSession(getConfig().getAuth());
     }
 
+    @Override
     public UserSession login(UIAuthSession auth) {
         if (!auth.isAuthenticated()) {
             throw new UnauthenticatedException(auth);

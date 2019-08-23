@@ -21,6 +21,8 @@
 package io.kamax.grid.gridepo.core.identity.store.memory;
 
 import io.kamax.grid.gridepo.config.IdentityConfig;
+import io.kamax.grid.gridepo.core.auth.Credentials;
+import io.kamax.grid.gridepo.core.identity.GenericThreePid;
 import io.kamax.grid.gridepo.core.identity.IdentityStore;
 import io.kamax.grid.gridepo.core.identity.IdentityStoreSupplier;
 import io.kamax.grid.gridepo.core.store.MemoryStore;
@@ -43,7 +45,11 @@ public class MemoryIdentityStoreSupplier implements IdentityStoreSupplier {
     @Override
     public IdentityStore build(IdentityConfig.Store cfg) {
         String id = GsonUtil.getStringOrThrow(GsonUtil.makeObj(cfg.getConfig()), "connection");
-        return MemoryStore.get(id);
+        MemoryStore store = MemoryStore.get(id);
+        long uLid = store.addUser("a");
+        store.addThreePid(uLid, new GenericThreePid("g.id.local.username", "a"));
+        store.addCredentials(uLid, new Credentials("g.auth.id.password", "a"));
+        return store;
     }
 
 }

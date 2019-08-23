@@ -90,6 +90,8 @@ public interface Gridepo {
 
     UserSession login(JsonObject credentials);
 
+    UserSession login(UIAuthSession auth);
+
     void logout(UserSession session);
 
     UserSession withToken(String token);
