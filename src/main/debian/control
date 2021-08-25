@@ -1,9 +1,0 @@
-Package: gridepo
-Maintainer: Kamax.io <foss@kamax.io>
-Homepage: https://gitlab.com/kamax-io/grid/gridepo
-Description: Data Server for The Grid protocol
-Architecture: all
-Section: net
-Priority: optional
-Depends: openjdk-8-jre | openjdk-8-jre-headless | openjdk-8-jdk | openjdk-8-jdk-headless
-Version: 0

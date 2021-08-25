@@ -1,2 +1,0 @@
-io.kamax.grid.gridepo.core.identity.store.memory.MemoryIdentityStoreSupplier
-io.kamax.grid.gridepo.core.identity.store.ldap.LdapIdentityStoreSupplier
